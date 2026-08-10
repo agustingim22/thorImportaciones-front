@@ -8,6 +8,7 @@ import {
   adminListProducts,
   adminPing,
   adminUpdateProduct,
+  adminUploadImage,
   clearToken,
   getToken,
   setToken,
@@ -40,6 +41,7 @@ export function AdminDashboard() {
   const [form, setForm] = useState<ProductInput>(EMPTY);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -125,6 +127,22 @@ export function AdminDashboard() {
     if (!confirm(`¿Borrar "${p.team}"? Esta acción no se puede deshacer.`)) return;
     await adminDeleteProduct(p.id);
     await load();
+  }
+
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFormError("");
+    setUploading(true);
+    try {
+      const url = await adminUploadImage(file);
+      setForm((f) => ({ ...f, imageUrl: url }));
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "No se pudo subir la imagen.");
+    } finally {
+      setUploading(false);
+      e.target.value = ""; // permite re-subir el mismo archivo
+    }
   }
 
   // ---- Estados de carga / login ----
@@ -313,13 +331,42 @@ export function AdminDashboard() {
                 </Field>
               </div>
 
-              <Field label="URL de imagen (opcional — Cloudinary más adelante)">
+              <Field label="Foto de la camiseta (opcional)">
+                <div className="flex items-center gap-3">
+                  {form.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={form.imageUrl}
+                      alt="Vista previa"
+                      className="h-16 w-16 rounded-lg border border-thor-line object-cover"
+                    />
+                  )}
+                  <label className="cursor-pointer rounded-lg border border-thor-line bg-thor-paper px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold">
+                    {uploading ? "Subiendo…" : form.imageUrl ? "Cambiar foto" : "Subir foto"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleUpload}
+                      disabled={uploading}
+                    />
+                  </label>
+                  {form.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, imageUrl: null })}
+                      className="font-mono text-xs text-thor-muted underline"
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
                 <input
                   type="url"
                   value={form.imageUrl ?? ""}
                   onChange={(e) => setForm({ ...form, imageUrl: e.target.value || null })}
-                  placeholder="https://..."
-                  className={inputCls}
+                  placeholder="…o pegá una URL de imagen"
+                  className={`${inputCls} mt-2`}
                 />
               </Field>
 

@@ -73,6 +73,21 @@ export async function adminUpdateProduct(id: number, input: ProductInput): Promi
   return res.json();
 }
 
+/** Sube una imagen a la API (que la reenvía a Cloudinary) y devuelve la URL. */
+export async function adminUploadImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`${API_BASE_URL}/api/admin/upload`, {
+    method: "POST",
+    // Sin Content-Type: el navegador pone el boundary de multipart automáticamente.
+    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+    body: fd,
+  });
+  if (!res.ok) throw await toError(res);
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}
+
 export async function adminDeleteProduct(id: number): Promise<void> {
   const res = await fetch(`${API_BASE_URL}/api/admin/products/${id}`, {
     method: "DELETE",
