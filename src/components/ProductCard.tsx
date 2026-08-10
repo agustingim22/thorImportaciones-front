@@ -1,10 +1,9 @@
 import Link from "next/link";
 import type { Product } from "@/lib/api";
-import { whatsappUrl } from "@/lib/site";
+import { AddToCartButton } from "./AddToCartButton";
 
 export function ProductCard({ product }: { product: Product }) {
   const isRetro = product.type === "retro";
-  const consultaMsg = `¡Hola Thor! Me interesa la camiseta "${product.team}" ($${product.price.toLocaleString("es-AR")}). ¿Está disponible?`;
 
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-thor-line bg-thor-paper transition-transform duration-200 hover:-translate-y-1">
@@ -51,14 +50,22 @@ export function ProductCard({ product }: { product: Product }) {
           <span className="font-mono text-lg font-bold text-thor-gold tabular-nums">
             ${product.price.toLocaleString("es-AR")}
           </span>
-          <a
-            href={whatsappUrl(consultaMsg)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg bg-thor-ink px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream transition-colors hover:bg-thor-ink-soft"
-          >
-            Consultar
-          </a>
+          {product.inStock ? (
+            <AddToCartButton
+              item={{
+                productId: product.id,
+                team: product.team,
+                price: product.price,
+                imageUrl: product.imageUrl,
+                colorCss: product.colorCss,
+                number: product.number,
+              }}
+            />
+          ) : (
+            <span className="rounded-lg border border-thor-line px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-muted">
+              Sin stock
+            </span>
+          )}
         </div>
 
         <Link

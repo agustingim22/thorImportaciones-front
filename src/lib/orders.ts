@@ -1,0 +1,62 @@
+import { API_BASE_URL } from "./api";
+
+export type CreateOrderPayload = {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  items: { productId: number; quantity: number }[];
+};
+
+export type CreateOrderResult = {
+  orderId: string;
+  total: number;
+  status: string;
+  checkoutUrl: string | null;
+};
+
+export async function createOrder(payload: CreateOrderPayload): Promise<CreateOrderResult> {
+  const res = await fetch(`${API_BASE_URL}/api/orders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let msg = `Error ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data?.errors) {
+        msg = Object.values(data.errors as Record<string, string[]>).flat().join(" ");
+      } else if (data?.error) {
+        msg = data.error;
+      }
+    } catch {
+      /* sin cuerpo */
+    }
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
+export type OrderStatus = {
+  orderId: string;
+  status: string;
+  total: number;
+  createdAt: string;
+  items: { productName: string; unitPrice: number; quantity: number }[];
+};
+
+export async function getOrder(orderId: string): Promise<OrderStatus> {
+  const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+/** Sincroniza el pago desde Mercado Pago al volver del checkout. */
+export async function syncPayment(paymentId: string): Promise<void> {
+  await fetch(`${API_BASE_URL}/api/orders/sync`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paymentId }),
+  });
+}

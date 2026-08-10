@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "./Logo";
+import { useCart } from "@/lib/cart";
 
 const LINKS = [
   { href: "/", label: "Inicio" },
@@ -16,6 +17,7 @@ const LINKS = [
 export function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { count } = useCart();
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -50,6 +52,18 @@ export function Nav() {
             className="hidden rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold hover:bg-thor-gold/10 sm:inline-block"
           >
             Pedido personalizado
+          </Link>
+          <Link
+            href="/carrito"
+            aria-label="Ver carrito"
+            className="relative grid h-10 w-10 place-items-center rounded-lg border border-thor-line text-thor-ink transition-colors hover:border-thor-gold"
+          >
+            <span aria-hidden className="text-lg leading-none">🛒</span>
+            {count > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-thor-gold px-1 font-mono text-[10px] font-bold text-thor-ink">
+                {count}
+              </span>
+            )}
           </Link>
           <button
             type="button"
