@@ -1,106 +1,144 @@
-import { getHealth, getProducts, API_BASE_URL, type Product } from "@/lib/api";
+import Link from "next/link";
+import { getProducts, type Product } from "@/lib/api";
+import { ProductCard } from "@/components/ProductCard";
 
-export const dynamic = "force-dynamic"; // siempre consulta la API en vivo
+export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  let products: Product[] = [];
-  let apiOk = false;
-  let apiError = "";
-
+  let featured: Product[] = [];
   try {
-    const [health, prods] = await Promise.all([getHealth(), getProducts()]);
-    apiOk = health.status === "ok";
-    products = prods;
-  } catch (e) {
-    apiError = e instanceof Error ? e.message : "error desconocido";
+    featured = (await getProducts()).slice(0, 3);
+  } catch {
+    featured = [];
   }
 
   return (
-    <main className="mx-auto flex min-h-full w-full max-w-3xl flex-1 flex-col justify-center gap-10 px-6 py-16">
-      {/* Marca provisoria — el logo real y el diseño completo llegan en el Tramo 01 */}
-      <div className="flex items-baseline gap-3">
-        <span
+    <>
+      {/* ===== HERO ===== */}
+      <section className="relative overflow-hidden border-b border-thor-line">
+        <div
           aria-hidden
-          className="grid h-9 w-9 place-items-center rounded-lg bg-thor-gold font-black text-thor-ink"
-        >
-          T
-        </span>
-        <div className="leading-none">
-          <p className="text-xl font-extrabold tracking-tight text-thor-ink dark:text-thor-cream">
-            THOR IMPORTACIONES
-          </p>
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-thor-muted">
-            Camisetas de fútbol
-          </p>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <span className="w-fit rounded-full bg-thor-gold/15 px-3 py-1 font-mono text-xs font-bold uppercase tracking-widest text-thor-gold">
-          Tramo 00 · Fundaciones
-        </span>
-        <h1 className="text-balance text-3xl font-extrabold tracking-tight text-thor-ink dark:text-thor-cream sm:text-4xl">
-          Base del proyecto lista.
-        </h1>
-        <p className="max-w-prose text-thor-muted">
-          Front en Next.js y API en C# .NET, conectados. Esta página es
-          provisoria: solo verifica que todo funciona de punta a punta. La
-          identidad visual y las páginas reales llegan en el Tramo 01.
-        </p>
-      </div>
-
-      {/* Estado de conexión con la API */}
-      <section className="rounded-2xl border border-thor-line/70 bg-thor-paper p-6 dark:border-white/10 dark:bg-white/5">
-        <div className="flex items-center gap-3">
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${apiOk ? "bg-thor-land" : "bg-red-500"}`}
-            aria-hidden
-          />
-          <h2 className="font-semibold text-thor-ink dark:text-thor-cream">
-            {apiOk ? "API conectada" : "API sin conexión"}
-          </h2>
-          <code className="ml-auto font-mono text-xs text-thor-muted">
-            {API_BASE_URL}
-          </code>
-        </div>
-
-        {apiOk ? (
-          <div className="mt-5">
-            <p className="text-sm text-thor-muted">
-              La API devolvió{" "}
-              <strong className="text-thor-ink dark:text-thor-cream">
-                {products.length}
-              </strong>{" "}
-              camisetas de ejemplo:
+          className="pointer-events-none absolute inset-0 opacity-70"
+          style={{
+            background:
+              "radial-gradient(60% 60% at 85% 0%, rgba(222,154,38,0.18), transparent 60%), radial-gradient(55% 55% at 0% 40%, rgba(47,143,184,0.14), transparent 60%)",
+          }}
+        />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-5 py-16 md:grid-cols-[1.1fr_0.9fr] md:py-24">
+          <div>
+            <p className="mb-5 flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.18em] text-thor-gold">
+              <span className="inline-block h-2 w-2 rotate-45 bg-thor-gold" />
+              Importado del mundo · Retro &amp; Player
             </p>
-            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              {products.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-thor-line/60 px-3 py-2 text-sm dark:border-white/10"
-                >
-                  <span className="truncate text-thor-ink dark:text-thor-cream">
-                    {p.team}
-                  </span>
-                  <span className="font-mono text-thor-gold tabular-nums">
-                    ${p.price.toLocaleString("es-AR")}
-                  </span>
-                </li>
-              ))}
+            <h1 className="text-balance font-display text-4xl leading-[0.98] tracking-wide text-thor-ink sm:text-6xl">
+              Traemos la camiseta que buscás.{" "}
+              <span className="text-thor-gold">De cualquier parte del mundo.</span>
+            </h1>
+            <p className="mt-5 max-w-md text-lg text-thor-ink-soft">
+              Camisetas de fútbol retro y versión jugador, importadas. Y si no está
+              en el catálogo, te la conseguimos con la tela, el número y el nombre
+              que quieras.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/camisetas"
+                className="rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink transition-transform hover:-translate-y-0.5"
+              >
+                Ver catálogo
+              </Link>
+              <Link
+                href="/pedido-personalizado"
+                className="rounded-xl border border-thor-line px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold hover:bg-thor-gold/10"
+              >
+                Pedido personalizado
+              </Link>
+            </div>
+            <ul className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-thor-line pt-6">
+              {["Importación directa", "Retro y versión jugador", "Envíos a todo el país"].map(
+                (t) => (
+                  <li
+                    key={t}
+                    className="flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-thor-muted"
+                  >
+                    <span className="text-thor-land">✓</span> {t}
+                  </li>
+                ),
+              )}
             </ul>
           </div>
-        ) : (
-          <div className="mt-4 rounded-lg bg-thor-cream/60 p-4 text-sm text-thor-muted dark:bg-black/20">
-            <p>
-              No pude hablar con la API{apiError ? ` (${apiError})` : ""}. Para
-              levantarla, en otra terminal:
+
+          {/* Visual: camiseta + badge boarding-pass */}
+          <div className="relative flex h-72 items-center justify-center md:h-96">
+            <div
+              className="jersey-shape flex h-64 w-56 items-center justify-center shadow-2xl shadow-black/10 md:h-80 md:w-72"
+              style={{ background: "linear-gradient(160deg,#FFC44D,#DE9A26)" }}
+            >
+              <span className="font-display text-8xl text-thor-ink/80">10</span>
+            </div>
+            <div className="absolute bottom-4 right-2 rounded-xl border border-thor-line bg-thor-paper px-4 py-3 font-mono text-[11px] text-thor-muted shadow-lg md:right-0">
+              <span className="block font-display text-sm tracking-wide text-thor-ink">
+                RETRO 1986
+              </span>
+              THOR · Poliéster clásico
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== DESTACADOS ===== */}
+      <section className="mx-auto max-w-6xl px-5 py-16">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="font-display text-3xl tracking-wide text-thor-ink sm:text-4xl">
+              Lo más pedido
+            </h2>
+            <p className="mt-1 text-sm text-thor-muted">
+              Una muestra de lo que tenemos importado y listo para enviar.
             </p>
-            <pre className="mt-2 overflow-x-auto rounded bg-thor-ink px-3 py-2 font-mono text-xs text-thor-cream">
-              cd thor-backend{"\n"}dotnet run --project src/Thor.Api
-            </pre>
+          </div>
+          <Link
+            href="/camisetas"
+            className="rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold hover:bg-thor-gold/10"
+          >
+            Ver todo el catálogo
+          </Link>
+        </div>
+
+        {featured.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {featured.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-thor-line bg-thor-paper p-10 text-center">
+            <p className="text-sm text-thor-muted">
+              Estamos cargando el catálogo. Volvé en un ratito o escribinos por
+              WhatsApp y te mostramos lo que tenemos.
+            </p>
           </div>
         )}
       </section>
-    </main>
+
+      {/* ===== PERSONALIZADO ===== */}
+      <section className="border-y border-thor-line bg-thor-cream-2">
+        <div className="mx-auto max-w-6xl px-5 py-16 text-center">
+          <h2 className="font-display text-3xl tracking-wide text-thor-ink sm:text-4xl">
+            ¿No está en el catálogo?
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-thor-ink-soft">
+            Somos importadores: decinos qué camiseta querés y la conseguimos con
+            nuestros proveedores, personalizada con la tela, el parche, el número y
+            el nombre que quieras.
+          </p>
+          <Link
+            href="/pedido-personalizado"
+            className="mt-7 inline-block rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink transition-transform hover:-translate-y-0.5"
+          >
+            Armar pedido personalizado
+          </Link>
+        </div>
+      </section>
+    </>
   );
 }

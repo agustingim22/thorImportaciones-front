@@ -1,33 +1,54 @@
 @import "tailwindcss";
 
-/* ===== Identidad Thor (paleta base del logo) =====
-   Estos tokens quedan disponibles como clases de Tailwind: bg-thor-gold,
-   text-thor-ink, border-thor-line, etc. En el Tramo 01 se construye sobre esto. */
+/* ===== Identidad Thor =====
+   Paleta tomada del logo (perro + avión + mundo): cálida y viajera.
+   El sitio se compromete con un look claro y cálido (no sigue el modo oscuro
+   del sistema operativo), para tener una identidad consistente. */
 @theme {
   --color-thor-ink: #14323f;
+  --color-thor-ink-soft: #33525e;
   --color-thor-gold: #de9a26;
+  --color-thor-gold-soft: #f6d89b;
   --color-thor-sky: #2f8fb8;
   --color-thor-land: #7c8a4c;
   --color-thor-cream: #faf4e7;
+  --color-thor-cream-2: #f4ebd7;
   --color-thor-paper: #ffffff;
   --color-thor-line: #e6d9c0;
   --color-thor-muted: #5f6e68;
+
+  --font-display: var(--font-anton);
+  --font-body: var(--font-manrope);
+  --font-mono: var(--font-jetbrains);
 }
 
 :root {
-  --background: var(--color-thor-cream);
-  --foreground: var(--color-thor-ink);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0e2731;
-    --foreground: #f3ebd8;
-  }
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--color-thor-cream);
+  color: var(--color-thor-ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-thor-gold);
+  color: #14323f;
+}
+
+/* Forma de camiseta reutilizable (placeholder hasta tener fotos reales) */
+.jersey-shape {
+  clip-path: polygon(
+    22% 0%, 38% 0%, 50% 14%, 62% 0%, 78% 0%, 100% 22%,
+    82% 40%, 74% 32%, 74% 100%, 26% 100%, 26% 32%, 18% 40%, 0% 22%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
