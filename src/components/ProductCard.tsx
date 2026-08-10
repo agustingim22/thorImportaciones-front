@@ -13,16 +13,25 @@ export function ProductCard({ product }: { product: Product }) {
         {isRetro ? "Retro Fan" : "Player Version"}
       </span>
 
-      {/* camiseta placeholder */}
+      {/* imagen real si existe; si no, camiseta placeholder */}
       <div className="relative flex h-56 items-center justify-center bg-thor-cream-2">
-        <div
-          className="jersey-shape flex h-40 w-36 items-center justify-center"
-          style={{ background: product.colorCss }}
-        >
-          <span className="font-display text-5xl text-thor-ink/80">
-            {product.number}
-          </span>
-        </div>
+        {product.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.imageUrl}
+            alt={product.team}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className="jersey-shape flex h-40 w-36 items-center justify-center"
+            style={{ background: product.colorCss }}
+          >
+            <span className="font-display text-5xl text-thor-ink/80">
+              {product.number}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* perforaciones tipo ticket + divisor punteado */}

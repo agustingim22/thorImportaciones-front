@@ -6,7 +6,7 @@ export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5184";
 
 export type Product = {
-  id: string;
+  id: number;
   slug: string;
   team: string;
   type: "retro" | "player";
@@ -14,8 +14,10 @@ export type Product = {
   price: number;
   fabric: string;
   colorCss: string;
+  imageUrl: string | null;
   description: string;
   inStock: boolean;
+  createdAt: string;
 };
 
 export type Health = {
@@ -30,9 +32,12 @@ export async function getHealth(): Promise<Health> {
   return res.json();
 }
 
-export async function getProducts(type?: "retro" | "player"): Promise<Product[]> {
+export async function getProducts(
+  params: { type?: "retro" | "player"; q?: string } = {},
+): Promise<Product[]> {
   const url = new URL(`${API_BASE_URL}/api/products`);
-  if (type) url.searchParams.set("type", type);
+  if (params.type) url.searchParams.set("type", params.type);
+  if (params.q) url.searchParams.set("q", params.q);
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`API respondió ${res.status}`);
   return res.json();
