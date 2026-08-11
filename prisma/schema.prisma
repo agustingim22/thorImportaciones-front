@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // conexión con pooling (la usa la app)
+  directUrl = env("DIRECT_URL")   // conexión directa (la usan las migraciones)
 }
 
 model Product {
