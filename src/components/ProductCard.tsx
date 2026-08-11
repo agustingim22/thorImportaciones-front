@@ -12,8 +12,11 @@ export function ProductCard({ product }: { product: Product }) {
         {isRetro ? "Retro Fan" : "Player Version"}
       </span>
 
-      {/* imagen real si existe; si no, camiseta placeholder */}
-      <div className="relative flex h-56 items-center justify-center bg-thor-cream-2">
+      {/* imagen (link al detalle) */}
+      <Link
+        href={`/producto/${product.slug}`}
+        className="relative flex h-56 items-center justify-center bg-thor-cream-2"
+      >
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -23,7 +26,7 @@ export function ProductCard({ product }: { product: Product }) {
           />
         ) : (
           <div
-            className="jersey-shape flex h-40 w-36 items-center justify-center"
+            className="jersey-shape flex h-40 w-36 items-center justify-center transition-transform group-hover:scale-105"
             style={{ background: product.colorCss }}
           >
             <span className="font-display text-5xl text-thor-ink/80">
@@ -31,7 +34,7 @@ export function ProductCard({ product }: { product: Product }) {
             </span>
           </div>
         )}
-      </div>
+      </Link>
 
       {/* perforaciones tipo ticket + divisor punteado */}
       <div className="relative">
@@ -41,9 +44,11 @@ export function ProductCard({ product }: { product: Product }) {
       </div>
 
       <div className="p-5">
-        <h3 className="font-body text-base font-extrabold text-thor-ink">
-          {product.team}
-        </h3>
+        <Link href={`/producto/${product.slug}`} className="block">
+          <h3 className="font-body text-base font-extrabold text-thor-ink transition-colors hover:text-thor-gold">
+            {product.team}
+          </h3>
+        </Link>
         <p className="mt-0.5 text-xs text-thor-muted">{product.fabric}</p>
 
         <div className="mt-4 flex items-center justify-between gap-3">
