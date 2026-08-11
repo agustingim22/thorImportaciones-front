@@ -14,6 +14,7 @@ import {
   setToken,
   type ProductInput,
 } from "@/lib/admin";
+import { AdminOrders } from "./AdminOrders";
 
 const EMPTY: ProductInput = {
   team: "",
@@ -30,6 +31,7 @@ const EMPTY: ProductInput = {
 
 export function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | null>(null);
+  const [tab, setTab] = useState<"products" | "orders">("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -180,17 +182,16 @@ export function AdminDashboard() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl tracking-wide text-thor-ink">Panel · Productos</h1>
-          <p className="text-sm text-thor-muted">{products.length} camisetas en el catálogo</p>
-        </div>
+        <h1 className="font-display text-3xl tracking-wide text-thor-ink">Panel Thor</h1>
         <div className="flex gap-2">
-          <button
-            onClick={openNew}
-            className="rounded-lg bg-thor-gold px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink"
-          >
-            + Nueva camiseta
-          </button>
+          {tab === "products" && (
+            <button
+              onClick={openNew}
+              className="rounded-lg bg-thor-gold px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink"
+            >
+              + Nueva camiseta
+            </button>
+          )}
           <button
             onClick={() => {
               clearToken();
@@ -203,7 +204,23 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* Pestañas */}
+      <div className="mt-5 inline-flex gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
+        {([["products", "Productos"], ["orders", "Pedidos"]] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`rounded-lg px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
+              tab === key ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Productos */}
+      {tab === "products" && (
       <div className="mt-6 overflow-x-auto rounded-2xl border border-thor-line bg-thor-paper">
         <table className="w-full text-sm">
           <thead>
@@ -265,6 +282,14 @@ export function AdminDashboard() {
           </tbody>
         </table>
       </div>
+      )}
+
+      {/* Pedidos */}
+      {tab === "orders" && (
+        <div className="mt-6">
+          <AdminOrders />
+        </div>
+      )}
 
       {/* Formulario (modal simple) */}
       {showForm && (

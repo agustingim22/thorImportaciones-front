@@ -96,6 +96,46 @@ export async function adminDeleteProduct(id: number): Promise<void> {
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+// ---- Pedidos ----
+export type AdminOrderItem = { productName: string; unitPrice: number; quantity: number };
+export type AdminCustomItem = {
+  reference: string;
+  fabric: string;
+  size: string;
+  patch: string | null;
+  number: string | null;
+  name: string | null;
+};
+export type AdminOrder = {
+  publicId: string;
+  kind: "Stock" | "Custom";
+  status: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  notes: string | null;
+  total: number;
+  createdAt: string;
+  items: AdminOrderItem[];
+  customItems: AdminCustomItem[];
+};
+
+export async function adminListOrders(): Promise<AdminOrder[]> {
+  const res = await fetch(`/api/admin/orders`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminSetOrderStatus(publicId: string, status: string): Promise<void> {
+  const res = await fetch(`/api/admin/orders/${publicId}/status`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
 async function toError(res: Response): Promise<Error> {
   try {
     const data = await res.json();
