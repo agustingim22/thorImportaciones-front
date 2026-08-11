@@ -1,0 +1,49 @@
+// Prisma + PostgreSQL — modelo de datos de Thor Importaciones.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  slug        String   @unique
+  team        String
+  type        String   // "retro" | "player"
+  number      Int
+  price       Int      // ARS
+  fabric      String
+  colorCss    String
+  imageUrl    String?
+  description String
+  inStock     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  publicId        String      @unique
+  kind            String      @default("Stock") // "Stock" | "Custom"
+  status          String      @default("Pending") // Pending | Paid | Cancelled | Delivered
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  shippingAddress String
+  total           Int
+  paymentId       String?
+  createdAt       DateTime    @default(now())
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id          Int    @id @default(autoincrement())
+  orderId     Int
+  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   Int
+  productName String
+  unitPrice   Int
+  quantity    Int
+}

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getProducts, type Product } from "@/lib/api";
+import { getProducts } from "@/lib/products";
+import type { Product } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 
 export const dynamic = "force-dynamic";

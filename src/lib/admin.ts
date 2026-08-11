@@ -1,6 +1,6 @@
 "use client";
 
-import { API_BASE_URL, type Product } from "./api";
+import type { Product } from "./api";
 
 const TOKEN_KEY = "thor-admin-token";
 
@@ -37,14 +37,14 @@ function authHeaders(): HeadersInit {
 
 /** Valida el token contra la API. */
 export async function adminPing(token: string): Promise<boolean> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/ping`, {
+  const res = await fetch(`/api/admin/ping`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.ok;
 }
 
 export async function adminListProducts(): Promise<Product[]> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/products`, {
+  const res = await fetch(`/api/admin/products`, {
     headers: authHeaders(),
     cache: "no-store",
   });
@@ -54,7 +54,7 @@ export async function adminListProducts(): Promise<Product[]> {
 
 /** Devuelve el producto creado, o lanza con los mensajes de validación. */
 export async function adminCreateProduct(input: ProductInput): Promise<Product> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/products`, {
+  const res = await fetch(`/api/admin/products`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(input),
@@ -64,7 +64,7 @@ export async function adminCreateProduct(input: ProductInput): Promise<Product> 
 }
 
 export async function adminUpdateProduct(id: number, input: ProductInput): Promise<Product> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/products/${id}`, {
+  const res = await fetch(`/api/admin/products/${id}`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(input),
@@ -77,7 +77,7 @@ export async function adminUpdateProduct(id: number, input: ProductInput): Promi
 export async function adminUploadImage(file: File): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
-  const res = await fetch(`${API_BASE_URL}/api/admin/upload`, {
+  const res = await fetch(`/api/admin/upload`, {
     method: "POST",
     // Sin Content-Type: el navegador pone el boundary de multipart automáticamente.
     headers: { Authorization: `Bearer ${getToken() ?? ""}` },
@@ -89,7 +89,7 @@ export async function adminUploadImage(file: File): Promise<string> {
 }
 
 export async function adminDeleteProduct(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/products/${id}`, {
+  const res = await fetch(`/api/admin/products/${id}`, {
     method: "DELETE",
     headers: authHeaders(),
   });

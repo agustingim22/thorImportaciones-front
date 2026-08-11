@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getProducts, type Product } from "@/lib/api";
+import { getProducts } from "@/lib/products";
+import type { Product } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { PageHeader } from "@/components/PageHeader";
 

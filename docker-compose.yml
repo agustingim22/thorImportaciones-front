@@ -1,0 +1,28 @@
+# Base de datos PostgreSQL para desarrollo local.
+#   docker compose up -d      → levantar
+#   docker compose down       → apagar (los datos quedan en el volumen)
+#
+# Credenciales de DESARROLLO. En producción la base la administra el proveedor
+# (Neon/Supabase/Railway) y la connection string va en la variable DATABASE_URL.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: thor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: thor
+      POSTGRES_PASSWORD: thor_dev_password
+      POSTGRES_DB: thor
+    ports:
+      - "5432:5432"
+    volumes:
+      - thor-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thor -d thor"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  thor-pgdata:

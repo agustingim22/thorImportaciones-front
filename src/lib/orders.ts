@@ -1,5 +1,3 @@
-import { API_BASE_URL } from "./api";
-
 export type CreateOrderPayload = {
   customerName: string;
   customerEmail: string;
@@ -16,7 +14,7 @@ export type CreateOrderResult = {
 };
 
 export async function createOrder(payload: CreateOrderPayload): Promise<CreateOrderResult> {
-  const res = await fetch(`${API_BASE_URL}/api/orders`, {
+  const res = await fetch(`/api/orders`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -47,14 +45,14 @@ export type OrderStatus = {
 };
 
 export async function getOrder(orderId: string): Promise<OrderStatus> {
-  const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, { cache: "no-store" });
+  const res = await fetch(`/api/orders/${orderId}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
 }
 
 /** Sincroniza el pago desde Mercado Pago al volver del checkout. */
 export async function syncPayment(paymentId: string): Promise<void> {
-  await fetch(`${API_BASE_URL}/api/orders/sync`, {
+  await fetch(`/api/orders/sync`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ paymentId }),
