@@ -36,6 +36,45 @@ export async function createOrder(payload: CreateOrderPayload): Promise<CreateOr
   return res.json();
 }
 
+export type CustomItemInput = {
+  reference: string;
+  fabric: string;
+  size: string;
+  patch: string;
+  number: string;
+  name: string;
+};
+
+export type CustomOrderPayload = {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  shippingAddress: string;
+  notes: string;
+  items: CustomItemInput[];
+};
+
+/** Crea un pedido personalizado "en stand by". Devuelve el número de pedido. */
+export async function createCustomOrder(payload: CustomOrderPayload): Promise<string> {
+  const res = await fetch(`/api/custom-orders`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    let msg = `Error ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data?.errors) msg = Object.values(data.errors as Record<string, string[]>).flat().join(" ");
+    } catch {
+      /* sin cuerpo */
+    }
+    throw new Error(msg);
+  }
+  const data = (await res.json()) as { orderId: string };
+  return data.orderId;
+}
+
 export type OrderStatus = {
   orderId: string;
   status: string;

@@ -24,18 +24,32 @@ model Product {
 }
 
 model Order {
-  id              Int         @id @default(autoincrement())
-  publicId        String      @unique
-  kind            String      @default("Stock") // "Stock" | "Custom"
-  status          String      @default("Pending") // Pending | Paid | Cancelled | Delivered
+  id              Int          @id @default(autoincrement())
+  publicId        String       @unique
+  kind            String       @default("Stock") // "Stock" | "Custom"
+  status          String       @default("Pending") // Pending | Paid | Cancelled | Delivered
   customerName    String
   customerEmail   String
   customerPhone   String
   shippingAddress String
+  notes           String?
   total           Int
   paymentId       String?
-  createdAt       DateTime    @default(now())
+  createdAt       DateTime     @default(now())
   items           OrderItem[]
+  customItems     CustomItem[]
+}
+
+model CustomItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reference String  // link o descripción de la camiseta
+  fabric    String
+  size      String
+  patch     String?
+  number    String?
+  name      String?
 }
 
 model OrderItem {

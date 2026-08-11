@@ -5,8 +5,8 @@
 export const SITE = {
   name: "Thor Importaciones",
   tagline: "Camisetas de fútbol",
-  // TODO: reemplazar por el número real (formato internacional sin +, ej 54911...).
-  whatsappNumber: "5491100000000",
+  // Número de WhatsApp del negocio (formato internacional sin +).
+  whatsappNumber: "5493564578649",
   instagram: "https://instagram.com/thorcamisetas",
   email: "hola@thorimportaciones.com",
 } as const;
