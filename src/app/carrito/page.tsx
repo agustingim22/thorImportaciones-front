@@ -88,12 +88,20 @@ export default function CarritoPage() {
           Tu número de pedido es <strong className="font-mono text-thor-ink">{result.orderId}</strong>. Te
           contactamos para coordinar el pago.
         </p>
-        <Link
-          href="/camisetas"
-          className="mt-8 inline-block rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"
-        >
-          Seguir viendo camisetas
-        </Link>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/camisetas"
+            className="rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"
+          >
+            Seguir viendo camisetas
+          </Link>
+          <Link
+            href={`/pedido?id=${result.orderId}`}
+            className="rounded-xl border border-thor-line px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold"
+          >
+            Seguir mi pedido
+          </Link>
+        </div>
       </div>
     );
   }
@@ -382,12 +390,20 @@ function TransferResult({ orderId, total }: { orderId: string; total: number }) 
         </p>
       </div>
 
-      <Link
-        href="/camisetas"
-        className="mt-8 block text-center font-mono text-xs uppercase tracking-wider text-thor-muted underline"
-      >
-        Seguir viendo camisetas
-      </Link>
+      <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2">
+        <Link
+          href="/camisetas"
+          className="text-center font-mono text-xs uppercase tracking-wider text-thor-muted underline"
+        >
+          Seguir viendo camisetas
+        </Link>
+        <Link
+          href={`/pedido?id=${orderId}`}
+          className="text-center font-mono text-xs uppercase tracking-wider text-thor-muted underline"
+        >
+          Seguir mi pedido
+        </Link>
+      </div>
     </div>
   );
 }

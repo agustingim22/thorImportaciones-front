@@ -1,6 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
-import { SITE } from "../site";
+import { SITE, SITE_URL } from "../site";
 
 export function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
@@ -40,6 +40,14 @@ function layout(title: string, bodyHtml: string): string {
     </div>
   </body>
 </html>`;
+}
+
+function trackingLink(publicId: string): string {
+  return `<p style="text-align:center;margin:20px 0 4px;">
+    <a href="${SITE_URL}/pedido?id=${publicId}" style="color:#DE9A26;font-size:13px;font-weight:700;text-decoration:none;">
+      Seguir el estado de mi pedido →
+    </a>
+  </p>`;
 }
 
 type OrderItemLine = {
@@ -91,6 +99,7 @@ export async function sendOrderConfirmation(order: {
       Total: $${order.total.toLocaleString("es-AR")}
     </p>
     <p style="color:#5F6E68;font-size:13px;">Te avisamos apenas se confirme el pago.</p>
+    ${trackingLink(order.publicId)}
   `;
   await send(order.customerEmail, `Pedido confirmado #${order.publicId}`, layout("¡Pedido recibido!", body));
 }
@@ -123,6 +132,7 @@ export async function sendCustomOrderConfirmation(order: {
     <p style="font-family:monospace;font-size:13px;color:#14323F;">Pedido #${order.publicId}</p>
     <ul style="padding-left:18px;margin:12px 0;">${rows}</ul>
     <p style="color:#5F6E68;font-size:13px;">Te contactamos por WhatsApp para coordinar precio final, tiempos y forma de pago.</p>
+    ${trackingLink(order.publicId)}
   `;
   await send(order.customerEmail, `Pedido personalizado recibido #${order.publicId}`, layout("¡Pedido recibido!", body));
 }
@@ -141,6 +151,7 @@ export async function sendPaymentConfirmation(order: {
       Total pagado: $${order.total.toLocaleString("es-AR")}
     </p>
     <p style="color:#5F6E68;font-size:13px;">Ya estamos preparando tu envío.</p>
+    ${trackingLink(order.publicId)}
   `;
   await send(order.customerEmail, `Pago confirmado — pedido #${order.publicId}`, layout("¡Pago confirmado!", body));
 }

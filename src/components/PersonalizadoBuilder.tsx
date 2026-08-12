@@ -120,12 +120,20 @@ export function PersonalizadoBuilder() {
           Se abrió WhatsApp con el resumen — mandanos el mensaje y coordinamos precio final, tiempo
           de importación y forma de pago.
         </p>
-        <Link
-          href="/camisetas"
-          className="mt-8 inline-block rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"
-        >
-          Volver al catálogo
-        </Link>
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <Link
+            href="/camisetas"
+            className="rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"
+          >
+            Volver al catálogo
+          </Link>
+          <Link
+            href={`/pedido?id=${done}`}
+            className="rounded-xl border border-thor-line px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold"
+          >
+            Seguir mi pedido
+          </Link>
+        </div>
       </div>
     );
   }

@@ -6,6 +6,7 @@ const LINKS = [
   { href: "/camisetas", label: "Camisetas" },
   { href: "/talles", label: "Guía de talles" },
   { href: "/preguntas-frecuentes", label: "Preguntas frecuentes" },
+  { href: "/pedido", label: "Seguir mi pedido" },
   { href: "/contacto", label: "Contacto" },
 ];
 
