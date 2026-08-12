@@ -27,7 +27,15 @@ function detalle(o: AdminOrder): string {
       )
       .join("  ||  ");
   }
-  return o.items.map((i) => `${i.productName} x${i.quantity} ($${i.unitPrice})`).join("  ||  ");
+  return o.items
+    .map((i) => {
+      let line = `${i.productName} x${i.quantity} ($${i.unitPrice})`;
+      if (i.customName) line += ` | Nombre: ${i.customName}`;
+      if (i.customNumber) line += ` | N°: ${i.customNumber}`;
+      if (i.patchLabel) line += ` | Parche: ${i.patchLabel}`;
+      return line;
+    })
+    .join("  ||  ");
 }
 
 function formatAddress(o: AdminOrder): string {

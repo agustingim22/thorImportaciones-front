@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Product } from "@/lib/api";
+import { PRODUCT_TYPE_LABELS } from "@/lib/api";
 import {
   adminCreateProduct,
   adminDeleteProduct,
@@ -12,20 +13,24 @@ import {
   clearToken,
   getToken,
   setToken,
+  type PatchInput,
   type ProductInput,
 } from "@/lib/admin";
 import { AdminOrders } from "./AdminOrders";
 
+const TYPES = Object.entries(PRODUCT_TYPE_LABELS) as [ProductInput["type"], string][];
+
 const EMPTY: ProductInput = {
   team: "",
   type: "retro",
-  number: 0,
   price: 0,
-  fabric: "",
   colorCss: "",
-  imageUrl: null,
+  images: [],
   description: "",
   inStock: true,
+  presetName: null,
+  presetNumber: null,
+  patches: [],
   slug: null,
 };
 
@@ -43,7 +48,7 @@ export function AdminDashboard() {
   const [form, setForm] = useState<ProductInput>(EMPTY);
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,13 +101,14 @@ export function AdminDashboard() {
     setForm({
       team: p.team,
       type: p.type,
-      number: p.number,
       price: p.price,
-      fabric: p.fabric,
       colorCss: p.colorCss,
-      imageUrl: p.imageUrl,
+      images: p.images,
       description: p.description,
       inStock: p.inStock,
+      presetName: p.presetName,
+      presetNumber: p.presetNumber,
+      patches: p.patches.map(({ label, imageUrl, extraPrice }) => ({ label, imageUrl, extraPrice })),
       slug: p.slug,
     });
     setFormError("");
@@ -114,8 +120,13 @@ export function AdminDashboard() {
     setFormError("");
     setSaving(true);
     try {
-      if (editingId) await adminUpdateProduct(editingId, form);
-      else await adminCreateProduct(form);
+      // Descartamos parches que quedaron incompletos (sin foto o sin nombre)
+      const payload: ProductInput = {
+        ...form,
+        patches: form.patches.filter((p) => p.label.trim() && p.imageUrl.trim()),
+      };
+      if (editingId) await adminUpdateProduct(editingId, payload);
+      else await adminCreateProduct(payload);
       setShowForm(false);
       await load();
     } catch (err) {
@@ -131,19 +142,52 @@ export function AdminDashboard() {
     await load();
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  // ---- Galería (hasta 3 fotos) ----
+  async function handleAddGalleryImage(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setFormError("");
-    setUploading(true);
+    setUploadingSlot("gallery");
     try {
       const url = await adminUploadImage(file);
-      setForm((f) => ({ ...f, imageUrl: url }));
+      setForm((f) => ({ ...f, images: [...f.images, url] }));
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "No se pudo subir la imagen.");
     } finally {
-      setUploading(false);
-      e.target.value = ""; // permite re-subir el mismo archivo
+      setUploadingSlot(null);
+      e.target.value = "";
+    }
+  }
+  function removeGalleryImage(index: number) {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
+  }
+
+  // ---- Parches ----
+  function addPatchRow() {
+    setForm((f) => ({ ...f, patches: [...f.patches, { label: "", imageUrl: "", extraPrice: 0 }] }));
+  }
+  function removePatchRow(index: number) {
+    setForm((f) => ({ ...f, patches: f.patches.filter((_, i) => i !== index) }));
+  }
+  function patchField<K extends keyof PatchInput>(index: number, field: K, value: PatchInput[K]) {
+    setForm((f) => ({
+      ...f,
+      patches: f.patches.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
+    }));
+  }
+  async function handlePatchUpload(index: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setFormError("");
+    setUploadingSlot(`patch-${index}`);
+    try {
+      const url = await adminUploadImage(file);
+      patchField(index, "imageUrl", url);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "No se pudo subir la imagen.");
+    } finally {
+      setUploadingSlot(null);
+      e.target.value = "";
     }
   }
 
@@ -226,8 +270,8 @@ export function AdminDashboard() {
           <thead>
             <tr className="border-b border-thor-line text-left font-mono text-[11px] uppercase tracking-wide text-thor-muted">
               <th className="px-4 py-3">Camiseta</th>
-              <th className="px-4 py-3">Tipo</th>
-              <th className="px-4 py-3">N°</th>
+              <th className="px-4 py-3">Versión</th>
+              <th className="px-4 py-3">Nombre / N°</th>
               <th className="px-4 py-3">Precio</th>
               <th className="px-4 py-3">Stock</th>
               <th className="px-4 py-3 text-right">Acciones</th>
@@ -245,10 +289,18 @@ export function AdminDashboard() {
               products.map((p) => (
                 <tr key={p.id} className="border-b border-thor-line last:border-0">
                   <td className="px-4 py-3 font-semibold text-thor-ink">{p.team}</td>
+                  <td className="px-4 py-3 text-thor-muted">{PRODUCT_TYPE_LABELS[p.type]}</td>
                   <td className="px-4 py-3 text-thor-muted">
-                    {p.type === "retro" ? "Retro" : "Player"}
+                    {p.presetName || p.presetNumber ? (
+                      <>
+                        {p.presetName}
+                        {p.presetName && p.presetNumber ? " · " : ""}
+                        {p.presetNumber && `#${p.presetNumber}`}
+                      </>
+                    ) : (
+                      <span className="italic">a elección</span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 tabular-nums">{p.number}</td>
                   <td className="px-4 py-3 font-mono tabular-nums text-thor-gold">
                     ${p.price.toLocaleString("es-AR")}
                   </td>
@@ -296,7 +348,7 @@ export function AdminDashboard() {
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
           <form
             onSubmit={handleSave}
-            className="mt-10 w-full max-w-lg rounded-2xl border border-thor-line bg-thor-cream p-6"
+            className="mt-10 w-full max-w-xl rounded-2xl border border-thor-line bg-thor-cream p-6"
           >
             <h2 className="font-display text-2xl tracking-wide text-thor-ink">
               {editingId ? "Editar camiseta" : "Nueva camiseta"}
@@ -313,31 +365,19 @@ export function AdminDashboard() {
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Tipo">
+                <Field label="Versión">
                   <select
                     value={form.type}
-                    onChange={(e) =>
-                      setForm({ ...form, type: e.target.value as "retro" | "player" })
-                    }
+                    onChange={(e) => setForm({ ...form, type: e.target.value as ProductInput["type"] })}
                     className={inputCls}
                   >
-                    <option value="retro">Retro Fan</option>
-                    <option value="player">Player Version</option>
+                    {TYPES.map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
                   </select>
                 </Field>
-                <Field label="Número (0-99)">
-                  <input
-                    type="number"
-                    min={0}
-                    max={99}
-                    value={form.number}
-                    onChange={(e) => setForm({ ...form, number: Number(e.target.value) })}
-                    className={inputCls}
-                  />
-                </Field>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <Field label="Precio (ARS)">
                   <input
                     type="number"
@@ -347,53 +387,131 @@ export function AdminDashboard() {
                     className={inputCls}
                   />
                 </Field>
-                <Field label="Tela">
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Nombre predefinido (opcional)">
                   <input
-                    value={form.fabric}
-                    onChange={(e) => setForm({ ...form, fabric: e.target.value })}
+                    value={form.presetName ?? ""}
+                    onChange={(e) => setForm({ ...form, presetName: e.target.value || null })}
+                    placeholder="Ej: GONZÁLEZ"
                     className={inputCls}
                   />
                 </Field>
+                <Field label="Número predefinido (opcional)">
+                  <input
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={form.presetNumber ?? ""}
+                    onChange={(e) => setForm({ ...form, presetNumber: e.target.value || null })}
+                    placeholder="10"
+                    className={inputCls}
+                  />
+                </Field>
+                <p className="col-span-2 -mt-1 text-[11px] text-thor-muted">
+                  Si dejás estos dos vacíos, el comprador elige su propio nombre y número al comprar.
+                </p>
               </div>
 
-              <Field label="Foto de la camiseta (opcional)">
-                <div className="flex items-center gap-3">
-                  {form.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={form.imageUrl}
-                      alt="Vista previa"
-                      className="h-16 w-16 rounded-lg border border-thor-line object-cover"
-                    />
-                  )}
-                  <label className="cursor-pointer rounded-lg border border-thor-line bg-thor-paper px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold">
-                    {uploading ? "Subiendo…" : form.imageUrl ? "Cambiar foto" : "Subir foto"}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleUpload}
-                      disabled={uploading}
-                    />
-                  </label>
-                  {form.imageUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, imageUrl: null })}
-                      className="font-mono text-xs text-thor-muted underline"
-                    >
-                      Quitar
-                    </button>
+              {/* Galería de fotos */}
+              <Field label={`Fotos de la camiseta (${form.images.length}/3)`}>
+                <div className="flex flex-wrap items-center gap-3">
+                  {form.images.map((url, i) => (
+                    <div key={i} className="relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Foto ${i + 1}`}
+                        className="h-16 w-16 rounded-lg border border-thor-line object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryImage(i)}
+                        className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-thor-ink text-[10px] text-thor-cream"
+                        aria-label="Quitar foto"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                  {form.images.length < 3 && (
+                    <label className="cursor-pointer rounded-lg border border-thor-line bg-thor-paper px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold">
+                      {uploadingSlot === "gallery" ? "Subiendo…" : "+ Agregar foto"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleAddGalleryImage}
+                        disabled={uploadingSlot === "gallery"}
+                      />
+                    </label>
                   )}
                 </div>
-                <input
-                  type="url"
-                  value={form.imageUrl ?? ""}
-                  onChange={(e) => setForm({ ...form, imageUrl: e.target.value || null })}
-                  placeholder="…o pegá una URL de imagen"
-                  className={`${inputCls} mt-2`}
-                />
               </Field>
+
+              {/* Parches */}
+              <div>
+                <span className="mb-1 block font-mono text-[11px] uppercase tracking-wide text-thor-muted">
+                  Parches (opcional — el comprador elige uno)
+                </span>
+                <div className="flex flex-col gap-2">
+                  {form.patches.map((patch, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 rounded-lg border border-thor-line bg-thor-paper p-2"
+                    >
+                      {patch.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={patch.imageUrl}
+                          alt={patch.label}
+                          className="h-11 w-11 shrink-0 rounded-md border border-thor-line object-cover"
+                        />
+                      ) : (
+                        <label className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-md border border-dashed border-thor-line font-mono text-[9px] uppercase text-thor-muted">
+                          {uploadingSlot === `patch-${i}` ? "…" : "Foto"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => handlePatchUpload(i, e)}
+                            disabled={uploadingSlot === `patch-${i}`}
+                          />
+                        </label>
+                      )}
+                      <input
+                        value={patch.label}
+                        onChange={(e) => patchField(i, "label", e.target.value)}
+                        placeholder="Nombre del parche"
+                        className={`${inputCls} flex-1`}
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        value={patch.extraPrice}
+                        onChange={(e) => patchField(i, "extraPrice", Number(e.target.value))}
+                        placeholder="Extra $"
+                        className={`${inputCls} w-24`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removePatchRow(i)}
+                        className="shrink-0 font-mono text-xs text-thor-muted underline hover:text-red-600"
+                      >
+                        Quitar
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addPatchRow}
+                    className="w-fit rounded-lg border border-thor-line px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold hover:bg-thor-gold/10"
+                  >
+                    + Agregar parche
+                  </button>
+                </div>
+              </div>
 
               <Field label="Descripción">
                 <textarea

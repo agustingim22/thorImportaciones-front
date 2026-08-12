@@ -16,7 +16,13 @@ type Body = {
   apartment?: string;
   deliveryNotes?: string;
   paymentMethod?: "MercadoPago" | "Transfer";
-  items?: { productId: number; quantity: number }[];
+  items?: {
+    productId: number;
+    quantity: number;
+    customName?: string | null;
+    customNumber?: string | null;
+    patchId?: number | null;
+  }[];
 };
 
 export async function POST(req: Request) {
@@ -35,16 +41,49 @@ export async function POST(req: Request) {
   if (!Array.isArray(body.items) || body.items.length === 0) errors.items = ["El carrito está vacío."];
   if (Object.keys(errors).length) return NextResponse.json({ errors }, { status: 400 });
 
-  // Precios SIEMPRE desde la base (el cliente solo manda productId + quantity)
-  const itemsData: { productId: number; productName: string; unitPrice: number; quantity: number }[] = [];
+  // Precios y personalización SIEMPRE resueltos desde la base:
+  // - el precio del parche viene del producto, no de lo que mande el cliente.
+  // - si el producto tiene nombre/número predefinidos, se ignora lo que mande el cliente.
+  const itemsData: {
+    productId: number;
+    productName: string;
+    unitPrice: number;
+    quantity: number;
+    customName: string | null;
+    customNumber: string | null;
+    patchLabel: string | null;
+    patchExtraPrice: number | null;
+  }[] = [];
+
   for (const line of body.items!) {
     const qty = Number(line.quantity);
     if (!Number.isInteger(qty) || qty <= 0)
       return NextResponse.json({ error: "Cantidad inválida." }, { status: 400 });
-    const product = await prisma.product.findUnique({ where: { id: Number(line.productId) } });
+
+    const product = await prisma.product.findUnique({
+      where: { id: Number(line.productId) },
+      include: { patches: true },
+    });
     if (!product || !product.inStock)
       return NextResponse.json({ error: `Producto no disponible (id ${line.productId}).` }, { status: 400 });
-    itemsData.push({ productId: product.id, productName: product.team, unitPrice: product.price, quantity: qty });
+
+    let patch = null;
+    if (line.patchId != null) {
+      patch = product.patches.find((p) => p.id === Number(line.patchId));
+      if (!patch)
+        return NextResponse.json({ error: "El parche elegido no es válido para ese producto." }, { status: 400 });
+    }
+
+    itemsData.push({
+      productId: product.id,
+      productName: product.team,
+      unitPrice: product.price + (patch?.extraPrice ?? 0),
+      quantity: qty,
+      customName: product.presetName ?? (line.customName?.trim() || null),
+      customNumber: product.presetNumber ?? (line.customNumber?.trim() || null),
+      patchLabel: patch?.label ?? null,
+      patchExtraPrice: patch ? patch.extraPrice : null,
+    });
   }
 
   const total = itemsData.reduce((s, i) => s + i.unitPrice * i.quantity, 0);

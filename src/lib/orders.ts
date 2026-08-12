@@ -8,12 +8,20 @@ export type ShippingAddress = {
   deliveryNotes: string;
 };
 
+export type OrderItemInput = {
+  productId: number;
+  quantity: number;
+  customName?: string | null;
+  customNumber?: string | null;
+  patchId?: number | null;
+};
+
 export type CreateOrderPayload = ShippingAddress & {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
   paymentMethod: "MercadoPago" | "Transfer";
-  items: { productId: number; quantity: number }[];
+  items: OrderItemInput[];
 };
 
 export type CreateOrderResult = {

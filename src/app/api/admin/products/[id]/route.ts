@@ -22,10 +22,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     slug = await uniqueSlug(input.slug, existing.id);
   }
 
-  const product = await prisma.product.update({
-    where: { id: productId },
-    data: toProductData(input, slug),
-  });
+  // Reemplazamos los parches por completo (más simple que hacer diff con los existentes)
+  const [product] = await prisma.$transaction([
+    prisma.product.update({
+      where: { id: productId },
+      data: {
+        ...toProductData(input, slug),
+        patches: {
+          deleteMany: {},
+          create: (input.patches ?? []).map((p) => ({
+            label: p.label.trim(),
+            imageUrl: p.imageUrl.trim(),
+            extraPrice: p.extraPrice,
+          })),
+        },
+      },
+      include: { patches: true },
+    }),
+  ]);
   return NextResponse.json(product);
 }
 

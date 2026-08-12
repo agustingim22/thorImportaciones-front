@@ -1,19 +1,26 @@
 "use client";
 
-import type { Product } from "./api";
+import type { Product, ProductType } from "./api";
 
 const TOKEN_KEY = "thor-admin-token";
 
+export type PatchInput = {
+  label: string;
+  imageUrl: string;
+  extraPrice: number;
+};
+
 export type ProductInput = {
   team: string;
-  type: "retro" | "player";
-  number: number;
+  type: ProductType;
   price: number;
-  fabric: string;
   colorCss: string;
-  imageUrl: string | null;
+  images: string[]; // hasta 3 fotos
   description: string;
   inStock: boolean;
+  presetName: string | null;
+  presetNumber: string | null;
+  patches: PatchInput[];
   slug: string | null;
 };
 
@@ -97,7 +104,15 @@ export async function adminDeleteProduct(id: number): Promise<void> {
 }
 
 // ---- Pedidos ----
-export type AdminOrderItem = { productName: string; unitPrice: number; quantity: number };
+export type AdminOrderItem = {
+  productName: string;
+  unitPrice: number;
+  quantity: number;
+  customName: string | null;
+  customNumber: string | null;
+  patchLabel: string | null;
+  patchExtraPrice: number | null;
+};
 export type AdminCustomItem = {
   reference: string;
   fabric: string;

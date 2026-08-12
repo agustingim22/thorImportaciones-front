@@ -3,27 +3,50 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 export type CartItem = {
+  lineId: string; // identifica esta línea (producto + personalización elegida)
   productId: number;
   team: string;
-  price: number;
+  price: number; // precio base del producto (sin el extra del parche)
   qty: number;
   imageUrl: string | null;
   colorCss: string;
-  number: number;
+  presetNumber: string | null; // para el placeholder cuando no hay foto
+  customName: string | null;
+  customNumber: string | null;
+  patchId: number | null;
+  patchLabel: string | null;
+  patchExtraPrice: number;
 };
+
+export type NewLine = Omit<CartItem, "lineId" | "qty">;
 
 type CartContextValue = {
   items: CartItem[];
   count: number;
   total: number;
-  add: (item: Omit<CartItem, "qty">, qty?: number) => void;
-  setQty: (productId: number, qty: number) => void;
-  remove: (productId: number) => void;
+  add: (item: NewLine, qty?: number) => void;
+  setQty: (lineId: string, qty: number) => void;
+  remove: (lineId: string) => void;
   clear: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "thor-cart";
+
+function makeLineId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+/** Dos líneas son "la misma" si son el mismo producto con la misma personalización. */
+function sameLine(a: CartItem, b: NewLine): boolean {
+  return (
+    a.productId === b.productId &&
+    a.customName === b.customName &&
+    a.customNumber === b.customNumber &&
+    a.patchId === b.patchId
+  );
+}
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -47,31 +70,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add: CartContextValue["add"] = (item, qty = 1) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === item.productId);
+      const existing = prev.find((i) => sameLine(i, item));
       if (existing) {
         return prev.map((i) =>
-          i.productId === item.productId ? { ...i, qty: i.qty + qty } : i,
+          i.lineId === existing.lineId ? { ...i, qty: i.qty + qty } : i,
         );
       }
-      return [...prev, { ...item, qty }];
+      return [...prev, { ...item, qty, lineId: makeLineId() }];
     });
   };
 
-  const setQty: CartContextValue["setQty"] = (productId, qty) => {
+  const setQty: CartContextValue["setQty"] = (lineId, qty) => {
     setItems((prev) =>
       qty <= 0
-        ? prev.filter((i) => i.productId !== productId)
-        : prev.map((i) => (i.productId === productId ? { ...i, qty } : i)),
+        ? prev.filter((i) => i.lineId !== lineId)
+        : prev.map((i) => (i.lineId === lineId ? { ...i, qty } : i)),
     );
   };
 
-  const remove: CartContextValue["remove"] = (productId) =>
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  const remove: CartContextValue["remove"] = (lineId) =>
+    setItems((prev) => prev.filter((i) => i.lineId !== lineId));
 
   const clear = () => setItems([]);
 
   const count = items.reduce((s, i) => s + i.qty, 0);
-  const total = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const total = items.reduce((s, i) => s + (i.price + i.patchExtraPrice) * i.qty, 0);
 
   return (
     <CartContext.Provider value={{ items, count, total, add, setQty, remove, clear }}>

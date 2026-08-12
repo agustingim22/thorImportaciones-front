@@ -10,18 +10,29 @@ datasource db {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  slug        String   @unique
-  team        String
-  type        String   // "retro" | "player"
-  number      Int
-  price       Int      // ARS
-  fabric      String
-  colorCss    String
-  imageUrl    String?
-  description String
-  inStock     Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  slug          String   @unique
+  team          String
+  type          String // "retro" | "fan" | "player"
+  price         Int // ARS
+  colorCss      String
+  images        String[] @default([]) // hasta 3 fotos (la primera es la portada)
+  description   String
+  inStock       Boolean  @default(true)
+  presetName    String? // nombre ya definido por el admin (si está, el comprador no elige)
+  presetNumber  String? // número ya definido por el admin (si está, el comprador no elige)
+  createdAt     DateTime @default(now())
+  patches       Patch[]
+}
+
+/// Opción de parche que el comprador puede elegir para un producto (con su propio precio extra).
+model Patch {
+  id         Int     @id @default(autoincrement())
+  productId  Int
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  label      String
+  imageUrl   String
+  extraPrice Int     @default(0) // ARS, se suma al precio de la camiseta
 }
 
 model Order {
@@ -63,11 +74,15 @@ model CustomItem {
 }
 
 model OrderItem {
-  id          Int    @id @default(autoincrement())
-  orderId     Int
-  order       Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId   Int
-  productName String
-  unitPrice   Int
-  quantity    Int
+  id              Int    @id @default(autoincrement())
+  orderId         Int
+  order           Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId       Int
+  productName     String
+  unitPrice       Int // precio final: base del producto + extra del parche elegido
+  quantity        Int
+  customName      String? // nombre elegido por el comprador (o el preset del producto)
+  customNumber    String? // número elegido por el comprador (o el preset del producto)
+  patchLabel      String? // snapshot del parche elegido, si eligió alguno
+  patchExtraPrice Int? // snapshot del precio extra del parche elegido
 }

@@ -32,7 +32,13 @@ export default function CarritoPage() {
         ...contact,
         ...address,
         paymentMethod,
-        items: items.map((i) => ({ productId: i.productId, quantity: i.qty })),
+        items: items.map((i) => ({
+          productId: i.productId,
+          quantity: i.qty,
+          customName: i.customName,
+          customNumber: i.customNumber,
+          patchId: i.patchId,
+        })),
       });
       if (res.checkoutUrl) {
         window.location.href = res.checkoutUrl; // redirige a Mercado Pago
@@ -93,49 +99,60 @@ export default function CarritoPage() {
       <div className="mt-8 grid gap-8 lg:grid-cols-[1.4fr_1fr]">
         {/* Ítems */}
         <div className="flex flex-col gap-3">
-          {items.map((i) => (
-            <div
-              key={i.productId}
-              className="flex items-center gap-4 rounded-2xl border border-thor-line bg-thor-paper p-4"
-            >
+          {items.map((i) => {
+            const unitPrice = i.price + i.patchExtraPrice;
+            const personalization = [
+              i.customName && `Nombre: ${i.customName}`,
+              i.customNumber && `N°: ${i.customNumber}`,
+              i.patchLabel && `Parche: ${i.patchLabel}`,
+            ].filter(Boolean);
+            return (
               <div
-                className="jersey-shape grid h-16 w-14 shrink-0 place-items-center font-display text-xl text-thor-ink/80"
-                style={{ background: i.colorCss }}
+                key={i.lineId}
+                className="flex items-center gap-4 rounded-2xl border border-thor-line bg-thor-paper p-4"
               >
-                {i.number}
-              </div>
-              <div className="flex-1">
-                <p className="font-body font-extrabold text-thor-ink">{i.team}</p>
-                <p className="font-mono text-sm text-thor-gold">${i.price.toLocaleString("es-AR")}</p>
-                <div className="mt-2 flex items-center gap-2">
-                  <button
-                    onClick={() => setQty(i.productId, i.qty - 1)}
-                    className="grid h-7 w-7 place-items-center rounded-md border border-thor-line text-thor-ink"
-                    aria-label="Restar"
-                  >
-                    −
-                  </button>
-                  <span className="w-6 text-center tabular-nums">{i.qty}</span>
-                  <button
-                    onClick={() => setQty(i.productId, i.qty + 1)}
-                    className="grid h-7 w-7 place-items-center rounded-md border border-thor-line text-thor-ink"
-                    aria-label="Sumar"
-                  >
-                    +
-                  </button>
-                  <button
-                    onClick={() => remove(i.productId)}
-                    className="ml-3 font-mono text-xs text-thor-muted underline hover:text-red-600"
-                  >
-                    Quitar
-                  </button>
+                <div
+                  className="jersey-shape grid h-16 w-14 shrink-0 place-items-center font-display text-xl text-thor-ink/80"
+                  style={{ background: i.colorCss }}
+                >
+                  {i.presetNumber}
+                </div>
+                <div className="flex-1">
+                  <p className="font-body font-extrabold text-thor-ink">{i.team}</p>
+                  <p className="font-mono text-sm text-thor-gold">${unitPrice.toLocaleString("es-AR")}</p>
+                  {personalization.length > 0 && (
+                    <p className="mt-0.5 text-[11px] text-thor-muted">{personalization.join(" · ")}</p>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => setQty(i.lineId, i.qty - 1)}
+                      className="grid h-7 w-7 place-items-center rounded-md border border-thor-line text-thor-ink"
+                      aria-label="Restar"
+                    >
+                      −
+                    </button>
+                    <span className="w-6 text-center tabular-nums">{i.qty}</span>
+                    <button
+                      onClick={() => setQty(i.lineId, i.qty + 1)}
+                      className="grid h-7 w-7 place-items-center rounded-md border border-thor-line text-thor-ink"
+                      aria-label="Sumar"
+                    >
+                      +
+                    </button>
+                    <button
+                      onClick={() => remove(i.lineId)}
+                      className="ml-3 font-mono text-xs text-thor-muted underline hover:text-red-600"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+                <div className="font-mono font-bold tabular-nums text-thor-ink">
+                  ${(unitPrice * i.qty).toLocaleString("es-AR")}
                 </div>
               </div>
-              <div className="font-mono font-bold tabular-nums text-thor-ink">
-                ${(i.price * i.qty).toLocaleString("es-AR")}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Checkout */}

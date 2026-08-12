@@ -6,7 +6,10 @@ import { toProductData, validateProduct, type ProductInput } from "@/lib/server/
 
 export async function GET(req: Request) {
   if (!isAdmin(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-  const products = await prisma.product.findMany({ orderBy: { createdAt: "desc" } });
+  const products = await prisma.product.findMany({
+    include: { patches: { orderBy: { id: "asc" } } },
+    orderBy: { createdAt: "desc" },
+  });
   return NextResponse.json(products);
 }
 
@@ -17,6 +20,18 @@ export async function POST(req: Request) {
   if (errors) return NextResponse.json({ errors }, { status: 400 });
 
   const slug = await uniqueSlug(input.slug?.trim() || input.team);
-  const product = await prisma.product.create({ data: toProductData(input, slug) });
+  const product = await prisma.product.create({
+    data: {
+      ...toProductData(input, slug),
+      patches: {
+        create: (input.patches ?? []).map((p) => ({
+          label: p.label.trim(),
+          imageUrl: p.imageUrl.trim(),
+          extraPrice: p.extraPrice,
+        })),
+      },
+    },
+    include: { patches: true },
+  });
   return NextResponse.json(product, { status: 201 });
 }

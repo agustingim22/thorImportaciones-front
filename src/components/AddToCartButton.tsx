@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useCart, type CartItem } from "@/lib/cart";
+import { useCart, type NewLine } from "@/lib/cart";
 
-export function AddToCartButton({ item }: { item: Omit<CartItem, "qty"> }) {
+export function AddToCartButton({ item }: { item: NewLine }) {
   const { add } = useCart();
   const [added, setAdded] = useState(false);
 

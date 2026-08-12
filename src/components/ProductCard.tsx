@@ -1,15 +1,19 @@
 import Link from "next/link";
 import type { Product } from "@/lib/api";
+import { PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { AddToCartButton } from "./AddToCartButton";
 
 export function ProductCard({ product }: { product: Product }) {
-  const isRetro = product.type === "retro";
+  // Si el comprador tiene algo para elegir (nombre, número o parche), lo mandamos
+  // al detalle a personalizar en vez de agregarlo directo desde la card.
+  const isCustomizable =
+    !product.presetName || !product.presetNumber || product.patches.length > 0;
 
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-thor-line bg-thor-paper transition-transform duration-200 hover:-translate-y-1">
       {/* etiqueta tipo boarding pass */}
       <span className="absolute left-3 top-3 z-10 rounded-md border border-thor-line bg-thor-cream/80 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-thor-ink-soft">
-        {isRetro ? "Retro Fan" : "Player Version"}
+        {PRODUCT_TYPE_LABELS[product.type]}
       </span>
 
       {/* imagen (link al detalle) — tamaño fijo (1:1) para que todas las cards queden simétricas */}
@@ -29,9 +33,11 @@ export function ProductCard({ product }: { product: Product }) {
             className="jersey-shape flex h-[64%] w-[56%] items-center justify-center transition-transform group-hover:scale-105"
             style={{ background: product.colorCss }}
           >
-            <span className="font-display text-6xl text-thor-ink/80">
-              {product.number}
-            </span>
+            {product.presetNumber && (
+              <span className="font-display text-6xl text-thor-ink/80">
+                {product.presetNumber}
+              </span>
+            )}
           </div>
         )}
       </Link>
@@ -49,13 +55,30 @@ export function ProductCard({ product }: { product: Product }) {
             {product.team}
           </h3>
         </Link>
-        <p className="mt-0.5 text-[11px] text-thor-muted">{product.fabric}</p>
+        {(product.presetName || product.presetNumber) && (
+          <p className="mt-0.5 text-[11px] text-thor-muted">
+            {product.presetName}
+            {product.presetName && product.presetNumber ? " · " : ""}
+            {product.presetNumber && `#${product.presetNumber}`}
+          </p>
+        )}
 
         <div className="mt-2.5 flex items-center justify-between gap-3">
           <span className="font-mono text-base font-bold text-thor-gold tabular-nums">
             ${product.price.toLocaleString("es-AR")}
           </span>
-          {product.inStock ? (
+          {!product.inStock ? (
+            <span className="rounded-lg border border-thor-line px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-muted">
+              Sin stock
+            </span>
+          ) : isCustomizable ? (
+            <Link
+              href={`/producto/${product.slug}`}
+              className="rounded-lg bg-thor-ink px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream transition-colors hover:bg-thor-ink-soft"
+            >
+              Personalizar
+            </Link>
+          ) : (
             <AddToCartButton
               item={{
                 productId: product.id,
@@ -63,22 +86,25 @@ export function ProductCard({ product }: { product: Product }) {
                 price: product.price,
                 imageUrl: product.imageUrl,
                 colorCss: product.colorCss,
-                number: product.number,
+                presetNumber: product.presetNumber,
+                customName: product.presetName,
+                customNumber: product.presetNumber,
+                patchId: null,
+                patchLabel: null,
+                patchExtraPrice: 0,
               }}
             />
-          ) : (
-            <span className="rounded-lg border border-thor-line px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-muted">
-              Sin stock
-            </span>
           )}
         </div>
 
-        <Link
-          href="/pedido-personalizado"
-          className="mt-3 block font-mono text-[11px] text-thor-muted underline decoration-thor-line underline-offset-4 hover:text-thor-gold"
-        >
-          ¿La querés con otro número o parche? Pedila personalizada →
-        </Link>
+        {!isCustomizable && (
+          <Link
+            href="/pedido-personalizado"
+            className="mt-3 block font-mono text-[11px] text-thor-muted underline decoration-thor-line underline-offset-4 hover:text-thor-gold"
+          >
+            ¿Buscás otra versión? Pedido personalizado →
+          </Link>
+        )}
       </div>
     </article>
   );

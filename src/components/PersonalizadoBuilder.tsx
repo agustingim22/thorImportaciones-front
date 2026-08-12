@@ -11,8 +11,8 @@ type Item = CustomItemInput & { id: number };
 
 const TELAS = [
   "Retro (algodón/poliéster clásico)",
-  "Fan (poliéster liviano)",
-  "Player Version (dry-fit premium)",
+  "Versión Fan (poliéster liviano)",
+  "Versión Jugador (dry-fit premium)",
 ];
 const TALLES = ["S", "M", "L", "XL", "XXL"];
 
