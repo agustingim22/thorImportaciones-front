@@ -18,6 +18,12 @@ export const SITE = {
   },
 } as const;
 
+/** URL pública del sitio, sin slash final (para sitemap, robots, canonical, JSON-LD). */
+export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
+  /\/$/,
+  "",
+);
+
 /** Arma un link de WhatsApp con un mensaje opcional prellenado. */
 export function whatsappUrl(message?: string): string {
   const base = `https://wa.me/${SITE.whatsappNumber}`;

@@ -7,7 +7,12 @@ import { PageHeader } from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Camisetas" };
+export const metadata: Metadata = {
+  title: "Camisetas",
+  description:
+    "Catálogo de camisetas de fútbol retro y versión jugador, importadas y listas para enviar. Filtrá por tipo o buscá tu equipo.",
+  alternates: { canonical: "/camisetas" },
+};
 
 const TABS = [
   { key: undefined, label: "Todas" },

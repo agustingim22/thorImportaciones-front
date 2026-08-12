@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/PageHeader";
 
-export const metadata: Metadata = { title: "Preguntas frecuentes" };
+export const metadata: Metadata = {
+  title: "Preguntas frecuentes",
+  description: "Envíos, tiempos de importación, formas de pago y todo lo que necesitás saber antes de comprar en Thor Importaciones.",
+  alternates: { canonical: "/preguntas-frecuentes" },
+};
 
 const FAQS: [string, string][] = [
   [

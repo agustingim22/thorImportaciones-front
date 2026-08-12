@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/PageHeader";
 
-export const metadata: Metadata = { title: "Guía de talles" };
+export const metadata: Metadata = {
+  title: "Guía de talles",
+  description: "Tabla de talles para camisetas de fútbol fan y player version: largo, ancho y contextura recomendada.",
+  alternates: { canonical: "/talles" },
+};
 
 const SIZES: Record<"fan" | "player", [string, number, number, string][]> = {
   fan: [

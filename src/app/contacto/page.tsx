@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/PageHeader";
 import { SITE, whatsappUrl } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Contacto" };
+export const metadata: Metadata = {
+  title: "Contacto",
+  description: "Escribinos por WhatsApp, Instagram o email. Respondemos consultas sobre pedidos, envíos y camisetas personalizadas.",
+  alternates: { canonical: "/contacto" },
+};
 
 export default function ContactoPage() {
   const cards = [

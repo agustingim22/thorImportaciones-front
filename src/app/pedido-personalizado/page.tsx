@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonalizadoBuilder } from "@/components/PersonalizadoBuilder";
 
-export const metadata: Metadata = { title: "Pedido personalizado" };
+export const metadata: Metadata = {
+  title: "Pedido personalizado",
+  description: "¿No está en el catálogo? Pedinos la camiseta que buscás y te la conseguimos importada, con la tela, el número y el nombre que quieras.",
+  alternates: { canonical: "/pedido-personalizado" },
+};
 
 const PASOS = [
   ["01", "Cargá cada camiseta", "Un link o una descripción: equipo, temporada, versión, tela, talle."],
