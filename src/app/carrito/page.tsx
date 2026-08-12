@@ -291,10 +291,12 @@ function TransferResult({ orderId, total }: { orderId: string; total: number }) 
           Datos para transferir
         </h2>
         <dl className="mt-3 space-y-2 text-sm">
-          <div className="flex justify-between gap-3">
-            <dt className="text-thor-muted">CVU</dt>
-            <dd className="font-mono text-thor-ink">{SITE.bank.cvu}</dd>
-          </div>
+          {SITE.bank.cvu && (
+            <div className="flex justify-between gap-3">
+              <dt className="text-thor-muted">CVU</dt>
+              <dd className="font-mono text-thor-ink">{SITE.bank.cvu}</dd>
+            </div>
+          )}
           <div className="flex justify-between gap-3">
             <dt className="text-thor-muted">Alias</dt>
             <dd className="font-mono text-thor-ink">{SITE.bank.alias}</dd>

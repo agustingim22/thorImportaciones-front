@@ -9,11 +9,12 @@ export const SITE = {
   whatsappNumber: "5493564578649",
   instagram: "https://instagram.com/thorimportaciones",
   email: "hola@thorimportaciones.com",
-  // TODO: reemplazar por los datos reales de la cuenta bancaria del negocio.
+  // Datos para transferencias. cvu es opcional (dejalo en null si preferís
+  // que solo se muestre el alias).
   bank: {
-    cvu: "0000003100000000000000",
-    alias: "THOR.IMPORTA.CIONES",
-    holder: "Thor Importaciones",
+    cvu: null as string | null,
+    alias: "AGUSTINGIM22.LEMON",
+    holder: "Agustín Alejandro Gimenez",
   },
 } as const;
 
