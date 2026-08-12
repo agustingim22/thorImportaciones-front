@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 
 type CustomItemInput = {
   reference?: string;
@@ -15,7 +16,13 @@ type Body = {
   customerName?: string;
   customerPhone?: string;
   customerEmail?: string;
-  shippingAddress?: string;
+  street?: string;
+  postalCode?: string;
+  city?: string;
+  province?: string;
+  floor?: string;
+  apartment?: string;
+  deliveryNotes?: string;
   notes?: string;
   items?: CustomItemInput[];
 };
@@ -26,7 +33,11 @@ export async function POST(req: Request) {
   const errors: Record<string, string[]> = {};
   if (!body.customerName?.trim()) errors.customerName = ["Ingresá tu nombre."];
   if (!body.customerPhone?.trim()) errors.customerPhone = ["Ingresá tu teléfono / WhatsApp."];
-  if (!body.shippingAddress?.trim()) errors.shippingAddress = ["Ingresá la dirección de envío."];
+  else if (!isValidPhone(body.customerPhone)) errors.customerPhone = [PHONE_HINT];
+  if (!body.street?.trim()) errors.street = ["Ingresá la calle y el número."];
+  if (!body.postalCode?.trim()) errors.postalCode = ["Ingresá el código postal."];
+  if (!body.city?.trim()) errors.city = ["Ingresá la ciudad."];
+  if (!body.province?.trim()) errors.province = ["Ingresá la provincia."];
   if (!Array.isArray(body.items) || body.items.length === 0)
     errors.items = ["Agregá al menos una camiseta."];
   else if (body.items.some((i) => !i.reference?.trim()))
@@ -43,7 +54,13 @@ export async function POST(req: Request) {
       customerName: body.customerName!.trim(),
       customerEmail: body.customerEmail?.trim() ?? "",
       customerPhone: body.customerPhone!.trim(),
-      shippingAddress: body.shippingAddress!.trim(),
+      street: body.street!.trim(),
+      postalCode: body.postalCode!.trim(),
+      city: body.city!.trim(),
+      province: body.province!.trim(),
+      floor: body.floor?.trim() || null,
+      apartment: body.apartment?.trim() || null,
+      deliveryNotes: body.deliveryNotes?.trim() || null,
       notes: body.notes?.trim() || null,
       total: 0, // se coordina por WhatsApp
       customItems: {

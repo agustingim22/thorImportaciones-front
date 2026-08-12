@@ -30,10 +30,28 @@ function detalle(o: AdminOrder): string {
   return o.items.map((i) => `${i.productName} x${i.quantity} ($${i.unitPrice})`).join("  ||  ");
 }
 
+function formatAddress(o: AdminOrder): string {
+  const parts = [
+    o.street,
+    o.floor && `Piso ${o.floor}`,
+    o.apartment && `Depto ${o.apartment}`,
+    o.city,
+    o.province,
+    o.postalCode && `CP ${o.postalCode}`,
+  ].filter(Boolean);
+  return parts.join(", ");
+}
+
+function paymentLabel(o: AdminOrder): string {
+  if (o.kind === "Custom") return "a coordinar";
+  return o.paymentMethod === "Transfer" ? "Transferencia" : "Mercado Pago";
+}
+
 function exportCsv(orders: AdminOrder[]) {
   const headers = [
     "Fecha", "N° Pedido", "Tipo", "Estado", "Cliente", "Email",
-    "Teléfono", "Dirección", "Notas", "Total", "Detalle",
+    "Teléfono", "Dirección", "Especificaciones de entrega", "Notas",
+    "Total", "Forma de pago", "Comprobante", "Detalle",
   ];
   const rows = orders.map((o) => [
     new Date(o.createdAt).toLocaleString("es-AR"),
@@ -43,9 +61,12 @@ function exportCsv(orders: AdminOrder[]) {
     o.customerName,
     o.customerEmail,
     o.customerPhone,
-    o.shippingAddress,
+    formatAddress(o),
+    o.deliveryNotes ?? "",
     o.notes ?? "",
     o.kind === "Custom" ? "a coordinar" : String(o.total),
+    paymentLabel(o),
+    o.receiptUrl ?? "",
     detalle(o),
   ]);
   const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
@@ -104,19 +125,21 @@ export function AdminOrders() {
               <th className="px-4 py-3">Pedido</th>
               <th className="px-4 py-3">Tipo</th>
               <th className="px-4 py-3">Cliente</th>
+              <th className="px-4 py-3">Dirección</th>
               <th className="px-4 py-3">Total</th>
+              <th className="px-4 py-3">Pago</th>
               <th className="px-4 py-3">Estado</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
               </tr>
             )}
             {!loading && orders.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">
                   Todavía no hay pedidos.
                 </td>
               </tr>
@@ -148,8 +171,27 @@ export function AdminOrders() {
                     <span className="block font-semibold text-thor-ink">{o.customerName}</span>
                     <span className="block text-[11px] text-thor-muted">{o.customerPhone}</span>
                   </td>
+                  <td className="max-w-[220px] px-4 py-3 text-[11px] text-thor-muted">
+                    {formatAddress(o)}
+                    {o.deliveryNotes && (
+                      <span className="mt-0.5 block italic">{o.deliveryNotes}</span>
+                    )}
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 font-mono tabular-nums text-thor-ink">
                     {o.kind === "Custom" ? "a coordinar" : `$${o.total.toLocaleString("es-AR")}`}
+                  </td>
+                  <td className="px-4 py-3 text-[11px]">
+                    <span className="block text-thor-ink">{paymentLabel(o)}</span>
+                    {o.receiptUrl && (
+                      <a
+                        href={o.receiptUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-thor-gold underline"
+                      >
+                        Ver comprobante
+                      </a>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <select

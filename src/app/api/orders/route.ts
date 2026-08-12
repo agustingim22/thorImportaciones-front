@@ -2,12 +2,20 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
+import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 
 type Body = {
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
-  shippingAddress?: string;
+  street?: string;
+  postalCode?: string;
+  city?: string;
+  province?: string;
+  floor?: string;
+  apartment?: string;
+  deliveryNotes?: string;
+  paymentMethod?: "MercadoPago" | "Transfer";
   items?: { productId: number; quantity: number }[];
 };
 
@@ -18,7 +26,12 @@ export async function POST(req: Request) {
   if (!body.customerName?.trim()) errors.customerName = ["Ingresá tu nombre."];
   if (!body.customerEmail?.trim()) errors.customerEmail = ["Ingresá tu email."];
   if (!body.customerPhone?.trim()) errors.customerPhone = ["Ingresá tu teléfono."];
-  if (!body.shippingAddress?.trim()) errors.shippingAddress = ["Ingresá la dirección de envío."];
+  else if (!isValidPhone(body.customerPhone)) errors.customerPhone = [PHONE_HINT];
+  if (!body.street?.trim()) errors.street = ["Ingresá la calle y el número."];
+  if (!body.postalCode?.trim()) errors.postalCode = ["Ingresá el código postal."];
+  if (!body.city?.trim()) errors.city = ["Ingresá la ciudad."];
+  if (!body.province?.trim()) errors.province = ["Ingresá la provincia."];
+  const paymentMethod = body.paymentMethod === "Transfer" ? "Transfer" : "MercadoPago";
   if (!Array.isArray(body.items) || body.items.length === 0) errors.items = ["El carrito está vacío."];
   if (Object.keys(errors).length) return NextResponse.json({ errors }, { status: 400 });
 
@@ -45,7 +58,14 @@ export async function POST(req: Request) {
       customerName: body.customerName!.trim(),
       customerEmail: body.customerEmail!.trim(),
       customerPhone: body.customerPhone!.trim(),
-      shippingAddress: body.shippingAddress!.trim(),
+      street: body.street!.trim(),
+      postalCode: body.postalCode!.trim(),
+      city: body.city!.trim(),
+      province: body.province!.trim(),
+      floor: body.floor?.trim() || null,
+      apartment: body.apartment?.trim() || null,
+      deliveryNotes: body.deliveryNotes?.trim() || null,
+      paymentMethod,
       total,
       items: { create: itemsData },
     },
@@ -53,7 +73,7 @@ export async function POST(req: Request) {
   });
 
   let checkoutUrl: string | null = null;
-  if (isMpConfigured()) {
+  if (paymentMethod === "MercadoPago" && isMpConfigured()) {
     checkoutUrl = await createPreference({
       publicId: order.publicId,
       customerName: order.customerName,
@@ -66,6 +86,7 @@ export async function POST(req: Request) {
     orderId: order.publicId,
     total: order.total,
     status: order.status,
+    paymentMethod: order.paymentMethod,
     checkoutUrl,
   });
 }

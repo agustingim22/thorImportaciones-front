@@ -36,7 +36,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
         / <span className="text-thor-ink">{product.team}</span>
       </nav>
 
-      <div className="grid gap-10 md:grid-cols-2">
+      <div className="grid gap-10 md:grid-cols-[1.35fr_1fr]">
         {/* Imagen */}
         <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-thor-line bg-thor-cream-2 p-6">
           {product.imageUrl ? (
@@ -44,14 +44,14 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
             <img
               src={product.imageUrl}
               alt={product.team}
-              className="max-h-[460px] w-full rounded-xl object-contain"
+              className="max-h-[640px] w-full rounded-xl object-contain"
             />
           ) : (
             <div
-              className="jersey-shape flex h-80 w-72 items-center justify-center"
+              className="jersey-shape flex h-[420px] w-[380px] items-center justify-center"
               style={{ background: product.colorCss }}
             >
-              <span className="font-display text-8xl text-thor-ink/80">{product.number}</span>
+              <span className="font-display text-9xl text-thor-ink/80">{product.number}</span>
             </div>
           )}
         </div>
@@ -62,18 +62,19 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
             {isRetro ? "Retro Fan" : "Player Version"}
           </span>
 
-          <h1 className="mt-4 font-display text-4xl leading-tight tracking-wide text-thor-ink sm:text-5xl">
+          <h1 className="mt-3 font-display text-3xl leading-tight tracking-wide text-thor-ink sm:text-4xl">
             {product.team}
           </h1>
-          <p className="mt-2 font-mono text-sm text-thor-muted">{product.fabric}</p>
+          <p className="mt-1.5 font-mono text-xs text-thor-muted">{product.fabric}</p>
 
-          <p className="mt-6 font-display text-3xl text-thor-gold">
-            ${product.price.toLocaleString("es-AR")}
-          </p>
+          <div className="mt-4 rounded-xl border border-thor-line bg-thor-paper px-4 py-3">
+            <p className="font-display text-2xl text-thor-gold">
+              ${product.price.toLocaleString("es-AR")}
+            </p>
+            <p className="mt-1.5 text-sm leading-snug text-thor-ink-soft">{product.description}</p>
+          </div>
 
-          <p className="mt-6 max-w-prose text-thor-ink-soft">{product.description}</p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             {product.inStock ? (
               <AddToCartButton
                 item={{

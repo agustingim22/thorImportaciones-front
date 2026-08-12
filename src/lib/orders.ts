@@ -1,8 +1,18 @@
-export type CreateOrderPayload = {
+export type ShippingAddress = {
+  street: string;
+  postalCode: string;
+  city: string;
+  province: string;
+  floor: string;
+  apartment: string;
+  deliveryNotes: string;
+};
+
+export type CreateOrderPayload = ShippingAddress & {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  shippingAddress: string;
+  paymentMethod: "MercadoPago" | "Transfer";
   items: { productId: number; quantity: number }[];
 };
 
@@ -10,6 +20,7 @@ export type CreateOrderResult = {
   orderId: string;
   total: number;
   status: string;
+  paymentMethod: "MercadoPago" | "Transfer";
   checkoutUrl: string | null;
 };
 
@@ -36,6 +47,25 @@ export async function createOrder(payload: CreateOrderPayload): Promise<CreateOr
   return res.json();
 }
 
+/** Sube el comprobante de transferencia de un pedido. */
+export async function uploadReceipt(orderId: string, file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`/api/orders/${orderId}/receipt`, { method: "POST", body: fd });
+  if (!res.ok) {
+    let msg = `Error ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch {
+      /* sin cuerpo */
+    }
+    throw new Error(msg);
+  }
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}
+
 export type CustomItemInput = {
   reference: string;
   fabric: string;
@@ -45,11 +75,10 @@ export type CustomItemInput = {
   name: string;
 };
 
-export type CustomOrderPayload = {
+export type CustomOrderPayload = ShippingAddress & {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
-  shippingAddress: string;
   notes: string;
   items: CustomItemInput[];
 };

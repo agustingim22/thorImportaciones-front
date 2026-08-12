@@ -113,9 +113,17 @@ export type AdminOrder = {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
-  shippingAddress: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  province: string;
+  floor: string | null;
+  apartment: string | null;
+  deliveryNotes: string | null;
   notes: string | null;
   total: number;
+  paymentMethod: string | null;
+  receiptUrl: string | null;
   createdAt: string;
   items: AdminOrderItem[];
   customItems: AdminCustomItem[];

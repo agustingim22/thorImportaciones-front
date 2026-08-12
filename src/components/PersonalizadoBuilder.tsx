@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { createCustomOrder, type CustomItemInput } from "@/lib/orders";
 import { whatsappUrl } from "@/lib/site";
+import { isValidPhone, PHONE_HINT } from "@/lib/validation";
+import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
 
 type Item = CustomItemInput & { id: number };
 
@@ -31,9 +33,10 @@ export function PersonalizadoBuilder() {
     customerName: "",
     customerPhone: "",
     customerEmail: "",
-    shippingAddress: "",
     notes: "",
   });
+  const [address, setAddress] = useState(emptyAddress);
+  const [phoneError, setPhoneError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState<string | null>(null);
@@ -44,6 +47,18 @@ export function PersonalizadoBuilder() {
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
   const removeItem = (id: number) =>
     setItems((prev) => (prev.length === 1 ? prev : prev.filter((it) => it.id !== id)));
+
+  function addressLine() {
+    const parts = [
+      address.street,
+      address.floor && `Piso ${address.floor}`,
+      address.apartment && `Depto ${address.apartment}`,
+      address.city,
+      address.province,
+      address.postalCode && `CP ${address.postalCode}`,
+    ].filter(Boolean);
+    return parts.join(", ");
+  }
 
   function buildWhatsAppMessage(orderId: string) {
     let msg = `¡Hola Thor! Quiero hacer un pedido personalizado.\nPedido #${orderId}\n\n`;
@@ -57,7 +72,8 @@ export function PersonalizadoBuilder() {
     });
     msg += `Datos de contacto:\n`;
     msg += `Nombre: ${contact.customerName}\nTeléfono: ${contact.customerPhone}\n`;
-    msg += `Email: ${contact.customerEmail || "-"}\nDirección: ${contact.shippingAddress}\n`;
+    msg += `Email: ${contact.customerEmail || "-"}\nDirección: ${addressLine()}\n`;
+    if (address.deliveryNotes) msg += `Entrega: ${address.deliveryNotes}\n`;
     msg += `Notas: ${contact.notes || "-"}`;
     return msg;
   }
@@ -65,10 +81,16 @@ export function PersonalizadoBuilder() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setPhoneError("");
+    if (!isValidPhone(contact.customerPhone)) {
+      setPhoneError(PHONE_HINT);
+      return;
+    }
     setLoading(true);
     try {
       const orderId = await createCustomOrder({
         ...contact,
+        ...address,
         items: items.map(({ reference, fabric, size, patch, number, name }) => ({
           reference,
           fabric,
@@ -204,20 +226,30 @@ export function PersonalizadoBuilder() {
         <Field label="Nombre y apellido">
           <input required value={contact.customerName} onChange={(e) => setContact({ ...contact, customerName: e.target.value })} className={inputCls} />
         </Field>
-        <Field label="Teléfono / WhatsApp">
-          <input required value={contact.customerPhone} onChange={(e) => setContact({ ...contact, customerPhone: e.target.value })} placeholder="+54 9 11 …" className={inputCls} />
-        </Field>
-        <Field label="Email (opcional)">
-          <input type="email" value={contact.customerEmail} onChange={(e) => setContact({ ...contact, customerEmail: e.target.value })} className={inputCls} />
-        </Field>
-        <Field label="Dirección de envío">
-          <input required value={contact.shippingAddress} onChange={(e) => setContact({ ...contact, shippingAddress: e.target.value })} className={inputCls} />
-        </Field>
+        <div>
+          <Field label="Teléfono / WhatsApp">
+            <input required type="tel" value={contact.customerPhone} onChange={(e) => setContact({ ...contact, customerPhone: e.target.value })} placeholder="+54 9 11 …" className={inputCls} />
+          </Field>
+          {phoneError && <p className="mt-1 text-xs text-red-600">{phoneError}</p>}
+        </div>
         <div className="sm:col-span-2">
-          <Field label="Notas (opcional)">
-            <textarea rows={2} value={contact.notes} onChange={(e) => setContact({ ...contact, notes: e.target.value })} className={inputCls} />
+          <Field label="Email (opcional)">
+            <input type="email" value={contact.customerEmail} onChange={(e) => setContact({ ...contact, customerEmail: e.target.value })} className={inputCls} />
           </Field>
         </div>
+      </div>
+
+      <h3 className="mt-8 font-mono text-xs font-bold uppercase tracking-wide text-thor-ink">
+        Dirección de envío
+      </h3>
+      <div className="mt-3">
+        <AddressFields value={address} onChange={setAddress} />
+      </div>
+
+      <div className="mt-4">
+        <Field label="Notas adicionales (opcional)">
+          <textarea rows={2} value={contact.notes} onChange={(e) => setContact({ ...contact, notes: e.target.value })} className={inputCls} />
+        </Field>
       </div>
 
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
@@ -230,19 +262,5 @@ export function PersonalizadoBuilder() {
         {loading ? "Enviando…" : "Enviar pedido por WhatsApp →"}
       </button>
     </form>
-  );
-}
-
-const inputCls =
-  "w-full rounded-lg border border-thor-line bg-thor-cream px-3 py-2 text-thor-ink";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block font-mono text-[11px] uppercase tracking-wide text-thor-muted">
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }

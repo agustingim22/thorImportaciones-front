@@ -25,20 +25,29 @@ model Product {
 }
 
 model Order {
-  id              Int          @id @default(autoincrement())
-  publicId        String       @unique
-  kind            String       @default("Stock") // "Stock" | "Custom"
-  status          String       @default("Pending") // Pending | Paid | Cancelled | Delivered
-  customerName    String
-  customerEmail   String
-  customerPhone   String
-  shippingAddress String
-  notes           String?
-  total           Int
-  paymentId       String?
-  createdAt       DateTime     @default(now())
-  items           OrderItem[]
-  customItems     CustomItem[]
+  id            Int          @id @default(autoincrement())
+  publicId      String       @unique
+  kind          String       @default("Stock") // "Stock" | "Custom"
+  status        String       @default("Pending") // Pending | Paid | Cancelled | Delivered
+  customerName  String
+  customerEmail String
+  customerPhone String
+  // Dirección de envío estructurada
+  street        String // calle y número
+  postalCode    String
+  city          String
+  province      String
+  floor         String?
+  apartment     String?
+  deliveryNotes String? // referencias para el envío (horarios, entre calles, etc.)
+  notes         String?
+  total         Int
+  paymentMethod String? // "MercadoPago" | "Transfer" (solo pedidos de stock)
+  paymentId     String?
+  receiptUrl    String? // comprobante de transferencia
+  createdAt     DateTime     @default(now())
+  items         OrderItem[]
+  customItems   CustomItem[]
 }
 
 model CustomItem {
