@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendCustomOrderConfirmation } from "@/lib/server/email";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 
 type CustomItemInput = {
@@ -52,7 +53,7 @@ export async function POST(req: Request) {
       kind: "Custom",
       status: "Pending",
       customerName: body.customerName!.trim(),
-      customerEmail: body.customerEmail?.trim() ?? "",
+      customerEmail: body.customerEmail?.trim().toLowerCase() ?? "",
       customerPhone: body.customerPhone!.trim(),
       street: body.street!.trim(),
       postalCode: body.postalCode!.trim(),
@@ -74,7 +75,15 @@ export async function POST(req: Request) {
         })),
       },
     },
+    include: { customItems: true },
   });
+
+  await sendCustomOrderConfirmation({
+    publicId: order.publicId,
+    customerEmail: order.customerEmail,
+    customerName: order.customerName,
+    items: order.customItems,
+  }).catch(() => {});
 
   return NextResponse.json({ orderId: order.publicId });
 }

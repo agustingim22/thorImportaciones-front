@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendOrderConfirmation } from "@/lib/server/email";
 import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
 import { getSessionUser } from "@/lib/server/session";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
@@ -135,6 +136,14 @@ export async function POST(req: Request) {
     if (err instanceof OrderError) return NextResponse.json({ error: err.message }, { status: 400 });
     throw err;
   }
+
+  await sendOrderConfirmation({
+    publicId: order.publicId,
+    customerEmail: order.customerEmail,
+    customerName: order.customerName,
+    total: order.total,
+    items: order.items,
+  }).catch(() => {}); // el pedido ya quedó registrado igual si el email falla
 
   // Guardamos los datos usados en este checkout en el perfil, para prellenar la próxima compra.
   if (sessionUser) {

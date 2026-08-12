@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "../prisma";
 import { getPayment } from "./mercadopago";
+import { sendPaymentConfirmation } from "./email";
 
 /** Consulta el pago en MP y actualiza el pedido correspondiente. */
 export async function applyPayment(paymentId: string): Promise<void> {
@@ -21,4 +22,15 @@ export async function applyPayment(paymentId: string): Promise<void> {
     where: { id: order.id },
     data: { paymentId, status: newStatus },
   });
+
+  // Solo avisamos si el pago recién se confirma ahora (MP puede reenviar el
+  // mismo webhook varias veces; no queremos mandar el mail varias veces).
+  if (newStatus === "Paid" && order.status !== "Paid") {
+    await sendPaymentConfirmation({
+      publicId: order.publicId,
+      customerEmail: order.customerEmail,
+      customerName: order.customerName,
+      total: order.total,
+    }).catch(() => {});
+  }
 }

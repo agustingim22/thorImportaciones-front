@@ -49,6 +49,7 @@ model User {
   apartment    String?
   createdAt    DateTime  @default(now())
   sessions     Session[]
+  passwordResets PasswordReset[]
   orders       Order[]
 }
 
@@ -58,6 +59,15 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid()) // token opaco, va en el link del email
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime // válido por 1 hora
+  usedAt    DateTime? // se marca al usarse, para que el link no sirva dos veces
+  createdAt DateTime  @default(now())
 }
 
 model Order {

@@ -29,10 +29,11 @@ export function AccountPanel() {
 
 function AuthForms() {
   const { login, register } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotSent, setForgotSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,12 +41,64 @@ function AuthForms() {
     setLoading(true);
     try {
       if (mode === "login") await login({ email: form.email, password: form.password });
-      else await register(form);
+      else if (mode === "register") await register(form);
+      else {
+        await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: form.email }),
+        });
+        setForgotSent(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Algo salió mal.");
     } finally {
       setLoading(false);
     }
+  }
+
+  if (mode === "forgot") {
+    return (
+      <div className="mx-auto max-w-sm px-5 py-16">
+        <h1 className="font-display text-3xl tracking-wide text-thor-ink">Recuperar contraseña</h1>
+        {forgotSent ? (
+          <p className="mt-5 text-sm text-thor-ink-soft">
+            Si ese email está registrado, te mandamos un link para restablecer tu contraseña. Revisá tu bandeja de entrada.
+          </p>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
+            <Field label="Email">
+              <input
+                required
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className={inputCls}
+              />
+            </Field>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 rounded-lg bg-thor-gold px-4 py-2.5 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink disabled:opacity-60"
+            >
+              {loading ? "Enviando…" : "Enviar link"}
+            </button>
+          </form>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setMode("login");
+            setForgotSent(false);
+            setError("");
+          }}
+          className="mt-4 font-mono text-xs uppercase tracking-wider text-thor-muted underline"
+        >
+          ← Volver a ingresar
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -125,8 +178,19 @@ function AuthForms() {
         {mode === "login" && (
           <p className="mt-1 text-center text-xs text-thor-muted">
             ¿Olvidaste tu contraseña?{" "}
+            <button
+              type="button"
+              onClick={() => {
+                setMode("forgot");
+                setError("");
+              }}
+              className="text-thor-gold underline"
+            >
+              Recuperarla
+            </button>
+            {" · "}
             <a href={whatsappUrl("¡Hola! Me olvidé la contraseña de mi cuenta.")} className="text-thor-gold underline">
-              Escribinos por WhatsApp
+              o escribinos por WhatsApp
             </a>
             .
           </p>

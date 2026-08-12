@@ -78,3 +78,31 @@ export async function getSessionUser() {
   if (!session || session.expiresAt < new Date()) return null;
   return session.user;
 }
+
+const RESET_TOKEN_HOURS = 1;
+
+/** Crea un token de recuperación de contraseña (válido 1 hora). Devuelve el token. */
+export async function createPasswordReset(userId: number): Promise<string> {
+  const expiresAt = new Date(Date.now() + RESET_TOKEN_HOURS * 60 * 60 * 1000);
+  const reset = await prisma.passwordReset.create({ data: { userId, expiresAt } });
+  return reset.id;
+}
+
+/**
+ * Usa un token de recuperación: si es válido, cambia la contraseña, marca el
+ * token como usado y cierra todas las sesiones activas del usuario (por seguridad).
+ */
+export async function consumePasswordReset(token: string, newPassword: string): Promise<boolean> {
+  const reset = await prisma.passwordReset.findUnique({ where: { id: token } });
+  if (!reset || reset.usedAt || reset.expiresAt < new Date()) return false;
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: reset.userId },
+      data: { passwordHash: hashPassword(newPassword) },
+    }),
+    prisma.passwordReset.update({ where: { id: token }, data: { usedAt: new Date() } }),
+    prisma.session.deleteMany({ where: { userId: reset.userId } }),
+  ]);
+  return true;
+}

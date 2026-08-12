@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
+import { sendPaymentConfirmation } from "@/lib/server/email";
 
 const VALID = ["Pending", "Paid", "Cancelled", "Delivered"];
 
@@ -35,6 +36,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ publicI
     }
     return tx.order.update({ where: { publicId }, data: { status } });
   });
+
+  // Avisamos al comprador solo si el pago recién se confirma ahora (pedidos de catálogo).
+  if (order.kind === "Stock" && status === "Paid" && order.status !== "Paid") {
+    await sendPaymentConfirmation({
+      publicId: updated.publicId,
+      customerEmail: updated.customerEmail,
+      customerName: updated.customerName,
+      total: updated.total,
+    }).catch(() => {});
+  }
 
   return NextResponse.json({ orderId: updated.publicId, status: updated.status });
 }
