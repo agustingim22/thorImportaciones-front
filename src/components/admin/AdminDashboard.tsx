@@ -17,6 +17,7 @@ import {
   type ProductInput,
 } from "@/lib/admin";
 import { AdminOrders } from "./AdminOrders";
+import { AdminTestimonials } from "./AdminTestimonials";
 
 const TYPES = Object.entries(PRODUCT_TYPE_LABELS) as [ProductInput["type"], string][];
 
@@ -36,7 +37,7 @@ const EMPTY: ProductInput = {
 
 export function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"products" | "orders">("products");
+  const [tab, setTab] = useState<"products" | "orders" | "testimonials">("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -250,7 +251,13 @@ export function AdminDashboard() {
 
       {/* Pestañas */}
       <div className="mt-5 inline-flex gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
-        {([["products", "Productos"], ["orders", "Pedidos"]] as const).map(([key, label]) => (
+        {(
+          [
+            ["products", "Productos"],
+            ["orders", "Pedidos"],
+            ["testimonials", "Testimonios"],
+          ] as const
+        ).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -344,6 +351,13 @@ export function AdminDashboard() {
       {tab === "orders" && (
         <div className="mt-6">
           <AdminOrders />
+        </div>
+      )}
+
+      {/* Testimonios */}
+      {tab === "testimonials" && (
+        <div className="mt-6">
+          <AdminTestimonials />
         </div>
       )}
 

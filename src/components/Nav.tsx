@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "./Logo";
 import { useCart } from "@/lib/cart";
@@ -17,12 +17,24 @@ const LINKS = [
 
 export function Nav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [q, setQ] = useState("");
   const { count } = useCart();
   const { user } = useAuth();
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const query = q.trim();
+    router.push(query ? `/camisetas?q=${encodeURIComponent(query)}` : "/camisetas");
+    setQ("");
+    setSearchOpen(false);
+    setOpen(false);
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-thor-line bg-thor-cream/85 backdrop-blur">
@@ -49,6 +61,15 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setSearchOpen((v) => !v)}
+            aria-label="Buscar camisetas"
+            aria-expanded={searchOpen}
+            className="grid h-10 w-10 place-items-center rounded-lg border border-thor-line text-thor-ink transition-colors hover:border-thor-gold"
+          >
+            <span aria-hidden className="text-base leading-none">🔍</span>
+          </button>
           <Link
             href="/pedido-personalizado"
             className="hidden rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold hover:bg-thor-gold/10 sm:inline-block"
@@ -86,6 +107,28 @@ export function Nav() {
           </button>
         </div>
       </div>
+
+      {/* Buscador */}
+      {searchOpen && (
+        <div className="border-t border-thor-line bg-thor-cream px-5 py-4">
+          <form onSubmit={handleSearch} className="mx-auto flex max-w-6xl items-center gap-2">
+            <input
+              autoFocus
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar equipo…"
+              className="w-full rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+            />
+            <button
+              type="submit"
+              className="rounded-lg bg-thor-ink px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream"
+            >
+              Buscar
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Menú mobile */}
       {open && (

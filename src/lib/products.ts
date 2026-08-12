@@ -52,6 +52,29 @@ export async function getProducts(
   return rows.map(serialize);
 }
 
+/** Otras camisetas para mostrar como "también te puede interesar" en el detalle. */
+export async function getRelatedProducts(
+  product: Pick<Product, "id" | "type">,
+  limit = 4,
+): Promise<Product[]> {
+  const rows = await prisma.product.findMany({
+    where: { id: { not: product.id }, type: product.type },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    ...withPatches,
+  });
+  if (rows.length >= limit) return rows.map(serialize);
+
+  // Si no hay suficientes del mismo tipo, completamos con otras camisetas.
+  const fillerRows = await prisma.product.findMany({
+    where: { id: { notIn: [product.id, ...rows.map((r) => r.id)] } },
+    orderBy: { createdAt: "desc" },
+    take: limit - rows.length,
+    ...withPatches,
+  });
+  return [...rows, ...fillerRows].map(serialize);
+}
+
 export async function getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {
   const asId = Number(idOrSlug);
   const row =

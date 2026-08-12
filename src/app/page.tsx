@@ -2,6 +2,9 @@ import Link from "next/link";
 import { getProducts } from "@/lib/products";
 import type { Product } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
+import { Testimonials } from "@/components/Testimonials";
+import { getPublishedTestimonials } from "@/lib/testimonials";
+import type { Testimonial } from "@/lib/testimonials";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +14,13 @@ export default async function Home() {
     featured = (await getProducts()).slice(0, 3);
   } catch {
     featured = [];
+  }
+
+  let testimonials: Testimonial[] = [];
+  try {
+    testimonials = await getPublishedTestimonials();
+  } catch {
+    testimonials = [];
   }
 
   return (
@@ -120,6 +130,9 @@ export default async function Home() {
           </div>
         )}
       </section>
+
+      {/* ===== TESTIMONIOS ===== */}
+      <Testimonials testimonials={testimonials} />
 
       {/* ===== PERSONALIZADO ===== */}
       <section className="border-y border-thor-line bg-thor-cream-2">

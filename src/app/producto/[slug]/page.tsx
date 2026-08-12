@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductByIdOrSlug } from "@/lib/products";
+import { getProductByIdOrSlug, getRelatedProducts } from "@/lib/products";
 import { ProductPurchase } from "@/components/ProductPurchase";
+import { ProductCard } from "@/components/ProductCard";
 import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,13 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
   const { slug } = await props.params;
   const product = await getProductByIdOrSlug(slug);
   if (!product) notFound();
+
+  let related: Awaited<ReturnType<typeof getRelatedProducts>> = [];
+  try {
+    related = await getRelatedProducts(product);
+  } catch {
+    related = [];
+  }
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -65,6 +73,19 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
       </nav>
 
       <ProductPurchase product={product} />
+
+      {related.length > 0 && (
+        <section className="mt-16 border-t border-thor-line pt-10">
+          <h2 className="font-display text-2xl tracking-wide text-thor-ink">
+            También te puede interesar
+          </h2>
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {related.map((p) => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

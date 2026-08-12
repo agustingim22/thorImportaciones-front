@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import type { Product } from "@/lib/api";
-import { PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 
 export function ProductPurchase({ product }: { product: Product }) {
@@ -42,12 +43,16 @@ export function ProductPurchase({ product }: { product: Product }) {
       <div>
         <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-thor-line bg-thor-cream-2 p-6">
           {currentImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={currentImage}
-              alt={product.team}
-              className="max-h-[640px] w-full rounded-xl object-contain"
-            />
+            <div className="relative h-[420px] w-full sm:h-[560px]">
+              <Image
+                src={currentImage}
+                alt={product.team}
+                fill
+                sizes="(max-width: 768px) 100vw, 55vw"
+                className="rounded-xl object-contain"
+                priority
+              />
+            </div>
           ) : (
             <div
               className="jersey-shape flex h-[420px] w-[380px] items-center justify-center"
@@ -66,13 +71,12 @@ export function ProductPurchase({ product }: { product: Product }) {
                 key={url}
                 type="button"
                 onClick={() => setActiveImage(i)}
-                className={`h-16 w-16 overflow-hidden rounded-lg border-2 ${
+                className={`relative h-16 w-16 overflow-hidden rounded-lg border-2 ${
                   i === activeImage ? "border-thor-gold" : "border-thor-line"
                 }`}
                 aria-label={`Ver foto ${i + 1}`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt="" className="h-full w-full object-cover" />
+                <Image src={url} alt="" fill sizes="64px" className="object-cover" />
               </button>
             ))}
           </div>
@@ -88,6 +92,12 @@ export function ProductPurchase({ product }: { product: Product }) {
         <h1 className="mt-3 font-display text-3xl leading-tight tracking-wide text-thor-ink sm:text-4xl">
           {product.team}
         </h1>
+
+        {product.inStock && product.stock <= LOW_STOCK_THRESHOLD && (
+          <p className="mt-2 w-fit rounded-md border border-red-600/30 bg-red-50 px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider text-red-600">
+            {product.stock === 1 ? "¡Última unidad!" : `¡Quedan ${product.stock} unidades!`}
+          </p>
+        )}
 
         <div className="mt-4 rounded-xl border border-thor-line bg-thor-paper px-4 py-3">
           <p className="font-display text-2xl text-thor-gold">${finalPrice.toLocaleString("es-AR")}</p>
@@ -164,8 +174,13 @@ export function ProductPurchase({ product }: { product: Product }) {
                       : "border-thor-line text-thor-muted hover:text-thor-ink"
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={patch.imageUrl} alt="" className="h-7 w-7 rounded object-cover" />
+                  <Image
+                    src={patch.imageUrl}
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="rounded object-cover"
+                  />
                   <span>
                     {patch.label}
                     {patch.extraPrice > 0 && ` +$${patch.extraPrice.toLocaleString("es-AR")}`}

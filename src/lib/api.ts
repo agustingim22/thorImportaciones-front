@@ -35,3 +35,6 @@ export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   fan: "Versión Fan",
   player: "Versión Jugador",
 };
+
+/** A partir de cuántas unidades o menos mostramos el aviso de "últimas unidades". */
+export const LOW_STOCK_THRESHOLD = 3;

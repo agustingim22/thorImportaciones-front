@@ -110,6 +110,16 @@ model CustomItem {
   name      String?
 }
 
+/// Testimonio de un comprador (cargado a mano por el admin), mostrado en la home.
+model Testimonial {
+  id        Int      @id @default(autoincrement())
+  name      String
+  comment   String
+  rating    Int      @default(5) // 1 a 5
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 model OrderItem {
   id              Int    @id @default(autoincrement())
   orderId         Int

@@ -159,6 +159,59 @@ export async function adminSetOrderStatus(publicId: string, status: string): Pro
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+// ---- Testimonios ----
+export type AdminTestimonial = {
+  id: number;
+  name: string;
+  comment: string;
+  rating: number;
+  published: boolean;
+  createdAt: string;
+};
+export type TestimonialInput = {
+  name: string;
+  comment: string;
+  rating: number;
+  published: boolean;
+};
+
+export async function adminListTestimonials(): Promise<AdminTestimonial[]> {
+  const res = await fetch(`/api/admin/testimonials`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminCreateTestimonial(input: TestimonialInput): Promise<AdminTestimonial> {
+  const res = await fetch(`/api/admin/testimonials`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminUpdateTestimonial(
+  id: number,
+  input: TestimonialInput,
+): Promise<AdminTestimonial> {
+  const res = await fetch(`/api/admin/testimonials/${id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminDeleteTestimonial(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/testimonials/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
 async function toError(res: Response): Promise<Error> {
   try {
     const data = await res.json();
