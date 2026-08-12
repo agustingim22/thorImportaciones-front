@@ -22,7 +22,8 @@ export type Product = {
   images: string[]; // hasta 3 fotos; images[0] es la portada
   imageUrl: string | null; // = images[0] ?? null, para las cards/carrito
   description: string;
-  inStock: boolean;
+  stock: number; // unidades disponibles
+  inStock: boolean; // = stock > 0, para no tocar la UI que ya lo usa
   presetName: string | null; // si está, el comprador no elige nombre
   presetNumber: string | null; // si está, el comprador no elige número
   patches: Patch[]; // opciones de parche disponibles (vacío = sin parche)

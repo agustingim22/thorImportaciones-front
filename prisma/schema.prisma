@@ -18,7 +18,7 @@ model Product {
   colorCss      String
   images        String[] @default([]) // hasta 3 fotos (la primera es la portada)
   description   String
-  inStock       Boolean  @default(true)
+  stock         Int      @default(0) // unidades disponibles (0 = sin stock)
   presetName    String? // nombre ya definido por el admin (si está, el comprador no elige)
   presetNumber  String? // número ya definido por el admin (si está, el comprador no elige)
   createdAt     DateTime @default(now())

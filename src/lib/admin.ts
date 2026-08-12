@@ -17,7 +17,7 @@ export type ProductInput = {
   colorCss: string;
   images: string[]; // hasta 3 fotos
   description: string;
-  inStock: boolean;
+  stock: number;
   presetName: string | null;
   presetNumber: string | null;
   patches: PatchInput[];

@@ -16,7 +16,7 @@ export type ProductInput = {
   colorCss: string;
   images: string[]; // hasta 3 fotos
   description: string;
-  inStock: boolean;
+  stock: number; // unidades disponibles
   presetName: string | null; // si está, el comprador no elige nombre
   presetNumber: string | null; // si está, el comprador no elige número
   patches: PatchInput[]; // opciones de parche (vacío = sin opciones)
@@ -30,6 +30,8 @@ export function validateProduct(input: ProductInput): Record<string, string[]> |
   if (typeof input?.price !== "number" || input.price < 0) e.price = ["El precio no puede ser negativo."];
   if (!Array.isArray(input?.images) || input.images.length > 3)
     e.images = ["Podés subir hasta 3 fotos."];
+  if (typeof input?.stock !== "number" || !Number.isInteger(input.stock) || input.stock < 0)
+    e.stock = ["El stock debe ser un número entero, 0 o mayor."];
   if (input?.presetNumber) {
     const n = Number(input.presetNumber);
     if (!Number.isInteger(n) || n < 0 || n > 99) e.presetNumber = ["El número debe estar entre 0 y 99."];
@@ -53,7 +55,7 @@ export function toProductData(input: ProductInput, slug: string): Prisma.Product
     colorCss: input.colorCss?.trim() || "linear-gradient(160deg,#FFC44D,#DE9A26)",
     images: (input.images ?? []).slice(0, 3).map((u) => u.trim()).filter(Boolean),
     description: (input.description ?? "").trim(),
-    inStock: !!input.inStock,
+    stock: input.stock,
     presetName: input.presetName?.trim() || null,
     presetNumber: input.presetNumber?.trim() || null,
   };

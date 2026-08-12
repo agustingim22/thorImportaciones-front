@@ -19,7 +19,8 @@ function serialize(p: ProductRow): Product {
     images: p.images,
     imageUrl: p.images[0] ?? null,
     description: p.description,
-    inStock: p.inStock,
+    stock: p.stock,
+    inStock: p.stock > 0,
     presetName: p.presetName,
     presetNumber: p.presetNumber,
     patches: p.patches.map((patch) => ({

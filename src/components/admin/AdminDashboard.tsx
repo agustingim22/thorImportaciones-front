@@ -27,7 +27,7 @@ const EMPTY: ProductInput = {
   colorCss: "",
   images: [],
   description: "",
-  inStock: true,
+  stock: 0,
   presetName: null,
   presetNumber: null,
   patches: [],
@@ -105,7 +105,7 @@ export function AdminDashboard() {
       colorCss: p.colorCss,
       images: p.images,
       description: p.description,
-      inStock: p.inStock,
+      stock: p.stock,
       presetName: p.presetName,
       presetNumber: p.presetNumber,
       patches: p.patches.map(({ label, imageUrl, extraPrice }) => ({ label, imageUrl, extraPrice })),
@@ -306,11 +306,15 @@ export function AdminDashboard() {
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase ${
-                        p.inStock ? "bg-thor-land/15 text-thor-land" : "bg-red-500/10 text-red-600"
+                      className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tabular-nums ${
+                        p.stock === 0
+                          ? "bg-red-500/10 text-red-600"
+                          : p.stock <= 3
+                            ? "bg-thor-gold/15 text-thor-gold"
+                            : "bg-thor-land/15 text-thor-land"
                       }`}
                     >
-                      {p.inStock ? "En stock" : "Sin stock"}
+                      {p.stock === 0 ? "Sin stock" : `${p.stock} unidad${p.stock === 1 ? "" : "es"}`}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -522,14 +526,15 @@ export function AdminDashboard() {
                 />
               </Field>
 
-              <label className="flex items-center gap-2 text-sm text-thor-ink">
+              <Field label="Stock disponible (unidades)">
                 <input
-                  type="checkbox"
-                  checked={form.inStock}
-                  onChange={(e) => setForm({ ...form, inStock: e.target.checked })}
+                  type="number"
+                  min={0}
+                  value={form.stock}
+                  onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
+                  className={`${inputCls} max-w-[140px]`}
                 />
-                En stock (visible en el catálogo con disponibilidad)
-              </label>
+              </Field>
 
               {formError && <p className="text-sm text-red-600">{formError}</p>}
             </div>

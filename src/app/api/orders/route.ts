@@ -25,6 +25,9 @@ type Body = {
   }[];
 };
 
+/** Error de validación de negocio (stock, producto, parche) — se traduce a 400. */
+class OrderError extends Error {}
+
 export async function POST(req: Request) {
   const body = (await req.json()) as Body;
 
@@ -41,75 +44,92 @@ export async function POST(req: Request) {
   if (!Array.isArray(body.items) || body.items.length === 0) errors.items = ["El carrito está vacío."];
   if (Object.keys(errors).length) return NextResponse.json({ errors }, { status: 400 });
 
-  // Precios y personalización SIEMPRE resueltos desde la base:
-  // - el precio del parche viene del producto, no de lo que mande el cliente.
-  // - si el producto tiene nombre/número predefinidos, se ignora lo que mande el cliente.
-  const itemsData: {
-    productId: number;
-    productName: string;
-    unitPrice: number;
-    quantity: number;
-    customName: string | null;
-    customNumber: string | null;
-    patchLabel: string | null;
-    patchExtraPrice: number | null;
-  }[] = [];
+  let order;
+  try {
+    order = await prisma.$transaction(async (tx) => {
+      // Precios, stock y personalización SIEMPRE resueltos desde la base:
+      // - el precio del parche viene del producto, no de lo que mande el cliente.
+      // - si el producto tiene nombre/número predefinidos, se ignora lo que mande el cliente.
+      // - el stock se descuenta de forma atómica (UPDATE ... WHERE stock >= cantidad),
+      //   así dos compras simultáneas nunca pueden vender la misma última unidad dos veces.
+      const itemsData: {
+        productId: number;
+        productName: string;
+        unitPrice: number;
+        quantity: number;
+        customName: string | null;
+        customNumber: string | null;
+        patchLabel: string | null;
+        patchExtraPrice: number | null;
+      }[] = [];
 
-  for (const line of body.items!) {
-    const qty = Number(line.quantity);
-    if (!Number.isInteger(qty) || qty <= 0)
-      return NextResponse.json({ error: "Cantidad inválida." }, { status: 400 });
+      for (const line of body.items!) {
+        const qty = Number(line.quantity);
+        if (!Number.isInteger(qty) || qty <= 0) throw new OrderError("Cantidad inválida.");
 
-    const product = await prisma.product.findUnique({
-      where: { id: Number(line.productId) },
-      include: { patches: true },
+        const product = await tx.product.findUnique({
+          where: { id: Number(line.productId) },
+          include: { patches: true },
+        });
+        if (!product) throw new OrderError(`Producto no disponible (id ${line.productId}).`);
+
+        let patch = null;
+        if (line.patchId != null) {
+          patch = product.patches.find((p) => p.id === Number(line.patchId));
+          if (!patch) throw new OrderError("El parche elegido no es válido para ese producto.");
+        }
+
+        const reserved = await tx.product.updateMany({
+          where: { id: product.id, stock: { gte: qty } },
+          data: { stock: { decrement: qty } },
+        });
+        if (reserved.count === 0) {
+          throw new OrderError(
+            `No hay stock suficiente de "${product.team}" (quedan ${product.stock}).`,
+          );
+        }
+
+        itemsData.push({
+          productId: product.id,
+          productName: product.team,
+          unitPrice: product.price + (patch?.extraPrice ?? 0),
+          quantity: qty,
+          customName: product.presetName ?? (line.customName?.trim() || null),
+          customNumber: product.presetNumber ?? (line.customNumber?.trim() || null),
+          patchLabel: patch?.label ?? null,
+          patchExtraPrice: patch ? patch.extraPrice : null,
+        });
+      }
+
+      const total = itemsData.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+      const publicId = crypto.randomBytes(6).toString("hex");
+
+      return tx.order.create({
+        data: {
+          publicId,
+          kind: "Stock",
+          status: "Pending",
+          customerName: body.customerName!.trim(),
+          customerEmail: body.customerEmail!.trim(),
+          customerPhone: body.customerPhone!.trim(),
+          street: body.street!.trim(),
+          postalCode: body.postalCode!.trim(),
+          city: body.city!.trim(),
+          province: body.province!.trim(),
+          floor: body.floor?.trim() || null,
+          apartment: body.apartment?.trim() || null,
+          deliveryNotes: body.deliveryNotes?.trim() || null,
+          paymentMethod,
+          total,
+          items: { create: itemsData },
+        },
+        include: { items: true },
+      });
     });
-    if (!product || !product.inStock)
-      return NextResponse.json({ error: `Producto no disponible (id ${line.productId}).` }, { status: 400 });
-
-    let patch = null;
-    if (line.patchId != null) {
-      patch = product.patches.find((p) => p.id === Number(line.patchId));
-      if (!patch)
-        return NextResponse.json({ error: "El parche elegido no es válido para ese producto." }, { status: 400 });
-    }
-
-    itemsData.push({
-      productId: product.id,
-      productName: product.team,
-      unitPrice: product.price + (patch?.extraPrice ?? 0),
-      quantity: qty,
-      customName: product.presetName ?? (line.customName?.trim() || null),
-      customNumber: product.presetNumber ?? (line.customNumber?.trim() || null),
-      patchLabel: patch?.label ?? null,
-      patchExtraPrice: patch ? patch.extraPrice : null,
-    });
+  } catch (err) {
+    if (err instanceof OrderError) return NextResponse.json({ error: err.message }, { status: 400 });
+    throw err;
   }
-
-  const total = itemsData.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-  const publicId = crypto.randomBytes(6).toString("hex");
-
-  const order = await prisma.order.create({
-    data: {
-      publicId,
-      kind: "Stock",
-      status: "Pending",
-      customerName: body.customerName!.trim(),
-      customerEmail: body.customerEmail!.trim(),
-      customerPhone: body.customerPhone!.trim(),
-      street: body.street!.trim(),
-      postalCode: body.postalCode!.trim(),
-      city: body.city!.trim(),
-      province: body.province!.trim(),
-      floor: body.floor?.trim() || null,
-      apartment: body.apartment?.trim() || null,
-      deliveryNotes: body.deliveryNotes?.trim() || null,
-      paymentMethod,
-      total,
-      items: { create: itemsData },
-    },
-    include: { items: true },
-  });
 
   let checkoutUrl: string | null = null;
   if (paymentMethod === "MercadoPago" && isMpConfigured()) {
