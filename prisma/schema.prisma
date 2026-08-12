@@ -35,11 +35,38 @@ model Patch {
   extraPrice Int     @default(0) // ARS, se suma al precio de la camiseta
 }
 
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  passwordHash String
+  name         String
+  phone        String?
+  street       String?
+  postalCode   String?
+  city         String?
+  province     String?
+  floor        String?
+  apartment    String?
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+  orders       Order[]
+}
+
+model Session {
+  id        String   @id @default(cuid()) // token opaco, va en la cookie
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
 model Order {
   id            Int          @id @default(autoincrement())
   publicId      String       @unique
   kind          String       @default("Stock") // "Stock" | "Custom"
   status        String       @default("Pending") // Pending | Paid | Cancelled | Delivered
+  userId        Int? // si el comprador estaba logueado al pagar
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   customerName  String
   customerEmail String
   customerPhone String

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Logo } from "./Logo";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 
 const LINKS = [
   { href: "/", label: "Inicio" },
@@ -18,6 +19,7 @@ export function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const { count } = useCart();
+  const { user } = useAuth();
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -52,6 +54,14 @@ export function Nav() {
             className="hidden rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold hover:bg-thor-gold/10 sm:inline-block"
           >
             Pedido personalizado
+          </Link>
+          <Link
+            href="/cuenta"
+            aria-label="Mi cuenta"
+            className="hidden items-center gap-1.5 rounded-lg border border-thor-line px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold sm:flex"
+          >
+            <span aria-hidden>👤</span>
+            {user ? user.name.split(" ")[0] : "Ingresar"}
           </Link>
           <Link
             href="/carrito"
@@ -96,6 +106,15 @@ export function Nav() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                href="/cuenta"
+                onClick={() => setOpen(false)}
+                className="block rounded-lg px-3 py-2.5 font-mono text-sm font-semibold uppercase tracking-wider text-thor-ink hover:bg-thor-cream-2"
+              >
+                👤 {user ? user.name.split(" ")[0] : "Mi cuenta"}
+              </Link>
+            </li>
             <li className="mt-2">
               <Link
                 href="/pedido-personalizado"

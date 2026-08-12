@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
+import { getSessionUser } from "@/lib/server/session";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 
 type Body = {
@@ -43,6 +44,9 @@ export async function POST(req: Request) {
   const paymentMethod = body.paymentMethod === "Transfer" ? "Transfer" : "MercadoPago";
   if (!Array.isArray(body.items) || body.items.length === 0) errors.items = ["El carrito está vacío."];
   if (Object.keys(errors).length) return NextResponse.json({ errors }, { status: 400 });
+
+  // Si el comprador está logueado, el pedido se vincula a su cuenta.
+  const sessionUser = await getSessionUser();
 
   let order;
   try {
@@ -109,8 +113,9 @@ export async function POST(req: Request) {
           publicId,
           kind: "Stock",
           status: "Pending",
+          userId: sessionUser?.id ?? null,
           customerName: body.customerName!.trim(),
-          customerEmail: body.customerEmail!.trim(),
+          customerEmail: body.customerEmail!.trim().toLowerCase(),
           customerPhone: body.customerPhone!.trim(),
           street: body.street!.trim(),
           postalCode: body.postalCode!.trim(),
@@ -129,6 +134,25 @@ export async function POST(req: Request) {
   } catch (err) {
     if (err instanceof OrderError) return NextResponse.json({ error: err.message }, { status: 400 });
     throw err;
+  }
+
+  // Guardamos los datos usados en este checkout en el perfil, para prellenar la próxima compra.
+  if (sessionUser) {
+    await prisma.user
+      .update({
+        where: { id: sessionUser.id },
+        data: {
+          name: body.customerName!.trim(),
+          phone: body.customerPhone!.trim(),
+          street: body.street!.trim(),
+          postalCode: body.postalCode!.trim(),
+          city: body.city!.trim(),
+          province: body.province!.trim(),
+          floor: body.floor?.trim() || null,
+          apartment: body.apartment?.trim() || null,
+        },
+      })
+      .catch(() => {}); // no crítico: si falla, el pedido ya quedó registrado igual
   }
 
   let checkoutUrl: string | null = null;

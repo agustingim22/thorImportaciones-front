@@ -5,6 +5,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { CartProvider } from "@/lib/cart";
+import { AuthProvider } from "@/lib/auth";
 import { SITE } from "@/lib/site";
 
 const anton = Anton({
@@ -47,12 +48,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${anton.variable} ${manrope.variable} ${jetbrains.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-thor-cream text-thor-ink">
-        <CartProvider>
-          <Nav />
-          <main className="flex-1">{children}</main>
-          <Footer />
-          <WhatsAppFloat />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <Nav />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <WhatsAppFloat />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

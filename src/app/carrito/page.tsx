@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
+import { useAuth } from "@/lib/auth";
 import { createOrder, uploadReceipt, type CreateOrderResult } from "@/lib/orders";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { SITE, whatsappUrl } from "@/lib/site";
@@ -10,6 +11,7 @@ import { AddressFields, Field, emptyAddress, inputCls } from "@/components/Addre
 
 export default function CarritoPage() {
   const { items, total, setQty, remove, clear } = useCart();
+  const { user } = useAuth();
   const [contact, setContact] = useState({ customerName: "", customerEmail: "", customerPhone: "" });
   const [address, setAddress] = useState(emptyAddress);
   const [paymentMethod, setPaymentMethod] = useState<"MercadoPago" | "Transfer">("MercadoPago");
@@ -17,6 +19,26 @@ export default function CarritoPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<CreateOrderResult | null>(null);
+
+  // Si el comprador está logueado, prellenamos con sus datos guardados
+  // (solo si el formulario todavía no fue tocado).
+  useEffect(() => {
+    if (!user) return;
+    setContact((c) => (c.customerName ? c : { customerName: user.name, customerEmail: user.email, customerPhone: user.phone ?? "" }));
+    setAddress((a) =>
+      a.street
+        ? a
+        : {
+            street: user.street ?? "",
+            postalCode: user.postalCode ?? "",
+            city: user.city ?? "",
+            province: user.province ?? "",
+            floor: user.floor ?? "",
+            apartment: user.apartment ?? "",
+            deliveryNotes: "",
+          },
+    );
+  }, [user]);
 
   async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
