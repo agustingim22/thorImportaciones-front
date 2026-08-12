@@ -12,7 +12,7 @@ export const SITE = {
   // Datos para transferencias. cvu es opcional (dejalo en null si preferís
   // que solo se muestre el alias).
   bank: {
-    cvu: null as string | null,
+    cvu: "0000168300000008337465",
     alias: "AGUSTINGIM22.LEMON",
     holder: "Agustín Alejandro Gimenez",
   },
