@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/server/auth";
-import { isCloudinaryConfigured, uploadImage } from "@/lib/server/cloudinary";
+import { isCloudinaryConfigured, uploadProductImage } from "@/lib/server/cloudinary";
 
 export async function POST(req: Request) {
   if (!isAdmin(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -17,6 +17,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "La imagen no puede superar los 8 MB." }, { status: 400 });
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const url = await uploadImage(bytes);
+  const url = await uploadProductImage(bytes);
   return NextResponse.json({ url });
 }

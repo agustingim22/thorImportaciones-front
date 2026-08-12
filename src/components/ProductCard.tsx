@@ -12,10 +12,10 @@ export function ProductCard({ product }: { product: Product }) {
         {isRetro ? "Retro Fan" : "Player Version"}
       </span>
 
-      {/* imagen (link al detalle) */}
+      {/* imagen (link al detalle) — tamaño fijo (1:1) para que todas las cards queden simétricas */}
       <Link
         href={`/producto/${product.slug}`}
-        className="relative flex h-56 items-center justify-center bg-thor-cream-2"
+        className="relative flex aspect-square items-center justify-center overflow-hidden bg-thor-cream-2"
       >
         {product.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -26,10 +26,10 @@ export function ProductCard({ product }: { product: Product }) {
           />
         ) : (
           <div
-            className="jersey-shape flex h-40 w-36 items-center justify-center transition-transform group-hover:scale-105"
+            className="jersey-shape flex h-[64%] w-[56%] items-center justify-center transition-transform group-hover:scale-105"
             style={{ background: product.colorCss }}
           >
-            <span className="font-display text-5xl text-thor-ink/80">
+            <span className="font-display text-6xl text-thor-ink/80">
               {product.number}
             </span>
           </div>
@@ -43,16 +43,16 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="border-t border-dashed border-thor-line" />
       </div>
 
-      <div className="p-5">
+      <div className="p-3.5">
         <Link href={`/producto/${product.slug}`} className="block">
-          <h3 className="font-body text-base font-extrabold text-thor-ink transition-colors hover:text-thor-gold">
+          <h3 className="font-body text-sm font-extrabold text-thor-ink transition-colors hover:text-thor-gold">
             {product.team}
           </h3>
         </Link>
-        <p className="mt-0.5 text-xs text-thor-muted">{product.fabric}</p>
+        <p className="mt-0.5 text-[11px] text-thor-muted">{product.fabric}</p>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <span className="font-mono text-lg font-bold text-thor-gold tabular-nums">
+        <div className="mt-2.5 flex items-center justify-between gap-3">
+          <span className="font-mono text-base font-bold text-thor-gold tabular-nums">
             ${product.price.toLocaleString("es-AR")}
           </span>
           {product.inStock ? (

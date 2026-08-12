@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { isCloudinaryConfigured, uploadImage } from "@/lib/server/cloudinary";
+import { isCloudinaryConfigured, uploadReceipt } from "@/lib/server/cloudinary";
 
 export async function POST(req: Request, { params }: { params: Promise<{ publicId: string }> }) {
   const { publicId } = await params;
@@ -20,7 +20,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ publicI
     return NextResponse.json({ error: "El archivo no puede superar los 8 MB." }, { status: 400 });
 
   const bytes = Buffer.from(await file.arrayBuffer());
-  const url = await uploadImage(bytes, "thor/receipts");
+  const url = await uploadReceipt(bytes);
 
   await prisma.order.update({ where: { publicId }, data: { receiptUrl: url } });
   return NextResponse.json({ url });

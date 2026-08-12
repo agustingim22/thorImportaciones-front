@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Contacto" };
 export default function ContactoPage() {
   const cards = [
     { icon: "💬", title: "WhatsApp", sub: "Respuesta en el día", href: whatsappUrl() },
-    { icon: "📷", title: "Instagram", sub: "@thorcamisetas", href: SITE.instagram },
+    { icon: "📷", title: "Instagram", sub: "@thorimportaciones", href: SITE.instagram },
     { icon: "✉️", title: "Email", sub: SITE.email, href: `mailto:${SITE.email}` },
     { icon: "📍", title: "Envíos", sub: "A todo el país", href: whatsappUrl() },
   ];
