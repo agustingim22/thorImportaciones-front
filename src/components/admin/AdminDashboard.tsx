@@ -20,6 +20,8 @@ import { AdminOrders } from "./AdminOrders";
 import { AdminTestimonials } from "./AdminTestimonials";
 import { AdminHeroImages } from "./AdminHeroImages";
 import { AdminStats } from "./AdminStats";
+import { AdminReviews } from "./AdminReviews";
+import { AdminNewsletter } from "./AdminNewsletter";
 import { parseCsv } from "@/lib/csv";
 
 const TYPES = Object.entries(PRODUCT_TYPE_LABELS) as [ProductInput["type"], string][];
@@ -93,7 +95,9 @@ const EMPTY: ProductInput = {
 
 export function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"products" | "orders" | "testimonials" | "hero" | "stats">("products");
+  const [tab, setTab] = useState<
+    "products" | "orders" | "testimonials" | "hero" | "stats" | "reviews" | "newsletter"
+  >("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -439,7 +443,9 @@ export function AdminDashboard() {
             ["products", "Productos"],
             ["orders", "Pedidos"],
             ["stats", "Estadísticas"],
+            ["reviews", "Reseñas"],
             ["testimonials", "Testimonios"],
+            ["newsletter", "Newsletter"],
             ["hero", "Inicio"],
           ] as const
         ).map(([key, label]) => (
@@ -641,10 +647,24 @@ export function AdminDashboard() {
       {/* Estadísticas */}
       {tab === "stats" && <AdminStats />}
 
+      {/* Reseñas */}
+      {tab === "reviews" && (
+        <div className="mt-6">
+          <AdminReviews />
+        </div>
+      )}
+
       {/* Testimonios */}
       {tab === "testimonials" && (
         <div className="mt-6">
           <AdminTestimonials />
+        </div>
+      )}
+
+      {/* Newsletter */}
+      {tab === "newsletter" && (
+        <div className="mt-6">
+          <AdminNewsletter />
         </div>
       )}
 

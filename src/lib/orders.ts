@@ -137,6 +137,7 @@ export type OrderStatus = {
   orderId: string;
   status: string;
   total: number;
+  trackingNumber: string | null;
   createdAt: string;
   items: { productName: string; unitPrice: number; quantity: number; size: string | null }[];
 };

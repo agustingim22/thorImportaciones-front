@@ -13,6 +13,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ publicI
     orderId: order.publicId,
     status: order.status,
     total: order.total,
+    trackingNumber: order.trackingNumber,
     createdAt: order.createdAt,
     items: order.items.map((i) => ({
       productName: i.productName,

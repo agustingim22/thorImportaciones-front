@@ -8,6 +8,7 @@ import type { Testimonial } from "@/lib/testimonials";
 import { HeroCarousel } from "@/components/HeroCarousel";
 import { getHeroImages } from "@/lib/heroImages";
 import type { HeroImage } from "@/lib/heroImages";
+import { RecentlyViewed } from "@/components/RecentlyViewed";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,9 @@ export default async function Home() {
           </div>
         )}
       </section>
+
+      {/* ===== VISTOS RECIENTEMENTE ===== */}
+      <RecentlyViewed />
 
       {/* ===== TESTIMONIOS ===== */}
       <Testimonials testimonials={testimonials} />

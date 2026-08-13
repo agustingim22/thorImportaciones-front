@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { getProductByIdOrSlug, getRelatedProducts } from "@/lib/products";
 import { ProductPurchase } from "@/components/ProductPurchase";
 import { ProductCard } from "@/components/ProductCard";
+import { ProductReviews } from "@/components/ProductReviews";
+import { getProductReviews } from "@/lib/reviews";
+import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { Testimonials } from "@/components/Testimonials";
 import { getPublishedTestimonials } from "@/lib/testimonials";
 import { PRODUCT_TYPE_LABELS } from "@/lib/api";
@@ -48,6 +51,13 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     testimonials = await getPublishedTestimonials();
   } catch {
     testimonials = [];
+  }
+
+  let reviews: Awaited<ReturnType<typeof getProductReviews>> = [];
+  try {
+    reviews = await getProductReviews(product.id);
+  } catch {
+    reviews = [];
   }
 
   const jsonLd = {
@@ -110,9 +120,12 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
             </div>
           </section>
         )}
+
+        <ProductReviews productId={product.id} reviews={reviews} />
       </div>
 
       <div className="border-t border-thor-line">
+        <RecentlyViewed excludeId={product.id} />
         <Testimonials testimonials={testimonials} />
       </div>
     </>

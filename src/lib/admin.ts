@@ -142,6 +142,7 @@ export type AdminOrder = {
   total: number;
   paymentMethod: string | null;
   receiptUrl: string | null;
+  trackingNumber: string | null;
   createdAt: string;
   items: AdminOrderItem[];
   customItems: AdminCustomItem[];
@@ -168,6 +169,25 @@ export async function adminSetOrderTotal(publicId: string, total: number): Promi
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ total }),
+  });
+  if (!res.ok) {
+    let msg = `Error ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch {
+      /* sin cuerpo */
+    }
+    throw new Error(msg);
+  }
+}
+
+/** Carga o cambia el código de seguimiento del envío de un pedido. */
+export async function adminSetOrderTracking(publicId: string, trackingNumber: string): Promise<void> {
+  const res = await fetch(`/api/admin/orders/${publicId}/status`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ trackingNumber }),
   });
   if (!res.ok) {
     let msg = `Error ${res.status}`;
@@ -287,6 +307,47 @@ export async function adminUploadHeroImage(file: File): Promise<string> {
   if (!res.ok) throw await toError(res);
   const data = (await res.json()) as { url: string };
   return data.url;
+}
+
+// ---- Reseñas de producto ----
+export type AdminReview = {
+  id: number;
+  productId: number;
+  productName: string;
+  name: string;
+  rating: number;
+  comment: string;
+  published: boolean;
+  createdAt: string;
+};
+
+export async function adminListReviews(): Promise<AdminReview[]> {
+  const res = await fetch(`/api/admin/reviews`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminSetReviewPublished(id: number, published: boolean): Promise<void> {
+  const res = await fetch(`/api/admin/reviews/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ published }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function adminDeleteReview(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/reviews/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+// ---- Newsletter ----
+export type AdminSubscriber = { id: number; email: string; createdAt: string };
+
+export async function adminListSubscribers(): Promise<AdminSubscriber[]> {
+  const res = await fetch(`/api/admin/subscribers`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
 }
 
 async function toError(res: Response): Promise<Error> {

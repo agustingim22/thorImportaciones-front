@@ -5,6 +5,7 @@ import {
   adminListOrders,
   adminSetOrderStatus,
   adminSetOrderTotal,
+  adminSetOrderTracking,
   type AdminOrder,
 } from "@/lib/admin";
 
@@ -62,7 +63,7 @@ function exportCsv(orders: AdminOrder[]) {
   const headers = [
     "Fecha", "N° Pedido", "Tipo", "Estado", "Cliente", "Email",
     "Teléfono", "Dirección", "Especificaciones de entrega", "Notas",
-    "Total", "Forma de pago", "Comprobante", "Detalle",
+    "Total", "Forma de pago", "Comprobante", "Seguimiento", "Detalle",
   ];
   const rows = orders.map((o) => [
     new Date(o.createdAt).toLocaleString("es-AR"),
@@ -78,6 +79,7 @@ function exportCsv(orders: AdminOrder[]) {
     o.kind === "Custom" && o.total <= 0 ? "a coordinar" : String(o.total),
     paymentLabel(o),
     o.receiptUrl ?? "",
+    o.trackingNumber ?? "",
     detalle(o),
   ]);
   const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
@@ -101,6 +103,9 @@ export function AdminOrders() {
   const [editingTotal, setEditingTotal] = useState<Record<string, string>>({});
   const [savingTotal, setSavingTotal] = useState<string | null>(null);
   const [totalError, setTotalError] = useState("");
+  const [editingTracking, setEditingTracking] = useState<Record<string, string>>({});
+  const [savingTracking, setSavingTracking] = useState<string | null>(null);
+  const [trackingError, setTrackingError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -150,6 +155,36 @@ export function AdminOrders() {
       setTotalError(err instanceof Error ? err.message : "No se pudo guardar el precio.");
     } finally {
       setSavingTotal(null);
+    }
+  }
+
+  function startEditTracking(o: AdminOrder) {
+    setTrackingError("");
+    setEditingTracking((prev) => ({ ...prev, [o.publicId]: o.trackingNumber ?? "" }));
+  }
+
+  function cancelEditTracking(publicId: string) {
+    setEditingTracking((prev) => {
+      const next = { ...prev };
+      delete next[publicId];
+      return next;
+    });
+  }
+
+  async function saveTracking(publicId: string) {
+    const value = (editingTracking[publicId] ?? "").trim();
+    setTrackingError("");
+    setSavingTracking(publicId);
+    try {
+      await adminSetOrderTracking(publicId, value);
+      setOrders((prev) =>
+        prev.map((o) => (o.publicId === publicId ? { ...o, trackingNumber: value || null } : o)),
+      );
+      cancelEditTracking(publicId);
+    } catch (err) {
+      setTrackingError(err instanceof Error ? err.message : "No se pudo guardar el seguimiento.");
+    } finally {
+      setSavingTracking(null);
     }
   }
 
@@ -212,6 +247,7 @@ export function AdminOrders() {
       </div>
 
       {totalError && <p className="mb-3 text-sm text-red-600">{totalError}</p>}
+      {trackingError && <p className="mb-3 text-sm text-red-600">{trackingError}</p>}
 
       <div className="overflow-x-auto rounded-2xl border border-thor-line bg-thor-paper">
         <table className="w-full text-sm">
@@ -224,25 +260,26 @@ export function AdminOrders() {
               <th className="px-4 py-3">Dirección</th>
               <th className="px-4 py-3">Total</th>
               <th className="px-4 py-3">Pago</th>
+              <th className="px-4 py-3">Seguimiento</th>
               <th className="px-4 py-3">Estado</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
+                <td colSpan={8} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
               </tr>
             )}
             {!loading && orders.length > 0 && filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={8} className="px-4 py-8 text-center text-thor-muted">
                   Ningún pedido coincide con la búsqueda o el filtro.
                 </td>
               </tr>
             )}
             {!loading && orders.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={8} className="px-4 py-8 text-center text-thor-muted">
                   Todavía no hay pedidos.
                 </td>
               </tr>
@@ -358,6 +395,50 @@ export function AdminOrders() {
                       >
                         Ver comprobante
                       </a>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-[11px]">
+                    {editingTracking[o.publicId] !== undefined ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={editingTracking[o.publicId]}
+                          onChange={(e) =>
+                            setEditingTracking((prev) => ({ ...prev, [o.publicId]: e.target.value }))
+                          }
+                          placeholder="Código de seguimiento"
+                          className="w-28 rounded-md border border-thor-line bg-thor-cream px-2 py-1 text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => saveTracking(o.publicId)}
+                          disabled={savingTracking === o.publicId}
+                          aria-label="Guardar seguimiento"
+                          className="text-thor-gold hover:underline disabled:opacity-50"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cancelEditTracking(o.publicId)}
+                          aria-label="Cancelar"
+                          className="text-thor-muted hover:underline"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-thor-ink">{o.trackingNumber ?? "—"}</span>
+                        <button
+                          type="button"
+                          onClick={() => startEditTracking(o)}
+                          className="font-mono text-[11px] font-normal normal-case text-thor-gold underline"
+                        >
+                          {o.trackingNumber ? "Editar" : "Cargar"}
+                        </button>
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3">

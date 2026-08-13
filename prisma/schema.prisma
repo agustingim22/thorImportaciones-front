@@ -6,25 +6,39 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL") // conexión con pooling (la usa la app)
-  directUrl = env("DIRECT_URL")   // conexión directa (la usan las migraciones)
+  directUrl = env("DIRECT_URL") // conexión directa (la usan las migraciones)
 }
 
 model Product {
-  id            Int      @id @default(autoincrement())
-  slug          String   @unique
-  team          String
-  type          String // "retro" | "fan" | "player"
-  price         Int // ARS
-  colorCss      String
-  images        String[] @default([]) // hasta 3 fotos (la primera es la portada)
-  description   String
-  stock         Int      @default(0) // unidades disponibles (0 = sin stock)
-  presetName    String? // nombre ya definido por el admin (si está, el comprador no elige)
-  presetNumber  String? // número ya definido por el admin (si está, el comprador no elige)
-  sizes         String[] @default(["S", "M", "L", "XL", "XXL"]) // talles disponibles para esta camiseta
-  createdAt     DateTime @default(now())
-  patches       Patch[]
-  sizeStocks    ProductSize[]
+  id           Int           @id @default(autoincrement())
+  slug         String        @unique
+  team         String
+  type         String // "retro" | "fan" | "player"
+  price        Int // ARS
+  colorCss     String
+  images       String[]      @default([]) // hasta 3 fotos (la primera es la portada)
+  description  String
+  stock        Int           @default(0) // unidades disponibles (0 = sin stock)
+  presetName   String? // nombre ya definido por el admin (si está, el comprador no elige)
+  presetNumber String? // número ya definido por el admin (si está, el comprador no elige)
+  sizes        String[]      @default(["S", "M", "L", "XL", "XXL"]) // talles disponibles para esta camiseta
+  createdAt    DateTime      @default(now())
+  patches      Patch[]
+  sizeStocks   ProductSize[]
+  reviews      Review[]
+}
+
+/// Reseña de un comprador sobre un producto puntual. Queda oculta (`published=false`)
+/// hasta que el admin la aprueba, para evitar spam visible en la web.
+model Review {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name      String
+  rating    Int      @default(5) // 1 a 5
+  comment   String
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 /// Stock disponible de un producto, desglosado por talle. `Product.stock` se mantiene
@@ -50,21 +64,21 @@ model Patch {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
-  email        String    @unique
-  passwordHash String
-  name         String
-  phone        String?
-  street       String?
-  postalCode   String?
-  city         String?
-  province     String?
-  floor        String?
-  apartment    String?
-  createdAt    DateTime  @default(now())
-  sessions     Session[]
+  id             Int             @id @default(autoincrement())
+  email          String          @unique
+  passwordHash   String
+  name           String
+  phone          String?
+  street         String?
+  postalCode     String?
+  city           String?
+  province       String?
+  floor          String?
+  apartment      String?
+  createdAt      DateTime        @default(now())
+  sessions       Session[]
   passwordResets PasswordReset[]
-  orders       Order[]
+  orders         Order[]
 }
 
 model Session {
@@ -85,38 +99,39 @@ model PasswordReset {
 }
 
 model Order {
-  id            Int          @id @default(autoincrement())
-  publicId      String       @unique
-  kind          String       @default("Stock") // "Stock" | "Custom"
-  status        String       @default("Pending") // Pending | Paid | Cancelled | Delivered
-  userId        Int? // si el comprador estaba logueado al pagar
-  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  customerName  String
-  customerEmail String
-  customerPhone String
+  id             Int          @id @default(autoincrement())
+  publicId       String       @unique
+  kind           String       @default("Stock") // "Stock" | "Custom"
+  status         String       @default("Pending") // Pending | Paid | Cancelled | Delivered
+  userId         Int? // si el comprador estaba logueado al pagar
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName   String
+  customerEmail  String
+  customerPhone  String
   // Dirección de envío estructurada
-  street        String // calle y número
-  postalCode    String
-  city          String
-  province      String
-  floor         String?
-  apartment     String?
-  deliveryNotes String? // referencias para el envío (horarios, entre calles, etc.)
-  notes         String?
-  total         Int
-  paymentMethod String? // "MercadoPago" | "Transfer" (solo pedidos de stock)
-  paymentId     String?
-  receiptUrl    String? // comprobante de transferencia
-  createdAt     DateTime     @default(now())
-  items         OrderItem[]
-  customItems   CustomItem[]
+  street         String // calle y número
+  postalCode     String
+  city           String
+  province       String
+  floor          String?
+  apartment      String?
+  deliveryNotes  String? // referencias para el envío (horarios, entre calles, etc.)
+  notes          String?
+  total          Int
+  paymentMethod  String? // "MercadoPago" | "Transfer" (solo pedidos de stock)
+  paymentId      String?
+  receiptUrl     String? // comprobante de transferencia
+  trackingNumber String? // código de seguimiento del correo, cargado por el admin al despachar
+  createdAt      DateTime     @default(now())
+  items          OrderItem[]
+  customItems    CustomItem[]
 }
 
 model CustomItem {
   id                Int     @id @default(autoincrement())
   orderId           Int
   order             Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  reference         String  // link o descripción de la camiseta
+  reference         String // link o descripción de la camiseta
   referenceImageUrl String? // foto de referencia subida por el comprador
   fabric            String
   size              String
@@ -143,10 +158,17 @@ model Testimonial {
   createdAt DateTime @default(now())
 }
 
+/// Email de un visitante interesado (footer), para futuras promos por mail.
+model Subscriber {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
 model OrderItem {
-  id              Int    @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   orderId         Int
-  order           Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order           Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId       Int
   productName     String
   unitPrice       Int // precio final: base del producto + extra del parche elegido

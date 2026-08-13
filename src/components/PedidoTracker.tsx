@@ -118,6 +118,15 @@ function Buscador() {
               <span className="text-thor-gold">${order.total.toLocaleString("es-AR")}</span>
             </p>
           )}
+
+          {order.trackingNumber && (
+            <div className="mt-4 rounded-xl border border-thor-line bg-thor-cream-2 px-4 py-3">
+              <p className="font-mono text-[11px] uppercase tracking-wide text-thor-muted">
+                Código de seguimiento
+              </p>
+              <p className="mt-1 font-mono text-sm font-bold text-thor-ink">{order.trackingNumber}</p>
+            </div>
+          )}
         </div>
       )}
 

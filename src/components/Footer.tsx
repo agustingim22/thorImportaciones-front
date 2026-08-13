@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { SITE } from "@/lib/site";
+import { NewsletterForm } from "./NewsletterForm";
 
 const LINKS = [
   { href: "/camisetas", label: "Camisetas" },
@@ -26,6 +27,14 @@ export function Footer() {
             </Link>
           ))}
         </nav>
+      </div>
+      <div className="border-t border-thor-line/70">
+        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-mono text-xs uppercase tracking-wider text-thor-ink">
+            Enterate de camisetas nuevas y promos
+          </p>
+          <NewsletterForm />
+        </div>
       </div>
       <div className="border-t border-thor-line/70">
         <p className="mx-auto max-w-6xl px-5 py-4 font-mono text-[11px] text-thor-muted">

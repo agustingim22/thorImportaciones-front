@@ -148,6 +148,25 @@ export async function sendCustomOrderConfirmation(order: {
   await send(order.customerEmail, `Pedido personalizado recibido #${order.publicId}`, layout("¡Pedido recibido!", body));
 }
 
+/** Se cargó (o cambió) el código de seguimiento del envío. */
+export async function sendShippingNotification(order: {
+  publicId: string;
+  customerEmail: string;
+  customerName: string;
+  trackingNumber: string;
+}): Promise<void> {
+  if (!order.customerEmail) return;
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">Hola ${order.customerName}, tu pedido ya está en camino.</p>
+    <p style="font-family:monospace;font-size:13px;color:#14323F;">Pedido #${order.publicId}</p>
+    <p style="margin:16px 0;padding:12px 16px;background:#FAF4E7;border-radius:10px;font-family:monospace;font-size:14px;color:#14323F;">
+      Código de seguimiento: <strong>${order.trackingNumber}</strong>
+    </p>
+    ${trackingLink(order.publicId)}
+  `;
+  await send(order.customerEmail, `Tu pedido está en camino #${order.publicId}`, layout("¡Ya despachamos tu pedido!", body));
+}
+
 /** Se confirma el pago de un pedido de catálogo (transferencia validada o Mercado Pago). */
 export async function sendPaymentConfirmation(order: {
   publicId: string;

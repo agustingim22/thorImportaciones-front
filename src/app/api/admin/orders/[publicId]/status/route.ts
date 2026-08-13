@@ -1,20 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
-import { sendPaymentConfirmation } from "@/lib/server/email";
+import { sendPaymentConfirmation, sendShippingNotification } from "@/lib/server/email";
 
 const VALID = ["Pending", "Paid", "Cancelled", "Delivered"];
 
 export async function POST(req: Request, { params }: { params: Promise<{ publicId: string }> }) {
   if (!isAdmin(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { publicId } = await params;
-  const { status, total } = (await req.json()) as { status?: string; total?: number };
+  const { status, total, trackingNumber } = (await req.json()) as {
+    status?: string;
+    total?: number;
+    trackingNumber?: string;
+  };
 
   if (status !== undefined && !VALID.includes(status))
     return NextResponse.json({ error: "Estado inválido." }, { status: 400 });
   if (total !== undefined && (typeof total !== "number" || !Number.isFinite(total) || total < 0))
     return NextResponse.json({ error: "Precio inválido." }, { status: 400 });
-  if (status === undefined && total === undefined)
+  if (status === undefined && total === undefined && trackingNumber === undefined)
     return NextResponse.json({ error: "Nada para actualizar." }, { status: 400 });
 
   const order = await prisma.order.findUnique({ where: { publicId }, include: { items: true } });
@@ -51,7 +55,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ publicI
     }
     return tx.order.update({
       where: { publicId },
-      data: { ...(status !== undefined ? { status } : {}), ...(total !== undefined ? { total } : {}) },
+      data: {
+        ...(status !== undefined ? { status } : {}),
+        ...(total !== undefined ? { total } : {}),
+        ...(trackingNumber !== undefined ? { trackingNumber: trackingNumber.trim() || null } : {}),
+      },
     });
   });
 
@@ -65,5 +73,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ publicI
     }).catch(() => {});
   }
 
-  return NextResponse.json({ orderId: updated.publicId, status: updated.status, total: updated.total });
+  // Avisamos al comprador cuando se carga (o cambia) el código de seguimiento.
+  if (trackingNumber !== undefined && updated.trackingNumber && updated.trackingNumber !== order.trackingNumber) {
+    await sendShippingNotification({
+      publicId: updated.publicId,
+      customerEmail: updated.customerEmail,
+      customerName: updated.customerName,
+      trackingNumber: updated.trackingNumber,
+    }).catch(() => {});
+  }
+
+  return NextResponse.json({
+    orderId: updated.publicId,
+    status: updated.status,
+    total: updated.total,
+    trackingNumber: updated.trackingNumber,
+  });
 }

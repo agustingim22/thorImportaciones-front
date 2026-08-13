@@ -11,10 +11,12 @@ import {
   typeAllowsCustomization,
 } from "@/lib/api";
 import { useCart } from "@/lib/cart";
+import { useRecentlyViewed } from "@/lib/recentlyViewed";
 import { FavoriteButton } from "./FavoriteButton";
 
 export function ProductPurchase({ product }: { product: Product }) {
   const { add } = useCart();
+  const { addView } = useRecentlyViewed();
   const canCustomize = typeAllowsCustomization(product.type);
   const [activeImage, setActiveImage] = useState(0);
   const [size, setSize] = useState("");
@@ -52,6 +54,11 @@ export function ProductPurchase({ product }: { product: Product }) {
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lightbox, imageCount]);
+
+  useEffect(() => {
+    addView(product.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]);
 
   async function handleShare() {
     const url = window.location.href;
