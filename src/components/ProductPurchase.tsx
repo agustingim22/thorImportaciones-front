@@ -14,6 +14,26 @@ export function ProductPurchase({ product }: { product: Product }) {
   const [number, setNumber] = useState("");
   const [patchId, setPatchId] = useState<number | null>(null);
   const [added, setAdded] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  async function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.team, url });
+      } catch {
+        /* el usuario canceló el diálogo de compartir */
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 1500);
+    } catch {
+      /* si el navegador bloquea el portapapeles, no hacemos nada */
+    }
+  }
 
   const selectedPatch = product.patches.find((p) => p.id === patchId) ?? null;
   const finalPrice = product.price + (selectedPatch?.extraPrice ?? 0);
@@ -211,6 +231,13 @@ export function ProductPurchase({ product }: { product: Product }) {
           >
             Ver guía de talles
           </Link>
+          <button
+            type="button"
+            onClick={handleShare}
+            className="font-mono text-xs text-thor-muted underline decoration-thor-line underline-offset-4 hover:text-thor-gold"
+          >
+            {shared ? "✓ Link copiado" : "Compartir ↗"}
+          </button>
         </div>
 
         <div className="mt-8 rounded-2xl border border-dashed border-thor-line bg-thor-cream-2 p-5">

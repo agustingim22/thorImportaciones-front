@@ -192,6 +192,31 @@ export async function sendAdminOrderNotification(order: {
   );
 }
 
+/** Aviso interno al admin cuando una venta deja un producto en 0 unidades. */
+export async function sendOutOfStockAlert(
+  products: { team: string; slug: string }[],
+): Promise<void> {
+  const rows = products
+    .map(
+      (p) => `<li style="margin-bottom:8px;color:#14323F;font-size:14px;">
+        ${p.team}
+        <br><a href="${SITE_URL}/admin" style="font-size:12px;color:#DE9A26;">Reponer stock →</a>
+      </li>`,
+    )
+    .join("");
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">
+      Se quedaron sin stock ${products.length > 1 ? "estas camisetas" : "esta camiseta"}:
+    </p>
+    <ul style="padding-left:18px;margin:12px 0;">${rows}</ul>
+  `;
+  const subject =
+    products.length > 1
+      ? `${products.length} camisetas sin stock`
+      : `"${products[0].team}" se quedó sin stock`;
+  await send(SITE.adminEmail, subject, layout("Stock agotado", body));
+}
+
 /** Link para restablecer la contraseña. */
 export async function sendPasswordReset(email: string, resetUrl: string): Promise<void> {
   const body = `

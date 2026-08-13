@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendAdminOrderNotification, sendOrderConfirmation } from "@/lib/server/email";
+import { sendAdminOrderNotification, sendOrderConfirmation, sendOutOfStockAlert } from "@/lib/server/email";
 import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
 import { getSessionUser } from "@/lib/server/session";
 import { MERCADOPAGO_ENABLED } from "@/lib/site";
@@ -55,6 +55,8 @@ export async function POST(req: Request) {
   // Si el comprador está logueado, el pedido se vincula a su cuenta.
   const sessionUser = await getSessionUser();
 
+  const justSoldOut: { team: string; slug: string }[] = [];
+
   let order;
   try {
     order = await prisma.$transaction(async (tx) => {
@@ -98,6 +100,9 @@ export async function POST(req: Request) {
           throw new OrderError(
             `No hay stock suficiente de "${product.team}" (quedan ${product.stock}).`,
           );
+        }
+        if (product.stock - qty === 0) {
+          justSoldOut.push({ team: product.team, slug: product.slug });
         }
 
         itemsData.push({
@@ -159,6 +164,10 @@ export async function POST(req: Request) {
     total: order.total,
     itemsSummary: order.items.map((i) => `${i.productName} x${i.quantity}`).join(", "),
   }).catch(() => {});
+
+  if (justSoldOut.length > 0) {
+    await sendOutOfStockAlert(justSoldOut).catch(() => {});
+  }
 
   // Guardamos los datos usados en este checkout en el perfil, para prellenar la próxima compra.
   if (sessionUser) {

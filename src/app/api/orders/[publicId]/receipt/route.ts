@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isCloudinaryConfigured, uploadReceipt } from "@/lib/server/cloudinary";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 export async function POST(req: Request, { params }: { params: Promise<{ publicId: string }> }) {
+  const limited = await rateLimit("receipt-upload", req, 10, 10 * 60);
+  if (limited) return limited;
+
   const { publicId } = await params;
   const order = await prisma.order.findUnique({ where: { publicId } });
   if (!order) return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
