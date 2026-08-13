@@ -18,6 +18,13 @@ export const SITE = {
   },
 } as const;
 
+/**
+ * Mercado Pago está en pausa hasta tener la cuenta empresa: mientras esté en
+ * false, el checkout solo ofrece transferencia + comprobante. Poner en true
+ * para volver a mostrarlo como opción (además de MERCADOPAGO_ACCESS_TOKEN).
+ */
+export const MERCADOPAGO_ENABLED = false;
+
 /** URL pública del sitio, sin slash final (para sitemap, robots, canonical, JSON-LD). */
 export const SITE_URL = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
   /\/$/,

@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createCustomOrder, type CustomItemInput } from "@/lib/orders";
-import { whatsappUrl } from "@/lib/site";
+import { SITE_URL, whatsappUrl } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
+import type { Product, ProductType } from "@/lib/api";
 
-type Item = CustomItemInput & { id: number };
+type Item = CustomItemInput & { id: number; mode: "custom" | "catalog"; productId: number | null };
 
 const TELAS = [
   "Retro (algodón/poliéster clásico)",
@@ -15,10 +16,17 @@ const TELAS = [
   "Versión Jugador (dry-fit premium)",
 ];
 const TALLES = ["S", "M", "L", "XL", "XXL"];
+const TYPE_TO_TELA: Record<ProductType, string> = {
+  retro: TELAS[0],
+  fan: TELAS[1],
+  player: TELAS[2],
+};
 
 let seq = 1;
 const emptyItem = (): Item => ({
   id: seq++,
+  mode: "custom",
+  productId: null,
   reference: "",
   fabric: TELAS[0],
   size: "M",
@@ -27,7 +35,7 @@ const emptyItem = (): Item => ({
   name: "",
 });
 
-export function PersonalizadoBuilder() {
+export function PersonalizadoBuilder({ products }: { products: Product[] }) {
   const [items, setItems] = useState<Item[]>([emptyItem()]);
   const [contact, setContact] = useState({
     customerName: "",
@@ -47,6 +55,36 @@ export function PersonalizadoBuilder() {
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
   const removeItem = (id: number) =>
     setItems((prev) => (prev.length === 1 ? prev : prev.filter((it) => it.id !== id)));
+
+  function setMode(id: number, mode: "custom" | "catalog") {
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === id
+          ? { ...it, mode, productId: null, reference: "", fabric: TELAS[0], patch: "", number: "", name: "" }
+          : it,
+      ),
+    );
+  }
+
+  function selectProduct(id: number, productId: number) {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === id
+          ? {
+              ...it,
+              productId,
+              reference: `${product.team} (del catálogo) — ${SITE_URL}/producto/${product.slug}`,
+              fabric: TYPE_TO_TELA[product.type],
+              patch: "",
+              number: product.presetNumber ?? "",
+              name: product.presetName ?? "",
+            }
+          : it,
+      ),
+    );
+  }
 
   function addressLine() {
     const parts = [
@@ -159,20 +197,73 @@ export function PersonalizadoBuilder() {
               )}
             </div>
 
-            <Field label="Referencia (link o descripción de la camiseta)">
-              <textarea
-                required
-                rows={2}
-                value={it.reference}
-                onChange={(e) => patch(it.id, "reference", e.target.value)}
-                placeholder="Pegá un link o describí la camiseta (equipo, temporada, versión…)"
-                className={inputCls}
-              />
-            </Field>
+            {/* Personalizado vs. del catálogo */}
+            <div className="mb-4 inline-flex gap-1 rounded-xl border border-thor-line bg-thor-cream-2 p-1">
+              {(
+                [
+                  ["custom", "A pedido"],
+                  ["catalog", "Del catálogo"],
+                ] as const
+              ).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setMode(it.id, key)}
+                  className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                    it.mode === key ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
+            {it.mode === "catalog" ? (
+              <>
+                <Field label="Elegí la camiseta del catálogo">
+                  <select
+                    required
+                    value={it.productId ?? ""}
+                    onChange={(e) => selectProduct(it.id, Number(e.target.value))}
+                    className={inputCls}
+                  >
+                    <option value="" disabled>
+                      Seleccioná una camiseta…
+                    </option>
+                    {products.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.team} — ${p.price.toLocaleString("es-AR")}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {products.length === 0 && (
+                  <p className="mt-1 text-xs text-thor-muted">
+                    No hay camisetas en el catálogo por ahora.
+                  </p>
+                )}
+              </>
+            ) : (
+              <Field label="Referencia (link o descripción de la camiseta)">
+                <textarea
+                  required
+                  rows={2}
+                  value={it.reference}
+                  onChange={(e) => patch(it.id, "reference", e.target.value)}
+                  placeholder="Pegá un link o describí la camiseta (equipo, temporada, versión…)"
+                  className={inputCls}
+                />
+              </Field>
+            )}
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <Field label="Tela">
-                <select value={it.fabric} onChange={(e) => patch(it.id, "fabric", e.target.value)} className={inputCls}>
+                <select
+                  value={it.fabric}
+                  onChange={(e) => patch(it.id, "fabric", e.target.value)}
+                  disabled={it.mode === "catalog"}
+                  className={`${inputCls} disabled:opacity-60`}
+                >
                   {TELAS.map((t) => (
                     <option key={t}>{t}</option>
                   ))}
@@ -185,14 +276,30 @@ export function PersonalizadoBuilder() {
                   ))}
                 </select>
               </Field>
-              <Field label="Parche (opcional)">
-                <input
-                  value={it.patch}
-                  onChange={(e) => patch(it.id, "patch", e.target.value)}
-                  placeholder="Ej: Libertadores 2024"
-                  className={inputCls}
-                />
-              </Field>
+              {it.mode === "catalog" && (products.find((p) => p.id === it.productId)?.patches.length ?? 0) > 0 ? (
+                <Field label="Parche (opcional)">
+                  <select value={it.patch} onChange={(e) => patch(it.id, "patch", e.target.value)} className={inputCls}>
+                    <option value="">Sin parche</option>
+                    {products
+                      .find((p) => p.id === it.productId)!
+                      .patches.map((pt) => (
+                        <option key={pt.id} value={pt.label}>
+                          {pt.label}
+                          {pt.extraPrice > 0 ? ` (+$${pt.extraPrice.toLocaleString("es-AR")})` : ""}
+                        </option>
+                      ))}
+                  </select>
+                </Field>
+              ) : (
+                <Field label="Parche (opcional)">
+                  <input
+                    value={it.patch}
+                    onChange={(e) => patch(it.id, "patch", e.target.value)}
+                    placeholder="Ej: Libertadores 2024"
+                    className={inputCls}
+                  />
+                </Field>
+              )}
             </div>
 
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -202,7 +309,8 @@ export function PersonalizadoBuilder() {
                   value={it.number}
                   onChange={(e) => patch(it.id, "number", e.target.value)}
                   placeholder="10"
-                  className={inputCls}
+                  disabled={it.mode === "catalog" && !!products.find((p) => p.id === it.productId)?.presetNumber}
+                  className={`${inputCls} disabled:opacity-60`}
                 />
               </Field>
               <div className="sm:col-span-2">
@@ -211,7 +319,8 @@ export function PersonalizadoBuilder() {
                     value={it.name}
                     onChange={(e) => patch(it.id, "name", e.target.value)}
                     placeholder="GONZÁLEZ"
-                    className={inputCls}
+                    disabled={it.mode === "catalog" && !!products.find((p) => p.id === it.productId)?.presetName}
+                    className={`${inputCls} disabled:opacity-60`}
                   />
                 </Field>
               </div>

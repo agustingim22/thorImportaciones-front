@@ -6,7 +6,7 @@ import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { createOrder, uploadReceipt, type CreateOrderResult } from "@/lib/orders";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
-import { SITE, whatsappUrl } from "@/lib/site";
+import { MERCADOPAGO_ENABLED, SITE, whatsappUrl } from "@/lib/site";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
 
 export default function CarritoPage() {
@@ -14,7 +14,9 @@ export default function CarritoPage() {
   const { user } = useAuth();
   const [contact, setContact] = useState({ customerName: "", customerEmail: "", customerPhone: "" });
   const [address, setAddress] = useState(emptyAddress);
-  const [paymentMethod, setPaymentMethod] = useState<"MercadoPago" | "Transfer">("MercadoPago");
+  const [paymentMethod, setPaymentMethod] = useState<"MercadoPago" | "Transfer">(
+    MERCADOPAGO_ENABLED ? "MercadoPago" : "Transfer",
+  );
   const [phoneError, setPhoneError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -233,21 +235,30 @@ export default function CarritoPage() {
             <AddressFields value={address} onChange={setAddress} />
           </div>
 
-          <h3 className="mt-6 font-mono text-xs font-bold uppercase tracking-wide text-thor-ink">
-            Forma de pago
-          </h3>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <PaymentOption
-              label="Mercado Pago"
-              active={paymentMethod === "MercadoPago"}
-              onClick={() => setPaymentMethod("MercadoPago")}
-            />
-            <PaymentOption
-              label="Transferencia"
-              active={paymentMethod === "Transfer"}
-              onClick={() => setPaymentMethod("Transfer")}
-            />
-          </div>
+          {MERCADOPAGO_ENABLED ? (
+            <>
+              <h3 className="mt-6 font-mono text-xs font-bold uppercase tracking-wide text-thor-ink">
+                Forma de pago
+              </h3>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <PaymentOption
+                  label="Mercado Pago"
+                  active={paymentMethod === "MercadoPago"}
+                  onClick={() => setPaymentMethod("MercadoPago")}
+                />
+                <PaymentOption
+                  label="Transferencia"
+                  active={paymentMethod === "Transfer"}
+                  onClick={() => setPaymentMethod("Transfer")}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="mt-6 rounded-lg border border-thor-line bg-thor-cream-2 px-3 py-2 text-xs text-thor-ink-soft">
+              El pago se hace por transferencia. Al confirmar te pasamos los datos y subís el
+              comprobante.
+            </p>
+          )}
 
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/PageHeader";
 import { PersonalizadoBuilder } from "@/components/PersonalizadoBuilder";
+import { getProducts } from "@/lib/products";
+import type { Product } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Pedido personalizado",
@@ -14,7 +16,14 @@ const PASOS = [
   ["03", "Confirmamos por WhatsApp", "Te pasamos precio final, tiempo de importación y forma de pago."],
 ];
 
-export default function PedidoPersonalizadoPage() {
+export default async function PedidoPersonalizadoPage() {
+  let products: Product[] = [];
+  try {
+    products = await getProducts();
+  } catch {
+    products = [];
+  }
+
   return (
     <>
       <PageHeader
@@ -37,7 +46,7 @@ export default function PedidoPersonalizadoPage() {
         </ol>
       </section>
 
-      <PersonalizadoBuilder />
+      <PersonalizadoBuilder products={products} />
     </>
   );
 }

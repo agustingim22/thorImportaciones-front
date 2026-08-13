@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendOrderConfirmation } from "@/lib/server/email";
 import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
 import { getSessionUser } from "@/lib/server/session";
+import { MERCADOPAGO_ENABLED } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 
 type Body = {
@@ -42,7 +43,8 @@ export async function POST(req: Request) {
   if (!body.postalCode?.trim()) errors.postalCode = ["Ingresá el código postal."];
   if (!body.city?.trim()) errors.city = ["Ingresá la ciudad."];
   if (!body.province?.trim()) errors.province = ["Ingresá la provincia."];
-  const paymentMethod = body.paymentMethod === "Transfer" ? "Transfer" : "MercadoPago";
+  const paymentMethod =
+    MERCADOPAGO_ENABLED && body.paymentMethod === "MercadoPago" ? "MercadoPago" : "Transfer";
   if (!Array.isArray(body.items) || body.items.length === 0) errors.items = ["El carrito está vacío."];
   if (Object.keys(errors).length) return NextResponse.json({ errors }, { status: 400 });
 
@@ -165,7 +167,7 @@ export async function POST(req: Request) {
   }
 
   let checkoutUrl: string | null = null;
-  if (paymentMethod === "MercadoPago" && isMpConfigured()) {
+  if (MERCADOPAGO_ENABLED && paymentMethod === "MercadoPago" && isMpConfigured()) {
     checkoutUrl = await createPreference({
       publicId: order.publicId,
       customerName: order.customerName,
