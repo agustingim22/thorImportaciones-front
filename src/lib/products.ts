@@ -23,6 +23,7 @@ function serialize(p: ProductRow): Product {
     inStock: p.stock > 0,
     presetName: p.presetName,
     presetNumber: p.presetNumber,
+    sizes: p.sizes,
     patches: p.patches.map((patch) => ({
       id: patch.id,
       label: patch.label,

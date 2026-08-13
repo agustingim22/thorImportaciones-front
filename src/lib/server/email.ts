@@ -54,6 +54,7 @@ type OrderItemLine = {
   productName: string;
   unitPrice: number;
   quantity: number;
+  size?: string | null;
   customName?: string | null;
   customNumber?: string | null;
   patchLabel?: string | null;
@@ -63,6 +64,7 @@ function itemsTable(items: OrderItemLine[]): string {
   const rows = items
     .map((i) => {
       const extras = [
+        i.size && `Talle: ${i.size}`,
         i.customName && `Nombre: ${i.customName}`,
         i.customNumber && `N°: ${i.customNumber}`,
         i.patchLabel && `Parche: ${i.patchLabel}`,

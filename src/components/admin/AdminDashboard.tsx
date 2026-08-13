@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Product } from "@/lib/api";
-import { PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { ALL_SIZES, DEFAULT_SIZES, PRODUCT_TYPE_LABELS } from "@/lib/api";
 import {
   adminCreateProduct,
   adminDeleteProduct,
@@ -32,6 +32,7 @@ const EMPTY: ProductInput = {
   presetName: null,
   presetNumber: null,
   patches: [],
+  sizes: DEFAULT_SIZES,
   slug: null,
 };
 
@@ -112,6 +113,7 @@ export function AdminDashboard() {
       presetName: p.presetName,
       presetNumber: p.presetNumber,
       patches: p.patches.map(({ label, imageUrl, extraPrice }) => ({ label, imageUrl, extraPrice })),
+      sizes: p.sizes,
       slug: p.slug,
     });
     setFormError("");
@@ -599,6 +601,38 @@ export function AdminDashboard() {
                   onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
                   className={`${inputCls} max-w-[140px]`}
                 />
+              </Field>
+
+              <Field label="Talles disponibles">
+                <div className="flex flex-wrap gap-2">
+                  {ALL_SIZES.map((s) => {
+                    const checked = form.sizes.includes(s);
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() =>
+                          setForm({
+                            ...form,
+                            sizes: checked
+                              ? form.sizes.filter((x) => x !== s)
+                              : [...form.sizes, s],
+                          })
+                        }
+                        className={`rounded-lg border px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
+                          checked
+                            ? "border-thor-gold bg-thor-gold/15 text-thor-ink"
+                            : "border-thor-line text-thor-muted hover:text-thor-ink"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-1 text-[11px] text-thor-muted">
+                  S a XXL vienen tildados por defecto. Sumá 3XL/4XL solo si tenés stock real de esos talles.
+                </p>
               </Field>
 
               {formError && <p className="text-sm text-red-600">{formError}</p>}

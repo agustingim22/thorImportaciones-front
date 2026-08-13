@@ -11,6 +11,7 @@ export type ShippingAddress = {
 export type OrderItemInput = {
   productId: number;
   quantity: number;
+  size: string;
   customName?: string | null;
   customNumber?: string | null;
   patchId?: number | null;
@@ -117,7 +118,7 @@ export type OrderStatus = {
   status: string;
   total: number;
   createdAt: string;
-  items: { productName: string; unitPrice: number; quantity: number }[];
+  items: { productName: string; unitPrice: number; quantity: number; size: string | null }[];
 };
 
 export async function getOrder(orderId: string): Promise<OrderStatus> {

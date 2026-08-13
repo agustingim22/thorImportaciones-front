@@ -102,6 +102,7 @@ function Buscador() {
                 <li key={i} className="flex justify-between text-sm text-thor-ink-soft">
                   <span>
                     {it.productName} x{it.quantity}
+                    {it.size && ` · Talle ${it.size}`}
                   </span>
                   <span className="tabular-nums">
                     ${(it.unitPrice * it.quantity).toLocaleString("es-AR")}

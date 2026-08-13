@@ -27,6 +27,7 @@ export type Product = {
   presetName: string | null; // si está, el comprador no elige nombre
   presetNumber: string | null; // si está, el comprador no elige número
   patches: Patch[]; // opciones de parche disponibles (vacío = sin parche)
+  sizes: string[]; // talles disponibles para esta camiseta
   createdAt: string;
 };
 
@@ -35,6 +36,10 @@ export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   fan: "Versión Fan",
   player: "Versión Jugador",
 };
+
+/** Todos los talles posibles del catálogo. S a XXL siempre están; XXXL/XXXXL son opcionales por producto. */
+export const ALL_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
+export const DEFAULT_SIZES = ["S", "M", "L", "XL", "XXL"];
 
 /** A partir de cuántas unidades o menos mostramos el aviso de "últimas unidades". */
 export const LOW_STOCK_THRESHOLD = 3;

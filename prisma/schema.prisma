@@ -21,6 +21,7 @@ model Product {
   stock         Int      @default(0) // unidades disponibles (0 = sin stock)
   presetName    String? // nombre ya definido por el admin (si está, el comprador no elige)
   presetNumber  String? // número ya definido por el admin (si está, el comprador no elige)
+  sizes         String[] @default(["S", "M", "L", "XL", "XXL"]) // talles disponibles para esta camiseta
   createdAt     DateTime @default(now())
   patches       Patch[]
 }
@@ -128,6 +129,7 @@ model OrderItem {
   productName     String
   unitPrice       Int // precio final: base del producto + extra del parche elegido
   quantity        Int
+  size            String? // talle elegido por el comprador (S/M/L/XL/XXL/XXXL/XXXXL)
   customName      String? // nombre elegido por el comprador (o el preset del producto)
   customNumber    String? // número elegido por el comprador (o el preset del producto)
   patchLabel      String? // snapshot del parche elegido, si eligió alguno

@@ -59,6 +59,7 @@ export default function CarritoPage() {
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.qty,
+          size: i.size,
           customName: i.customName,
           customNumber: i.customNumber,
           patchId: i.patchId,
@@ -134,6 +135,7 @@ export default function CarritoPage() {
           {items.map((i) => {
             const unitPrice = i.price + i.patchExtraPrice;
             const personalization = [
+              `Talle: ${i.size}`,
               i.customName && `Nombre: ${i.customName}`,
               i.customNumber && `N°: ${i.customNumber}`,
               i.patchLabel && `Parche: ${i.patchLabel}`,

@@ -2,6 +2,7 @@ export type MyOrderItem = {
   productName: string;
   unitPrice: number;
   quantity: number;
+  size: string | null;
   customName: string | null;
   customNumber: string | null;
   patchLabel: string | null;

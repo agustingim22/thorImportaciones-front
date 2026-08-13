@@ -23,6 +23,7 @@ type Body = {
   items?: {
     productId: number;
     quantity: number;
+    size?: string;
     customName?: string | null;
     customNumber?: string | null;
     patchId?: number | null;
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
         productName: string;
         unitPrice: number;
         quantity: number;
+        size: string;
         customName: string | null;
         customNumber: string | null;
         patchLabel: string | null;
@@ -85,6 +87,11 @@ export async function POST(req: Request) {
           include: { patches: true },
         });
         if (!product) throw new OrderError(`Producto no disponible (id ${line.productId}).`);
+
+        const size = line.size?.trim() ?? "";
+        if (!product.sizes.includes(size)) {
+          throw new OrderError(`Elegí un talle válido para "${product.team}".`);
+        }
 
         let patch = null;
         if (line.patchId != null) {
@@ -110,6 +117,7 @@ export async function POST(req: Request) {
           productName: product.team,
           unitPrice: product.price + (patch?.extraPrice ?? 0),
           quantity: qty,
+          size,
           customName: product.presetName ?? (line.customName?.trim() || null),
           customNumber: product.presetNumber ?? (line.customNumber?.trim() || null),
           patchLabel: patch?.label ?? null,
@@ -162,7 +170,7 @@ export async function POST(req: Request) {
     customerName: order.customerName,
     customerPhone: order.customerPhone,
     total: order.total,
-    itemsSummary: order.items.map((i) => `${i.productName} x${i.quantity}`).join(", "),
+    itemsSummary: order.items.map((i) => `${i.productName} x${i.quantity} (talle ${i.size})`).join(", "),
   }).catch(() => {});
 
   if (justSoldOut.length > 0) {

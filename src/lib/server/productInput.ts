@@ -2,6 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 const VALID_TYPES = ["retro", "fan", "player"] as const;
+const VALID_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
 
 export type PatchInput = {
   label: string;
@@ -20,6 +21,7 @@ export type ProductInput = {
   presetName: string | null; // si está, el comprador no elige nombre
   presetNumber: string | null; // si está, el comprador no elige número
   patches: PatchInput[]; // opciones de parche (vacío = sin opciones)
+  sizes: string[]; // talles disponibles
   slug?: string | null;
 };
 
@@ -42,6 +44,13 @@ export function validateProduct(input: ProductInput): Record<string, string[]> |
     if (input.patches.some((p) => typeof p.extraPrice !== "number" || p.extraPrice < 0))
       e.patches = ["El precio extra del parche no puede ser negativo."];
   }
+  if (
+    !Array.isArray(input?.sizes) ||
+    input.sizes.length === 0 ||
+    input.sizes.some((s) => !VALID_SIZES.includes(s as (typeof VALID_SIZES)[number]))
+  ) {
+    e.sizes = ["Elegí al menos un talle disponible."];
+  }
   return Object.keys(e).length ? e : null;
 }
 
@@ -58,5 +67,6 @@ export function toProductData(input: ProductInput, slug: string): Prisma.Product
     stock: input.stock,
     presetName: input.presetName?.trim() || null,
     presetNumber: input.presetNumber?.trim() || null,
+    sizes: input.sizes,
   };
 }

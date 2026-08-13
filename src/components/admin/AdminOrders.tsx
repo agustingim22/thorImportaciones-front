@@ -30,6 +30,7 @@ function detalle(o: AdminOrder): string {
   return o.items
     .map((i) => {
       let line = `${i.productName} x${i.quantity} ($${i.unitPrice})`;
+      if (i.size) line += ` | Talle: ${i.size}`;
       if (i.customName) line += ` | Nombre: ${i.customName}`;
       if (i.customNumber) line += ` | N°: ${i.customNumber}`;
       if (i.patchLabel) line += ` | Parche: ${i.patchLabel}`;

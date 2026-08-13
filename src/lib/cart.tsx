@@ -11,6 +11,7 @@ export type CartItem = {
   imageUrl: string | null;
   colorCss: string;
   presetNumber: string | null; // para el placeholder cuando no hay foto
+  size: string;
   customName: string | null;
   customNumber: string | null;
   patchId: number | null;
@@ -42,6 +43,7 @@ function makeLineId(): string {
 function sameLine(a: CartItem, b: NewLine): boolean {
   return (
     a.productId === b.productId &&
+    a.size === b.size &&
     a.customName === b.customName &&
     a.customNumber === b.customNumber &&
     a.patchId === b.patchId

@@ -10,6 +10,7 @@ import { useCart } from "@/lib/cart";
 export function ProductPurchase({ product }: { product: Product }) {
   const { add } = useCart();
   const [activeImage, setActiveImage] = useState(0);
+  const [size, setSize] = useState("");
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
   const [patchId, setPatchId] = useState<number | null>(null);
@@ -40,6 +41,7 @@ export function ProductPurchase({ product }: { product: Product }) {
   const currentImage = product.images[activeImage] ?? null;
 
   function handleAdd() {
+    if (!size) return;
     add({
       productId: product.id,
       team: product.team,
@@ -47,6 +49,7 @@ export function ProductPurchase({ product }: { product: Product }) {
       imageUrl: product.imageUrl,
       colorCss: product.colorCss,
       presetNumber: product.presetNumber,
+      size,
       customName: product.presetName ?? (name.trim() || null),
       customNumber: product.presetNumber ?? (number.trim() || null),
       patchId: selectedPatch?.id ?? null,
@@ -122,6 +125,32 @@ export function ProductPurchase({ product }: { product: Product }) {
         <div className="mt-4 rounded-xl border border-thor-line bg-thor-paper px-4 py-3">
           <p className="font-display text-2xl text-thor-gold">${finalPrice.toLocaleString("es-AR")}</p>
           <p className="mt-1.5 text-sm leading-snug text-thor-ink-soft">{product.description}</p>
+        </div>
+
+        {/* Talle */}
+        <div className="mt-5">
+          <span className="mb-1 flex items-center justify-between font-mono text-[11px] uppercase tracking-wide text-thor-muted">
+            Talle
+            <Link href="/talles" className="normal-case tracking-normal text-thor-gold underline">
+              Ver guía de talles
+            </Link>
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {product.sizes.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setSize(s)}
+                className={`rounded-lg border px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
+                  size === s
+                    ? "border-thor-gold bg-thor-gold/15 text-thor-ink"
+                    : "border-thor-line text-thor-muted hover:text-thor-ink"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Nombre */}
@@ -216,7 +245,8 @@ export function ProductPurchase({ product }: { product: Product }) {
             <button
               type="button"
               onClick={handleAdd}
-              className="rounded-lg bg-thor-ink px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream transition-colors hover:bg-thor-ink-soft"
+              disabled={!size}
+              className="rounded-lg bg-thor-ink px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream transition-colors hover:bg-thor-ink-soft disabled:opacity-50"
             >
               {added ? "✓ Agregado" : "Agregar al carrito"}
             </button>
@@ -225,12 +255,6 @@ export function ProductPurchase({ product }: { product: Product }) {
               Sin stock
             </span>
           )}
-          <Link
-            href="/talles"
-            className="font-mono text-xs text-thor-muted underline decoration-thor-line underline-offset-4 hover:text-thor-gold"
-          >
-            Ver guía de talles
-          </Link>
           <button
             type="button"
             onClick={handleShare}
@@ -239,6 +263,9 @@ export function ProductPurchase({ product }: { product: Product }) {
             {shared ? "✓ Link copiado" : "Compartir ↗"}
           </button>
         </div>
+        {product.inStock && !size && (
+          <p className="mt-2 text-xs text-thor-muted">Elegí un talle para poder agregarlo al carrito.</p>
+        )}
 
         <div className="mt-8 rounded-2xl border border-dashed border-thor-line bg-thor-cream-2 p-5">
           <p className="text-sm text-thor-ink-soft">¿Buscás otra versión o un pedido especial?</p>

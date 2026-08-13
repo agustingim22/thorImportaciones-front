@@ -18,6 +18,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ publicI
       productName: i.productName,
       unitPrice: i.unitPrice,
       quantity: i.quantity,
+      size: i.size,
     })),
   });
 }

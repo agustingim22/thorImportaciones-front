@@ -21,6 +21,7 @@ export type ProductInput = {
   presetName: string | null;
   presetNumber: string | null;
   patches: PatchInput[];
+  sizes: string[];
   slug: string | null;
 };
 
@@ -108,6 +109,7 @@ export type AdminOrderItem = {
   productName: string;
   unitPrice: number;
   quantity: number;
+  size: string | null;
   customName: string | null;
   customNumber: string | null;
   patchLabel: string | null;

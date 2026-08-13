@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
 import { isNewProduct, LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS } from "@/lib/api";
-import { AddToCartButton } from "./AddToCartButton";
 
 export function ProductCard({ product }: { product: Product }) {
   // Si el comprador tiene algo para elegir (nombre, número o parche), lo mandamos
@@ -84,29 +83,13 @@ export function ProductCard({ product }: { product: Product }) {
             <span className="rounded-lg border border-thor-line px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-muted">
               Sin stock
             </span>
-          ) : isCustomizable ? (
+          ) : (
             <Link
               href={`/producto/${product.slug}`}
               className="rounded-lg bg-thor-ink px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream transition-colors hover:bg-thor-ink-soft"
             >
-              Personalizar
+              {isCustomizable ? "Personalizar" : "Elegir talle"}
             </Link>
-          ) : (
-            <AddToCartButton
-              item={{
-                productId: product.id,
-                team: product.team,
-                price: product.price,
-                imageUrl: product.imageUrl,
-                colorCss: product.colorCss,
-                presetNumber: product.presetNumber,
-                customName: product.presetName,
-                customNumber: product.presetNumber,
-                patchId: null,
-                patchLabel: null,
-                patchExtraPrice: 0,
-              }}
-            />
           )}
         </div>
 
