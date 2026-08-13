@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/server/ratelimit";
 
 type CustomItemInput = {
   reference?: string;
+  referenceImageUrl?: string;
   fabric?: string;
   size?: string;
   patch?: string;
@@ -45,8 +46,8 @@ export async function POST(req: Request) {
   if (!body.province?.trim()) errors.province = ["Ingresá la provincia."];
   if (!Array.isArray(body.items) || body.items.length === 0)
     errors.items = ["Agregá al menos una camiseta."];
-  else if (body.items.some((i) => !i.reference?.trim()))
-    errors.items = ["Cada camiseta necesita un link o una descripción."];
+  else if (body.items.some((i) => !i.reference?.trim() && !i.referenceImageUrl?.trim()))
+    errors.items = ["Cada camiseta necesita un link, una descripción o una foto de referencia."];
   if (Object.keys(errors).length) return NextResponse.json({ errors }, { status: 400 });
 
   const publicId = crypto.randomBytes(6).toString("hex");
@@ -70,7 +71,8 @@ export async function POST(req: Request) {
       total: 0, // se coordina por WhatsApp
       customItems: {
         create: body.items!.map((i) => ({
-          reference: i.reference!.trim(),
+          reference: i.reference?.trim() || "(ver foto de referencia)",
+          referenceImageUrl: i.referenceImageUrl?.trim() || null,
           fabric: (i.fabric ?? "").trim(),
           size: (i.size ?? "").trim(),
           patch: i.patch?.trim() || null,
@@ -95,7 +97,9 @@ export async function POST(req: Request) {
     customerName: order.customerName,
     customerPhone: order.customerPhone,
     total: 0,
-    itemsSummary: order.customItems.map((i) => i.reference).join(" | "),
+    itemsSummary: order.customItems
+      .map((i) => i.reference + (i.referenceImageUrl ? ` (foto: ${i.referenceImageUrl})` : ""))
+      .join(" | "),
   }).catch(() => {});
 
   return NextResponse.json({ orderId: order.publicId });

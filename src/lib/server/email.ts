@@ -111,7 +111,15 @@ export async function sendCustomOrderConfirmation(order: {
   publicId: string;
   customerEmail: string;
   customerName: string;
-  items: { reference: string; fabric: string; size: string; patch: string | null; number: string | null; name: string | null }[];
+  items: {
+    reference: string;
+    referenceImageUrl?: string | null;
+    fabric: string;
+    size: string;
+    patch: string | null;
+    number: string | null;
+    name: string | null;
+  }[];
 }): Promise<void> {
   if (!order.customerEmail) return; // el email es opcional en el pedido personalizado
   const rows = order.items
@@ -126,6 +134,7 @@ export async function sendCustomOrderConfirmation(order: {
       return `<li style="margin-bottom:10px;color:#14323F;font-size:14px;">
         ${it.reference} — ${it.fabric}, talle ${it.size}
         ${extras ? `<br><span style="font-size:12px;color:#777;">${extras}</span>` : ""}
+        ${it.referenceImageUrl ? `<br><img src="${it.referenceImageUrl}" alt="" style="max-width:160px;border-radius:8px;margin-top:6px;">` : ""}
       </li>`;
     })
     .join("");

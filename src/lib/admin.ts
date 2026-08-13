@@ -117,6 +117,7 @@ export type AdminOrderItem = {
 };
 export type AdminCustomItem = {
   reference: string;
+  referenceImageUrl: string | null;
   fabric: string;
   size: string;
   patch: string | null;

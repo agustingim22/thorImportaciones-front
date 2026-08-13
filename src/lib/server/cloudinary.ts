@@ -44,6 +44,14 @@ export function uploadHeroImage(bytes: Buffer): Promise<string> {
   });
 }
 
+/** Sube una foto de referencia (pedido personalizado) sin recortar. */
+export function uploadCustomReference(bytes: Buffer): Promise<string> {
+  return uploadStream(bytes, {
+    folder: "thor/custom-refs",
+    transformation: [{ quality: "auto", fetch_format: "auto", width: 1600, crop: "limit" }],
+  });
+}
+
 /** Sube el comprobante de una transferencia (imagen o PDF) sin recortar. */
 export function uploadReceipt(bytes: Buffer): Promise<string> {
   return uploadStream(bytes, {

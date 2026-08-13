@@ -23,7 +23,8 @@ function detalle(o: AdminOrder): string {
           `#${i + 1} ${c.reference} | Tela: ${c.fabric} | Talle: ${c.size}` +
           (c.patch ? ` | Parche: ${c.patch}` : "") +
           (c.number ? ` | N°: ${c.number}` : "") +
-          (c.name ? ` | Nombre: ${c.name}` : ""),
+          (c.name ? ` | Nombre: ${c.name}` : "") +
+          (c.referenceImageUrl ? ` | Foto: ${c.referenceImageUrl}` : ""),
       )
       .join("  ||  ");
   }
@@ -218,6 +219,25 @@ export function AdminOrders() {
                     <span className="mt-1 block max-w-xs text-[11px] text-thor-muted">
                       {detalle(o)}
                     </span>
+                    {o.kind === "Custom" &&
+                      o.customItems.some((c) => c.referenceImageUrl) && (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {o.customItems.map(
+                            (c, i) =>
+                              c.referenceImageUrl && (
+                                <a
+                                  key={i}
+                                  href={c.referenceImageUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] text-thor-gold underline"
+                                >
+                                  Foto #{i + 1}
+                                </a>
+                              ),
+                          )}
+                        </span>
+                      )}
                   </td>
                   <td className="px-4 py-3">
                     <span

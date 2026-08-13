@@ -113,15 +113,16 @@ model Order {
 }
 
 model CustomItem {
-  id        Int     @id @default(autoincrement())
-  orderId   Int
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  reference String  // link o descripción de la camiseta
-  fabric    String
-  size      String
-  patch     String?
-  number    String?
-  name      String?
+  id                Int     @id @default(autoincrement())
+  orderId           Int
+  order             Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reference         String  // link o descripción de la camiseta
+  referenceImageUrl String? // foto de referencia subida por el comprador
+  fabric            String
+  size              String
+  patch             String?
+  number            String?
+  name              String?
 }
 
 /// Foto del carrusel de la portada (cargada a mano por el admin).

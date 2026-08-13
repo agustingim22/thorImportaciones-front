@@ -77,12 +77,32 @@ export async function uploadReceipt(orderId: string, file: File): Promise<string
 
 export type CustomItemInput = {
   reference: string;
+  referenceImageUrl: string;
   fabric: string;
   size: string;
   patch: string;
   number: string;
   name: string;
 };
+
+/** Sube una foto de referencia para un ítem de pedido personalizado. */
+export async function uploadCustomOrderImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`/api/custom-orders/upload-image`, { method: "POST", body: fd });
+  if (!res.ok) {
+    let msg = `Error ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch {
+      /* sin cuerpo */
+    }
+    throw new Error(msg);
+  }
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}
 
 export type CustomOrderPayload = ShippingAddress & {
   customerName: string;

@@ -3,13 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { createCustomOrder, type CustomItemInput } from "@/lib/orders";
+import { createCustomOrder, uploadCustomOrderImage, type CustomItemInput } from "@/lib/orders";
 import { SITE_URL, whatsappUrl } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
 import type { Product, ProductType } from "@/lib/api";
 
-type Item = CustomItemInput & { id: number; mode: "custom" | "catalog"; productId: number | null };
+type Item = CustomItemInput & {
+  id: number;
+  mode: "custom" | "catalog";
+  productId: number | null;
+  imageUploading?: boolean;
+  imageError?: string;
+};
 
 const TELAS = [
   "Retro (algodón/poliéster clásico)",
@@ -39,6 +45,7 @@ const emptyItem = (): Item => ({
   mode: "custom",
   productId: null,
   reference: "",
+  referenceImageUrl: "",
   fabric: TELAS[0],
   size: "M",
   patch: "",
@@ -63,6 +70,9 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
   const patch = (id: number, field: keyof CustomItemInput, value: string) =>
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, [field]: value } : it)));
 
+  const updateItem = (id: number, changes: Partial<Item>) =>
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...changes } : it)));
+
   const addItem = () => setItems((prev) => [...prev, emptyItem()]);
   const removeItem = (id: number) =>
     setItems((prev) => (prev.length === 1 ? prev : prev.filter((it) => it.id !== id)));
@@ -71,10 +81,35 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
     setItems((prev) =>
       prev.map((it) =>
         it.id === id
-          ? { ...it, mode, productId: null, reference: "", fabric: TELAS[0], patch: "", number: "", name: "" }
+          ? {
+              ...it,
+              mode,
+              productId: null,
+              reference: "",
+              referenceImageUrl: "",
+              fabric: TELAS[0],
+              patch: "",
+              number: "",
+              name: "",
+              imageError: undefined,
+            }
           : it,
       ),
     );
+  }
+
+  async function handleImageChange(id: number, file: File | undefined) {
+    if (!file) return;
+    updateItem(id, { imageUploading: true, imageError: undefined });
+    try {
+      const url = await uploadCustomOrderImage(file);
+      updateItem(id, { referenceImageUrl: url, imageUploading: false });
+    } catch (err) {
+      updateItem(id, {
+        imageUploading: false,
+        imageError: err instanceof Error ? err.message : "No se pudo subir la foto.",
+      });
+    }
   }
 
   function selectProduct(id: number, productId: number) {
@@ -114,6 +149,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
     items.forEach((it, idx) => {
       msg += `Camiseta ${idx + 1}: ${it.reference}\n`;
       msg += `- Tela: ${it.fabric}\n- Talle: ${it.size}\n`;
+      if (it.referenceImageUrl) msg += `- Foto de referencia: ${it.referenceImageUrl}\n`;
       if (it.patch) msg += `- Parche: ${it.patch}\n`;
       if (it.number) msg += `- Número: ${it.number}\n`;
       if (it.name) msg += `- Nombre: ${it.name}\n`;
@@ -135,13 +171,18 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
       setPhoneError(PHONE_HINT);
       return;
     }
+    if (items.some((it) => it.mode === "custom" && !it.reference.trim() && !it.referenceImageUrl.trim())) {
+      setError("Cada camiseta necesita un link, una descripción o una foto de referencia.");
+      return;
+    }
     setLoading(true);
     try {
       const orderId = await createCustomOrder({
         ...contact,
         ...address,
-        items: items.map(({ reference, fabric, size, patch, number, name }) => ({
+        items: items.map(({ reference, referenceImageUrl, fabric, size, patch, number, name }) => ({
           reference,
+          referenceImageUrl,
           fabric,
           size,
           patch,
@@ -259,16 +300,55 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
                 )}
               </>
             ) : (
-              <Field label="Referencia (link o descripción de la camiseta)">
-                <textarea
-                  required
-                  rows={2}
-                  value={it.reference}
-                  onChange={(e) => patch(it.id, "reference", e.target.value)}
-                  placeholder="Pegá un link o describí la camiseta (equipo, temporada, versión…)"
-                  className={inputCls}
-                />
-              </Field>
+              <>
+                <Field label="Referencia (link o descripción de la camiseta)">
+                  <textarea
+                    rows={2}
+                    value={it.reference}
+                    onChange={(e) => patch(it.id, "reference", e.target.value)}
+                    placeholder="Pegá un link o describí la camiseta (equipo, temporada, versión…). También podés subir una foto abajo."
+                    className={inputCls}
+                  />
+                </Field>
+                <div className="mt-3">
+                  <Field label="Foto de referencia (opcional)">
+                    {it.referenceImageUrl ? (
+                      <div className="flex items-center gap-3">
+                        <Image
+                          src={it.referenceImageUrl}
+                          alt=""
+                          width={64}
+                          height={64}
+                          className="h-16 w-16 rounded-lg border border-thor-line object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateItem(it.id, { referenceImageUrl: "" })}
+                          className="font-mono text-xs text-thor-muted underline hover:text-red-600"
+                        >
+                          Quitar foto
+                        </button>
+                      </div>
+                    ) : (
+                      <label
+                        className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-thor-line px-3 py-2 font-mono text-xs text-thor-muted hover:border-thor-gold hover:text-thor-ink ${
+                          it.imageUploading ? "pointer-events-none opacity-60" : ""
+                        }`}
+                      >
+                        {it.imageUploading ? "Subiendo…" : "+ Subir foto"}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={it.imageUploading}
+                          onChange={(e) => handleImageChange(it.id, e.target.files?.[0])}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                    {it.imageError && <p className="mt-1 text-xs text-red-600">{it.imageError}</p>}
+                  </Field>
+                </div>
+              </>
             )}
 
             <div className={`mt-3 grid gap-3 ${hasCatalogPatches ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
