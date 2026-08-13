@@ -149,6 +149,26 @@ export function AdminDashboard() {
     setShowForm(true);
   }
 
+  function openDuplicate(p: Product) {
+    setEditingId(null);
+    setForm({
+      team: `${p.team} (copia)`,
+      type: p.type,
+      price: p.price,
+      colorCss: p.colorCss,
+      images: p.images,
+      description: p.description,
+      stock: 0,
+      presetName: p.presetName,
+      presetNumber: p.presetNumber,
+      patches: p.patches.map(({ label, imageUrl, extraPrice }) => ({ label, imageUrl, extraPrice })),
+      sizes: p.sizes,
+      slug: null,
+    });
+    setFormError("");
+    setShowForm(true);
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setFormError("");
@@ -419,6 +439,12 @@ export function AdminDashboard() {
                         className="rounded-md border border-thor-line px-2.5 py-1 font-mono text-xs text-thor-ink hover:border-thor-gold"
                       >
                         Editar
+                      </button>
+                      <button
+                        onClick={() => openDuplicate(p)}
+                        className="rounded-md border border-thor-line px-2.5 py-1 font-mono text-xs text-thor-ink hover:border-thor-gold"
+                      >
+                        Duplicar
                       </button>
                       <button
                         onClick={() => handleDelete(p)}

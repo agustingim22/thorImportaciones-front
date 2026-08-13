@@ -67,12 +67,26 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     },
   };
 
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Camisetas", item: `${SITE_URL}/camisetas` },
+      { "@type": "ListItem", position: 3, name: product.team, item: `${SITE_URL}/producto/${product.slug}` },
+    ],
+  };
+
   return (
     <>
       <div className="mx-auto max-w-6xl px-5 py-10">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
         />
         {/* Migas */}
         <nav className="mb-6 font-mono text-xs text-thor-muted">
