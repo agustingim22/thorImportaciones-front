@@ -214,6 +214,61 @@ export async function adminDeleteTestimonial(id: number): Promise<void> {
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+// ---- Carrusel de portada ----
+export type AdminHeroImage = {
+  id: number;
+  imageUrl: string;
+  position: number;
+  createdAt: string;
+};
+
+export async function adminListHeroImages(): Promise<AdminHeroImage[]> {
+  const res = await fetch(`/api/admin/hero-images`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminCreateHeroImage(imageUrl: string): Promise<AdminHeroImage> {
+  const res = await fetch(`/api/admin/hero-images`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ imageUrl }),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminSetHeroImagePosition(id: number, position: number): Promise<void> {
+  const res = await fetch(`/api/admin/hero-images/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ position }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function adminDeleteHeroImage(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/hero-images/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+/** Sube una foto para el carrusel de la portada y devuelve la URL. */
+export async function adminUploadHeroImage(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await fetch(`/api/admin/hero-images/upload`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+    body: fd,
+  });
+  if (!res.ok) throw await toError(res);
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}
+
 async function toError(res: Response): Promise<Error> {
   try {
     const data = await res.json();

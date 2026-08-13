@@ -124,6 +124,14 @@ model CustomItem {
   name      String?
 }
 
+/// Foto del carrusel de la portada (cargada a mano por el admin).
+model HeroImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  position  Int      @default(0) // orden de aparición en el carrusel
+  createdAt DateTime @default(now())
+}
+
 /// Testimonio de un comprador (cargado a mano por el admin), mostrado en la home.
 model Testimonial {
   id        Int      @id @default(autoincrement())

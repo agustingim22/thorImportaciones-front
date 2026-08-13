@@ -18,6 +18,7 @@ import {
 } from "@/lib/admin";
 import { AdminOrders } from "./AdminOrders";
 import { AdminTestimonials } from "./AdminTestimonials";
+import { AdminHeroImages } from "./AdminHeroImages";
 import { parseCsv } from "@/lib/csv";
 
 const TYPES = Object.entries(PRODUCT_TYPE_LABELS) as [ProductInput["type"], string][];
@@ -91,7 +92,7 @@ const EMPTY: ProductInput = {
 
 export function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"products" | "orders" | "testimonials">("products");
+  const [tab, setTab] = useState<"products" | "orders" | "testimonials" | "hero">("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -437,6 +438,7 @@ export function AdminDashboard() {
             ["products", "Productos"],
             ["orders", "Pedidos"],
             ["testimonials", "Testimonios"],
+            ["hero", "Inicio"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -638,6 +640,13 @@ export function AdminDashboard() {
       {tab === "testimonials" && (
         <div className="mt-6">
           <AdminTestimonials />
+        </div>
+      )}
+
+      {/* Carrusel de portada */}
+      {tab === "hero" && (
+        <div className="mt-6">
+          <AdminHeroImages />
         </div>
       )}
 

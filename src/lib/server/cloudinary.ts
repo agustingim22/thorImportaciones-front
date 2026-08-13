@@ -33,6 +33,17 @@ export function uploadProductImage(bytes: Buffer): Promise<string> {
   });
 }
 
+/** Sube una foto del carrusel de la portada. Se recorta a un cuadrado, igual que las fotos de producto. */
+export function uploadHeroImage(bytes: Buffer): Promise<string> {
+  return uploadStream(bytes, {
+    folder: "thor/hero",
+    transformation: [
+      { width: 1200, height: 1200, crop: "fill", gravity: "auto" },
+      { quality: "auto", fetch_format: "auto" },
+    ],
+  });
+}
+
 /** Sube el comprobante de una transferencia (imagen o PDF) sin recortar. */
 export function uploadReceipt(bytes: Buffer): Promise<string> {
   return uploadStream(bytes, {

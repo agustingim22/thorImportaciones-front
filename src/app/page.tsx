@@ -5,6 +5,9 @@ import { ProductCard } from "@/components/ProductCard";
 import { Testimonials } from "@/components/Testimonials";
 import { getPublishedTestimonials } from "@/lib/testimonials";
 import type { Testimonial } from "@/lib/testimonials";
+import { HeroCarousel } from "@/components/HeroCarousel";
+import { getHeroImages } from "@/lib/heroImages";
+import type { HeroImage } from "@/lib/heroImages";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +24,13 @@ export default async function Home() {
     testimonials = await getPublishedTestimonials();
   } catch {
     testimonials = [];
+  }
+
+  let heroImages: HeroImage[] = [];
+  try {
+    heroImages = await getHeroImages();
+  } catch {
+    heroImages = [];
   }
 
   return (
@@ -78,21 +88,8 @@ export default async function Home() {
             </ul>
           </div>
 
-          {/* Visual: camiseta + badge boarding-pass */}
-          <div className="relative flex h-72 items-center justify-center md:h-96">
-            <div
-              className="jersey-shape flex h-64 w-56 items-center justify-center shadow-2xl shadow-black/10 md:h-80 md:w-72"
-              style={{ background: "linear-gradient(160deg,#FFC44D,#DE9A26)" }}
-            >
-              <span className="font-display text-8xl text-thor-ink/80">10</span>
-            </div>
-            <div className="absolute bottom-4 right-2 rounded-xl border border-thor-line bg-thor-paper px-4 py-3 font-mono text-[11px] text-thor-muted shadow-lg md:right-0">
-              <span className="block font-display text-sm tracking-wide text-thor-ink">
-                RETRO 1986
-              </span>
-              THOR · Poliéster clásico
-            </div>
-          </div>
+          {/* Visual: carrusel de fotos (o el placeholder si no hay ninguna cargada) */}
+          <HeroCarousel images={heroImages} />
         </div>
       </section>
 
