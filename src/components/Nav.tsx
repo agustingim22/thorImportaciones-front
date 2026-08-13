@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Logo } from "./Logo";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
+import { useFavorites } from "@/lib/favorites";
 
 const LINKS = [
   { href: "/", label: "Inicio" },
@@ -23,6 +24,7 @@ export function Nav() {
   const [q, setQ] = useState("");
   const { count } = useCart();
   const { user } = useAuth();
+  const { ids: favoriteIds } = useFavorites();
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -70,6 +72,18 @@ export function Nav() {
           >
             <span aria-hidden className="text-base leading-none">🔍</span>
           </button>
+          <Link
+            href="/favoritos"
+            aria-label="Mis favoritos"
+            className="relative grid h-10 w-10 place-items-center rounded-lg border border-thor-line text-thor-ink transition-colors hover:border-thor-gold"
+          >
+            <span aria-hidden className="text-lg leading-none">♡</span>
+            {favoriteIds.length > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-thor-gold px-1 font-mono text-[10px] font-bold text-thor-ink">
+                {favoriteIds.length}
+              </span>
+            )}
+          </Link>
           <Link
             href="/pedido-personalizado"
             className="hidden rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold hover:bg-thor-gold/10 sm:inline-block"
@@ -156,6 +170,15 @@ export function Nav() {
                 className="block rounded-lg px-3 py-2.5 font-mono text-sm font-semibold uppercase tracking-wider text-thor-ink hover:bg-thor-cream-2"
               >
                 👤 {user ? user.name.split(" ")[0] : "Mi cuenta"}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/favoritos"
+                onClick={() => setOpen(false)}
+                className="block rounded-lg px-3 py-2.5 font-mono text-sm font-semibold uppercase tracking-wider text-thor-ink hover:bg-thor-cream-2"
+              >
+                ♡ Mis favoritos{favoriteIds.length > 0 && ` (${favoriteIds.length})`}
               </Link>
             </li>
             <li className="mt-2">

@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { Product } from "@/lib/api";
 import { LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { useCart } from "@/lib/cart";
+import { FavoriteButton } from "./FavoriteButton";
 
 export function ProductPurchase({ product }: { product: Product }) {
   const { add } = useCart();
@@ -108,9 +109,12 @@ export function ProductPurchase({ product }: { product: Product }) {
 
       {/* Info */}
       <div className="flex flex-col">
-        <span className="w-fit rounded-md border border-thor-line bg-thor-paper px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-thor-ink-soft">
-          {PRODUCT_TYPE_LABELS[product.type]}
-        </span>
+        <div className="flex items-center justify-between gap-3">
+          <span className="w-fit rounded-md border border-thor-line bg-thor-paper px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-thor-ink-soft">
+            {PRODUCT_TYPE_LABELS[product.type]}
+          </span>
+          <FavoriteButton productId={product.id} className="h-9 w-9" />
+        </div>
 
         <h1 className="mt-3 font-display text-3xl leading-tight tracking-wide text-thor-ink sm:text-4xl">
           {product.team}

@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { CartProvider } from "@/lib/cart";
 import { AuthProvider } from "@/lib/auth";
+import { FavoritesProvider } from "@/lib/favorites";
 import { SITE, SITE_URL } from "@/lib/site";
 
 const anton = Anton({
@@ -82,10 +83,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
         <AuthProvider>
           <CartProvider>
-            <Nav />
-            <main className="flex-1">{children}</main>
-            <Footer />
-            <WhatsAppFloat />
+            <FavoritesProvider>
+              <Nav />
+              <main className="flex-1">{children}</main>
+              <Footer />
+              <WhatsAppFloat />
+            </FavoritesProvider>
           </CartProvider>
         </AuthProvider>
       </body>

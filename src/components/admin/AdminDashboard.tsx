@@ -21,6 +21,35 @@ import { AdminTestimonials } from "./AdminTestimonials";
 
 const TYPES = Object.entries(PRODUCT_TYPE_LABELS) as [ProductInput["type"], string][];
 
+function exportProductsCsv(products: Product[]) {
+  const headers = [
+    "Camiseta", "Versión", "Precio", "Stock", "Talles", "Nombre predefinido",
+    "Número predefinido", "Parches", "Slug", "Creado",
+  ];
+  const rows = products.map((p) => [
+    p.team,
+    PRODUCT_TYPE_LABELS[p.type],
+    String(p.price),
+    String(p.stock),
+    p.sizes.join(", "),
+    p.presetName ?? "",
+    p.presetNumber ?? "",
+    p.patches.map((patch) => `${patch.label}${patch.extraPrice > 0 ? ` (+$${patch.extraPrice})` : ""}`).join(" | "),
+    p.slug,
+    new Date(p.createdAt).toLocaleDateString("es-AR"),
+  ]);
+  const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
+  const csv = "﻿" + [headers, ...rows].map((r) => r.map(esc).join(";")).join("\r\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `catalogo-thor-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 const EMPTY: ProductInput = {
   team: "",
   type: "retro",
@@ -288,6 +317,13 @@ export function AdminDashboard() {
         <p className="text-sm text-thor-muted">
           {filteredProducts.length} de {products.length} camisetas
         </p>
+        <button
+          onClick={() => exportProductsCsv(filteredProducts)}
+          disabled={filteredProducts.length === 0}
+          className="rounded-lg bg-thor-land px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
+        >
+          ↓ Exportar a Excel
+        </button>
         <input
           type="search"
           value={search}

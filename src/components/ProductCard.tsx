@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
 import { isNewProduct, LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { FavoriteButton } from "./FavoriteButton";
 
 export function ProductCard({ product }: { product: Product }) {
   // Si el comprador tiene algo para elegir (nombre, número o parche), lo mandamos
@@ -26,6 +27,10 @@ export function ProductCard({ product }: { product: Product }) {
           Nuevo
         </span>
       ) : null}
+      <FavoriteButton
+        productId={product.id}
+        className="absolute bottom-3 right-3 z-10 h-8 w-8 shadow-sm"
+      />
 
       {/* imagen (link al detalle) — tamaño fijo (1:1) para que todas las cards queden simétricas */}
       <Link
