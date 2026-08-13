@@ -35,8 +35,8 @@ export function HeroCarousel({ images }: { images: HeroImage[] }) {
   }
 
   return (
-    <div className="relative flex h-72 items-center justify-center md:h-96">
-      <div className="relative h-64 w-64 overflow-hidden rounded-3xl bg-thor-cream-2 shadow-2xl shadow-black/10 md:h-80 md:w-80">
+    <div className="relative flex h-80 items-center justify-center sm:h-96 md:h-[28rem]">
+      <div className="relative h-72 w-72 overflow-hidden rounded-3xl bg-thor-cream-2 shadow-2xl shadow-black/10 sm:h-[22rem] sm:w-[22rem] md:h-[26rem] md:w-[26rem]">
         {images.map((img, i) => (
           <Image
             key={img.id}
@@ -44,7 +44,7 @@ export function HeroCarousel({ images }: { images: HeroImage[] }) {
             alt=""
             fill
             priority={i === 0}
-            sizes="(max-width: 768px) 256px, 320px"
+            sizes="(max-width: 640px) 288px, (max-width: 768px) 352px, 416px"
             className={`object-contain transition-opacity duration-700 ${
               i === active ? "opacity-100" : "opacity-0"
             }`}
