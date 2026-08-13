@@ -9,6 +9,8 @@ export const SITE = {
   whatsappNumber: "5493564578649",
   instagram: "https://instagram.com/thorimportaciones",
   email: "hola@thorimportaciones.com",
+  // A este mail se avisa cuando entra un pedido nuevo (no es el mail de contacto público).
+  adminEmail: "aguleoema@gmail.com",
   // Datos para transferencias. cvu es opcional (dejalo en null si preferís
   // que solo se muestre el alias).
   bank: {

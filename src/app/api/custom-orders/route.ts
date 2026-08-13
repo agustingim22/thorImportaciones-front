@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendCustomOrderConfirmation } from "@/lib/server/email";
+import { sendAdminOrderNotification, sendCustomOrderConfirmation } from "@/lib/server/email";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { rateLimit } from "@/lib/server/ratelimit";
 
@@ -87,6 +87,15 @@ export async function POST(req: Request) {
     customerEmail: order.customerEmail,
     customerName: order.customerName,
     items: order.customItems,
+  }).catch(() => {});
+
+  await sendAdminOrderNotification({
+    publicId: order.publicId,
+    kind: "Custom",
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    total: 0,
+    itemsSummary: order.customItems.map((i) => i.reference).join(" | "),
   }).catch(() => {});
 
   return NextResponse.json({ orderId: order.publicId });

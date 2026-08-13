@@ -43,6 +43,8 @@ export function AdminDashboard() {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<ProductInput["type"] | "">("");
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -223,6 +225,13 @@ export function AdminDashboard() {
     );
   }
 
+  const q = search.trim().toLowerCase();
+  const filteredProducts = products.filter((p) => {
+    if (typeFilter && p.type !== typeFilter) return false;
+    if (!q) return true;
+    return p.team.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q);
+  });
+
   // ---- Panel ----
   return (
     <div className="mx-auto max-w-5xl px-5 py-10">
@@ -272,7 +281,41 @@ export function AdminDashboard() {
 
       {/* Productos */}
       {tab === "products" && (
-      <div className="mt-6 overflow-x-auto rounded-2xl border border-thor-line bg-thor-paper">
+      <>
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <p className="text-sm text-thor-muted">
+          {filteredProducts.length} de {products.length} camisetas
+        </p>
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por equipo…"
+          className="min-w-[220px] flex-1 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+        />
+        <div className="inline-flex flex-wrap gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
+          <button
+            onClick={() => setTypeFilter("")}
+            className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors ${
+              typeFilter === "" ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+            }`}
+          >
+            Todas
+          </button>
+          {TYPES.map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => setTypeFilter(value)}
+              className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                typeFilter === value ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-thor-line bg-thor-paper">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-thor-line text-left font-mono text-[11px] uppercase tracking-wide text-thor-muted">
@@ -292,8 +335,15 @@ export function AdminDashboard() {
                 </td>
               </tr>
             )}
+            {!loading && products.length > 0 && filteredProducts.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-thor-muted">
+                  Ninguna camiseta coincide con la búsqueda o el filtro.
+                </td>
+              </tr>
+            )}
             {!loading &&
-              products.map((p) => (
+              filteredProducts.map((p) => (
                 <tr key={p.id} className="border-b border-thor-line last:border-0">
                   <td className="px-4 py-3 font-semibold text-thor-ink">{p.team}</td>
                   <td className="px-4 py-3 text-thor-muted">{PRODUCT_TYPE_LABELS[p.type]}</td>
@@ -345,6 +395,7 @@ export function AdminDashboard() {
           </tbody>
         </table>
       </div>
+      </>
       )}
 
       {/* Pedidos */}

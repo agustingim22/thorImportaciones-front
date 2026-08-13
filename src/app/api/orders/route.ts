@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendOrderConfirmation } from "@/lib/server/email";
+import { sendAdminOrderNotification, sendOrderConfirmation } from "@/lib/server/email";
 import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
 import { getSessionUser } from "@/lib/server/session";
 import { MERCADOPAGO_ENABLED } from "@/lib/site";
@@ -150,6 +150,15 @@ export async function POST(req: Request) {
     total: order.total,
     items: order.items,
   }).catch(() => {}); // el pedido ya quedó registrado igual si el email falla
+
+  await sendAdminOrderNotification({
+    publicId: order.publicId,
+    kind: "Stock",
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    total: order.total,
+    itemsSummary: order.items.map((i) => `${i.productName} x${i.quantity}`).join(", "),
+  }).catch(() => {});
 
   // Guardamos los datos usados en este checkout en el perfil, para prellenar la próxima compra.
   if (sessionUser) {

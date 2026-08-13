@@ -156,6 +156,42 @@ export async function sendPaymentConfirmation(order: {
   await send(order.customerEmail, `Pago confirmado — pedido #${order.publicId}`, layout("¡Pago confirmado!", body));
 }
 
+/** Aviso interno al admin cuando entra un pedido nuevo (de stock o personalizado). */
+export async function sendAdminOrderNotification(order: {
+  publicId: string;
+  kind: "Stock" | "Custom";
+  customerName: string;
+  customerPhone: string;
+  total: number;
+  itemsSummary: string;
+}): Promise<void> {
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">
+      Entró un pedido ${order.kind === "Custom" ? "personalizado" : "de stock"} nuevo.
+    </p>
+    <p style="font-family:monospace;font-size:13px;color:#14323F;">Pedido #${order.publicId}</p>
+    <p style="color:#14323F;font-size:14px;margin:4px 0;">
+      <strong>${order.customerName}</strong> · ${order.customerPhone}
+    </p>
+    <p style="color:#5F6E68;font-size:13px;">${order.itemsSummary}</p>
+    ${
+      order.total > 0
+        ? `<p style="text-align:right;font-size:16px;font-weight:800;color:#DE9A26;margin-top:14px;">Total: $${order.total.toLocaleString("es-AR")}</p>`
+        : `<p style="color:#5F6E68;font-size:13px;"><em>Precio a coordinar.</em></p>`
+    }
+    <p style="text-align:center;margin:20px 0 4px;">
+      <a href="${SITE_URL}/admin" style="color:#DE9A26;font-size:13px;font-weight:700;text-decoration:none;">
+        Ver en el panel →
+      </a>
+    </p>
+  `;
+  await send(
+    SITE.adminEmail,
+    `Pedido nuevo #${order.publicId} — ${order.customerName}`,
+    layout("¡Pedido nuevo!", body),
+  );
+}
+
 /** Link para restablecer la contraseña. */
 export async function sendPasswordReset(email: string, resetUrl: string): Promise<void> {
   const body = `
