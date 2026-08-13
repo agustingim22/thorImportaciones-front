@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createPasswordReset } from "@/lib/server/session";
 import { sendPasswordReset } from "@/lib/server/email";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 type Body = { email?: string };
 
 export async function POST(req: Request) {
+  const limited = await rateLimit("forgot-password", req, 5, 30 * 60);
+  if (limited) return limited;
+
   const body = (await req.json()) as Body;
   const email = body.email?.trim().toLowerCase() ?? "";
 

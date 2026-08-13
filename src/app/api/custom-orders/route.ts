@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendCustomOrderConfirmation } from "@/lib/server/email";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 type CustomItemInput = {
   reference?: string;
@@ -29,6 +30,9 @@ type Body = {
 };
 
 export async function POST(req: Request) {
+  const limited = await rateLimit("custom-orders", req, 10, 10 * 60);
+  if (limited) return limited;
+
   const body = (await req.json()) as Body;
 
   const errors: Record<string, string[]> = {};

@@ -6,6 +6,7 @@ import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
 import { getSessionUser } from "@/lib/server/session";
 import { MERCADOPAGO_ENABLED } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 type Body = {
   customerName?: string;
@@ -32,6 +33,9 @@ type Body = {
 class OrderError extends Error {}
 
 export async function POST(req: Request) {
+  const limited = await rateLimit("orders", req, 10, 10 * 60);
+  if (limited) return limited;
+
   const body = (await req.json()) as Body;
 
   const errors: Record<string, string[]> = {};

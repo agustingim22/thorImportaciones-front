@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createSession, hashPassword, toPublicUser } from "@/lib/server/session";
+import { rateLimit } from "@/lib/server/ratelimit";
 
 type Body = { email?: string; password?: string; name?: string; phone?: string };
 
 export async function POST(req: Request) {
+  const limited = await rateLimit("register", req, 5, 30 * 60);
+  if (limited) return limited;
+
   const body = (await req.json()) as Body;
 
   const errors: Record<string, string[]> = {};
