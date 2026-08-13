@@ -93,6 +93,8 @@ function exportCsv(orders: AdminOrder[]) {
 export function AdminOrders() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,17 +114,62 @@ export function AdminOrders() {
     setOrders((prev) => prev.map((o) => (o.publicId === publicId ? { ...o, status } : o)));
   }
 
+  const q = search.trim().toLowerCase();
+  const filtered = orders.filter((o) => {
+    if (statusFilter && o.status !== statusFilter) return false;
+    if (!q) return true;
+    return (
+      o.publicId.toLowerCase().includes(q) ||
+      o.customerName.toLowerCase().includes(q) ||
+      o.customerEmail.toLowerCase().includes(q) ||
+      o.customerPhone.toLowerCase().includes(q)
+    );
+  });
+
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-thor-muted">{orders.length} pedidos</p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-thor-muted">
+          {filtered.length} de {orders.length} pedidos
+        </p>
         <button
-          onClick={() => exportCsv(orders)}
-          disabled={orders.length === 0}
+          onClick={() => exportCsv(filtered)}
+          disabled={filtered.length === 0}
           className="rounded-lg bg-thor-land px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
         >
           ↓ Exportar a Excel
         </button>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nombre, email, teléfono o N° de pedido…"
+          className="min-w-[240px] flex-1 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+        />
+        <div className="inline-flex flex-wrap gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
+          <button
+            onClick={() => setStatusFilter("")}
+            className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors ${
+              statusFilter === "" ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+            }`}
+          >
+            Todos
+          </button>
+          {STATUS.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setStatusFilter(s.value)}
+              className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                statusFilter === s.value ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-thor-line bg-thor-paper">
@@ -145,6 +192,13 @@ export function AdminOrders() {
                 <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
               </tr>
             )}
+            {!loading && orders.length > 0 && filtered.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">
+                  Ningún pedido coincide con la búsqueda o el filtro.
+                </td>
+              </tr>
+            )}
             {!loading && orders.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">
@@ -153,7 +207,7 @@ export function AdminOrders() {
               </tr>
             )}
             {!loading &&
-              orders.map((o) => (
+              filtered.map((o) => (
                 <tr key={o.publicId} className="border-b border-thor-line align-top last:border-0">
                   <td className="whitespace-nowrap px-4 py-3 text-thor-muted">
                     {new Date(o.createdAt).toLocaleDateString("es-AR")}

@@ -306,6 +306,30 @@ function PaymentOption({
   );
 }
 
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* si el navegador bloquea el portapapeles, el usuario copia a mano */
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      className="ml-2 rounded-md border border-thor-line px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide text-thor-muted hover:border-thor-gold hover:text-thor-ink"
+    >
+      {copied ? "✓ Copiado" : "Copiar"}
+    </button>
+  );
+}
+
 function TransferResult({ orderId, total }: { orderId: string; total: number }) {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -350,14 +374,20 @@ function TransferResult({ orderId, total }: { orderId: string; total: number }) 
         </h2>
         <dl className="mt-3 space-y-2 text-sm">
           {SITE.bank.cvu && (
-            <div className="flex justify-between gap-3">
+            <div className="flex items-center justify-between gap-3">
               <dt className="text-thor-muted">CVU</dt>
-              <dd className="font-mono text-thor-ink">{SITE.bank.cvu}</dd>
+              <dd className="flex items-center font-mono text-thor-ink">
+                {SITE.bank.cvu}
+                <CopyButton value={SITE.bank.cvu} />
+              </dd>
             </div>
           )}
-          <div className="flex justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
             <dt className="text-thor-muted">Alias</dt>
-            <dd className="font-mono text-thor-ink">{SITE.bank.alias}</dd>
+            <dd className="flex items-center font-mono text-thor-ink">
+              {SITE.bank.alias}
+              <CopyButton value={SITE.bank.alias} />
+            </dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-thor-muted">Titular</dt>

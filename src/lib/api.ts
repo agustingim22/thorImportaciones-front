@@ -38,3 +38,11 @@ export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
 
 /** A partir de cuántas unidades o menos mostramos el aviso de "últimas unidades". */
 export const LOW_STOCK_THRESHOLD = 3;
+
+/** Cuántos días desde que se creó un producto lo consideramos "Nuevo" en el catálogo. */
+export const NEW_PRODUCT_DAYS = 14;
+
+export function isNewProduct(createdAt: string): boolean {
+  const ageMs = Date.now() - new Date(createdAt).getTime();
+  return ageMs <= NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000;
+}

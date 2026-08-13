@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
-import { LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { isNewProduct, LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { AddToCartButton } from "./AddToCartButton";
 
 export function ProductCard({ product }: { product: Product }) {
@@ -10,6 +10,7 @@ export function ProductCard({ product }: { product: Product }) {
   const isCustomizable =
     !product.presetName || !product.presetNumber || product.patches.length > 0;
   const lowStock = product.inStock && product.stock <= LOW_STOCK_THRESHOLD;
+  const isNew = isNewProduct(product.createdAt);
 
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-thor-line bg-thor-paper transition-transform duration-200 hover:-translate-y-1">
@@ -17,11 +18,15 @@ export function ProductCard({ product }: { product: Product }) {
       <span className="absolute left-3 top-3 z-10 rounded-md border border-thor-line bg-thor-cream/80 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-thor-ink-soft">
         {PRODUCT_TYPE_LABELS[product.type]}
       </span>
-      {lowStock && (
+      {lowStock ? (
         <span className="absolute right-3 top-3 z-10 rounded-md border border-red-600/30 bg-red-50 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-red-600">
           {product.stock === 1 ? "¡Última unidad!" : `¡Últimas ${product.stock}!`}
         </span>
-      )}
+      ) : isNew ? (
+        <span className="absolute right-3 top-3 z-10 rounded-md border border-thor-sky/30 bg-thor-sky/15 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-thor-sky">
+          Nuevo
+        </span>
+      ) : null}
 
       {/* imagen (link al detalle) — tamaño fijo (1:1) para que todas las cards queden simétricas */}
       <Link
