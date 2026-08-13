@@ -3,12 +3,13 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { Product, ProductType } from "./api";
 
-const withPatches = Prisma.validator<Prisma.ProductDefaultArgs>()({
+export const withPatches = Prisma.validator<Prisma.ProductDefaultArgs>()({
   include: { patches: { orderBy: { id: "asc" } }, sizeStocks: true },
 });
 type ProductRow = Prisma.ProductGetPayload<typeof withPatches>;
 
-function serialize(p: ProductRow): Product {
+/** Única fuente de verdad para pasar una fila cruda de Prisma a la forma `Product` pública. */
+export function serializeProduct(p: ProductRow): Product {
   return {
     id: p.id,
     slug: p.slug,
@@ -51,7 +52,7 @@ export async function getProducts(
     orderBy: { createdAt: "desc" },
     ...withPatches,
   });
-  return rows.map(serialize);
+  return rows.map(serializeProduct);
 }
 
 /** Otras camisetas para mostrar como "también te puede interesar" en el detalle. */
@@ -65,7 +66,7 @@ export async function getRelatedProducts(
     take: limit,
     ...withPatches,
   });
-  if (rows.length >= limit) return rows.map(serialize);
+  if (rows.length >= limit) return rows.map(serializeProduct);
 
   // Si no hay suficientes del mismo tipo, completamos con otras camisetas.
   const fillerRows = await prisma.product.findMany({
@@ -74,7 +75,7 @@ export async function getRelatedProducts(
     take: limit - rows.length,
     ...withPatches,
   });
-  return [...rows, ...fillerRows].map(serialize);
+  return [...rows, ...fillerRows].map(serializeProduct);
 }
 
 export async function getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {
@@ -83,5 +84,5 @@ export async function getProductByIdOrSlug(idOrSlug: string): Promise<Product | 
     Number.isInteger(asId) && String(asId) === idOrSlug
       ? await prisma.product.findUnique({ where: { id: asId }, ...withPatches })
       : await prisma.product.findUnique({ where: { slug: idOrSlug }, ...withPatches });
-  return row ? serialize(row) : null;
+  return row ? serializeProduct(row) : null;
 }

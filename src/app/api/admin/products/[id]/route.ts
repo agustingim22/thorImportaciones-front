@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
 import { uniqueSlug } from "@/lib/server/slug";
+import { serializeProduct, withPatches } from "@/lib/products";
 import {
   toProductData,
   toSizeStockRows,
@@ -46,10 +47,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           create: toSizeStockRows(input),
         },
       },
-      include: { patches: true, sizeStocks: true },
+      ...withPatches,
     }),
   ]);
-  return NextResponse.json(product);
+  return NextResponse.json(serializeProduct(product));
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {

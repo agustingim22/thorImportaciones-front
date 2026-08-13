@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
 import { uniqueSlug } from "@/lib/server/slug";
+import { serializeProduct, withPatches } from "@/lib/products";
 import {
   toProductData,
   toSizeStockRows,
@@ -12,10 +13,10 @@ import {
 export async function GET(req: Request) {
   if (!isAdmin(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const products = await prisma.product.findMany({
-    include: { patches: { orderBy: { id: "asc" } }, sizeStocks: true },
     orderBy: { createdAt: "desc" },
+    ...withPatches,
   });
-  return NextResponse.json(products);
+  return NextResponse.json(products.map(serializeProduct));
 }
 
 export async function POST(req: Request) {
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
       },
       sizeStocks: { create: toSizeStockRows(input) },
     },
-    include: { patches: true, sizeStocks: true },
+    ...withPatches,
   });
-  return NextResponse.json(product, { status: 201 });
+  return NextResponse.json(serializeProduct(product), { status: 201 });
 }
