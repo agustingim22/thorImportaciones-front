@@ -21,7 +21,7 @@ const CATEGORIES: Category[] = [
     label: "Camisetas de fútbol",
     charts: [
       {
-        title: "Retro Fan — corte holgado",
+        title: "Fan Version",
         headers: ["Talle", "Ancho (cm)", "Largo (cm)", "Altura", "Peso"],
         rows: [
           ["S", "48-50", "69-71", "160-165 cm", "60-65 kg"],
@@ -34,7 +34,7 @@ const CATEGORIES: Category[] = [
         ],
       },
       {
-        title: "Player Version — slim fit",
+        title: "Player Version",
         headers: ["Talle", "Largo (cm)", "Ancho (cm)", "Altura / Peso"],
         rows: [
           ["S", "68-70", "43-45", "160-165 cm / 50-60 kg"],
@@ -47,10 +47,15 @@ const CATEGORIES: Category[] = [
         ],
       },
       {
-        title: "Retro clásica — manga corta o larga",
+        title: "Retro — manga corta o larga",
         headers: [
-          "Talle", "Largo (cm)", "Ancho pecho (cm)",
-          "Manga corta (cm)", "Manga larga (cm)", "Altura", "Peso",
+          "Talle",
+          "Largo (cm)",
+          "Ancho pecho (cm)",
+          "Manga corta (cm)",
+          "Manga larga (cm)",
+          "Altura",
+          "Peso",
         ],
         rows: [
           ["S", "66-68", "46-48", "36.5", "68-70", "160-165 cm", "50-60 kg"],
@@ -58,16 +63,6 @@ const CATEGORIES: Category[] = [
           ["L", "70-72", "50-52", "39.5", "72-74", "170-175 cm", "65-70 kg"],
           ["XL", "72-74", "52-54", "41", "74-76", "175-180 cm", "70-80 kg"],
           ["XXL", "74-76", "54-56", "42.5", "76-78", "180-185 cm", "80-90 kg"],
-        ],
-      },
-      {
-        title: "Camiseta manga larga",
-        headers: ["Talle", "Ancho (cm)", "Largo (cm)", "Altura", "Peso"],
-        rows: [
-          ["S", "50-53", "67-70", "165-172 cm", "50-65 kg"],
-          ["M", "53-56", "70-73", "172-177 cm", "56-70 kg"],
-          ["L", "56-59", "73-76", "177-182 cm", "62-75 kg"],
-          ["XL", "59-62", "76-79", "182-190 cm", "67-88 kg"],
         ],
       },
     ],
@@ -78,7 +73,13 @@ const CATEGORIES: Category[] = [
     charts: [
       {
         title: "Camiseta NBA (básquet)",
-        headers: ["Talle", "Largo (cm)", "Contorno pecho (cm)", "Ancho hombros (cm)", "Altura / Peso"],
+        headers: [
+          "Talle",
+          "Largo (cm)",
+          "Contorno pecho (cm)",
+          "Ancho hombros (cm)",
+          "Altura / Peso",
+        ],
         rows: [
           ["S", "70", "98", "35", "160-170 cm / 45-57 kg"],
           ["M", "72", "106", "37", "168-175 cm / 58-67 kg"],
@@ -128,7 +129,14 @@ const CATEGORIES: Category[] = [
       },
       {
         title: "Conjunto deportivo (buzo + pantalón)",
-        headers: ["Talle", "Largo remera (cm)", "1/2 Pecho (cm)", "Largo pantalón (cm)", "Altura", "Peso"],
+        headers: [
+          "Talle",
+          "Largo remera (cm)",
+          "1/2 Pecho (cm)",
+          "Largo pantalón (cm)",
+          "Altura",
+          "Peso",
+        ],
         rows: [
           ["S", "68-71", "50-53", "96-98", "160-170 cm", "50-67 kg"],
           ["M", "71-74", "53-55", "98-101", "171-176 cm", "62-75 kg"],
@@ -156,7 +164,15 @@ const CATEGORIES: Category[] = [
     charts: [
       {
         title: "Pantalones y shorts",
-        headers: ["Talle", "Largo (cm)", "Ancho cintura (cm)", "Cadera (cm)", "Muslo (cm)", "Contorno pie (cm)", "Altura"],
+        headers: [
+          "Talle",
+          "Largo (cm)",
+          "Ancho cintura (cm)",
+          "Cadera (cm)",
+          "Muslo (cm)",
+          "Contorno pie (cm)",
+          "Altura",
+        ],
         rows: [
           ["S", "44", "31", "104", "64", "30", "150-159 cm"],
           ["M", "46", "33", "104", "64", "31", "160-169 cm"],
@@ -190,7 +206,14 @@ const CATEGORIES: Category[] = [
     charts: [
       {
         title: "Camisetas de niños",
-        headers: ["Talle", "Edad", "Largo (cm)", "1/2 Pecho (cm)", "Altura (cm)", "Largo pantalón (cm)"],
+        headers: [
+          "Talle",
+          "Edad",
+          "Largo (cm)",
+          "1/2 Pecho (cm)",
+          "Altura (cm)",
+          "Largo pantalón (cm)",
+        ],
         rows: [
           ["16", "3-4 años", "42", "33", "95-105", "31"],
           ["18", "4-5 años", "45", "35", "105-115", "33"],
@@ -273,7 +296,9 @@ export function TallesGuide() {
               key={c.key}
               onClick={() => setActive(c.key)}
               className={`rounded-lg px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
-                active === c.key ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+                active === c.key
+                  ? "bg-thor-gold text-thor-ink"
+                  : "text-thor-muted hover:text-thor-ink"
               }`}
             >
               {c.label}
