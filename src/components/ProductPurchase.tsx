@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
@@ -23,6 +23,35 @@ export function ProductPurchase({ product }: { product: Product }) {
   const [patchId, setPatchId] = useState<number | null>(null);
   const [added, setAdded] = useState(false);
   const [shared, setShared] = useState(false);
+  const [lightbox, setLightbox] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+
+  const imageCount = product.images.length;
+  const nextImage = () => setActiveImage((i) => (i + 1) % imageCount);
+  const prevImage = () => setActiveImage((i) => (i - 1 + imageCount) % imageCount);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (delta > 40) prevImage();
+    else if (delta < -40) nextImage();
+  }
+
+  useEffect(() => {
+    if (!lightbox) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setLightbox(false);
+      if (e.key === "ArrowLeft") prevImage();
+      if (e.key === "ArrowRight") nextImage();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lightbox, imageCount]);
 
   async function handleShare() {
     const url = window.location.href;
@@ -71,9 +100,18 @@ export function ProductPurchase({ product }: { product: Product }) {
     <div className="grid gap-10 md:grid-cols-[1.35fr_1fr]">
       {/* Imagen */}
       <div>
-        <div className="flex items-center justify-center overflow-hidden rounded-2xl border border-thor-line bg-thor-cream-2 p-6">
+        <div
+          className="relative flex items-center justify-center overflow-hidden rounded-2xl border border-thor-line bg-thor-cream-2 p-6"
+          onTouchStart={imageCount > 1 ? handleTouchStart : undefined}
+          onTouchEnd={imageCount > 1 ? handleTouchEnd : undefined}
+        >
           {currentImage ? (
-            <div className="relative h-[420px] w-full sm:h-[560px]">
+            <button
+              type="button"
+              onClick={() => setLightbox(true)}
+              aria-label="Ampliar imagen"
+              className="relative h-[420px] w-full cursor-zoom-in sm:h-[560px]"
+            >
               <Image
                 src={currentImage}
                 alt={product.team}
@@ -82,7 +120,14 @@ export function ProductPurchase({ product }: { product: Product }) {
                 className="rounded-xl object-contain"
                 priority
               />
-            </div>
+              <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-thor-ink/70 text-thor-cream">
+                <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M21 21l-4.3-4.3" strokeLinecap="round" />
+                  <path d="M11 8v6M8 11h6" strokeLinecap="round" />
+                </svg>
+              </span>
+            </button>
           ) : (
             <div
               className="jersey-shape flex h-[420px] w-[380px] items-center justify-center"
@@ -92,6 +137,32 @@ export function ProductPurchase({ product }: { product: Product }) {
                 <span className="font-display text-9xl text-thor-ink/80">{product.presetNumber}</span>
               )}
             </div>
+          )}
+          {imageCount > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  prevImage();
+                }}
+                aria-label="Foto anterior"
+                className="absolute left-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-thor-cream/90 text-thor-ink shadow-md hover:bg-thor-cream"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextImage();
+                }}
+                aria-label="Foto siguiente"
+                className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-thor-cream/90 text-thor-ink shadow-md hover:bg-thor-cream"
+              >
+                ›
+              </button>
+            </>
           )}
         </div>
         {product.images.length > 1 && (
@@ -301,6 +372,59 @@ export function ProductPurchase({ product }: { product: Product }) {
           </Link>
         </div>
       </div>
+
+      {lightbox && currentImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setLightbox(false);
+            }}
+            aria-label="Cerrar"
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-xl text-white hover:bg-white/20"
+          >
+            ✕
+          </button>
+          {imageCount > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  prevImage();
+                }}
+                aria-label="Foto anterior"
+                className="absolute left-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-2xl text-white hover:bg-white/20 sm:left-4"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextImage();
+                }}
+                aria-label="Foto siguiente"
+                className="absolute right-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-2xl text-white hover:bg-white/20 sm:right-4"
+              >
+                ›
+              </button>
+            </>
+          )}
+          <div
+            className="relative h-[80vh] w-full max-w-3xl"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={imageCount > 1 ? handleTouchStart : undefined}
+            onTouchEnd={imageCount > 1 ? handleTouchEnd : undefined}
+          >
+            <Image src={currentImage} alt={product.team} fill sizes="100vw" className="object-contain" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,10 +1,16 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getProducts } from "@/lib/products";
+import { getProducts, type ProductSort } from "@/lib/products";
 import type { Product, ProductType } from "@/lib/api";
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { PageHeader } from "@/components/PageHeader";
+
+const SORTS: [ProductSort, string][] = [
+  ["newest", "Más nuevo"],
+  ["price-asc", "Precio: menor a mayor"],
+  ["price-desc", "Precio: mayor a menor"],
+];
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +32,17 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
   const type = PRODUCT_TYPES.includes(rawType as ProductType) ? (rawType as ProductType) : undefined;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim() || undefined;
 
+  const minPriceRaw = Number(Array.isArray(sp.minPrice) ? sp.minPrice[0] : sp.minPrice);
+  const maxPriceRaw = Number(Array.isArray(sp.maxPrice) ? sp.maxPrice[0] : sp.maxPrice);
+  const minPrice = Number.isFinite(minPriceRaw) && minPriceRaw > 0 ? minPriceRaw : undefined;
+  const maxPrice = Number.isFinite(maxPriceRaw) && maxPriceRaw > 0 ? maxPriceRaw : undefined;
+
+  const sortRaw = Array.isArray(sp.sort) ? sp.sort[0] : sp.sort;
+  const sort: ProductSort = SORTS.some(([key]) => key === sortRaw) ? (sortRaw as ProductSort) : "newest";
+
   let products: Product[] = [];
   try {
-    products = await getProducts({ type, q });
+    products = await getProducts({ type, q, minPrice, maxPrice, sort });
   } catch {
     products = [];
   }
@@ -37,9 +51,15 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
     const params = new URLSearchParams();
     if (key) params.set("type", key);
     if (q) params.set("q", q);
+    if (minPrice !== undefined) params.set("minPrice", String(minPrice));
+    if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
+    if (sort !== "newest") params.set("sort", sort);
     const qs = params.toString();
     return qs ? `/camisetas?${qs}` : "/camisetas";
   };
+
+  const hasExtraFilters = !!q || minPrice !== undefined || maxPrice !== undefined || sort !== "newest";
+  const clearHref = type ? `/camisetas?type=${type}` : "/camisetas";
 
   return (
     <>
@@ -69,8 +89,8 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
             })}
           </div>
 
-          {/* Buscador */}
-          <form method="get" action="/camisetas" className="flex items-center gap-2">
+          {/* Buscador + filtros */}
+          <form method="get" action="/camisetas" className="flex flex-wrap items-center gap-2">
             {type && <input type="hidden" name="type" value={type} />}
             <input
               type="search"
@@ -79,6 +99,33 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
               placeholder="Buscar equipo…"
               className="rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
             />
+            <input
+              type="number"
+              name="minPrice"
+              min={0}
+              defaultValue={minPrice ?? ""}
+              placeholder="Precio desde"
+              className="w-28 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+            />
+            <input
+              type="number"
+              name="maxPrice"
+              min={0}
+              defaultValue={maxPrice ?? ""}
+              placeholder="Precio hasta"
+              className="w-28 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+            />
+            <select
+              name="sort"
+              defaultValue={sort}
+              className="rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+            >
+              {SORTS.map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
             <button
               type="submit"
               className="rounded-lg bg-thor-ink px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream"
@@ -88,11 +135,17 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
           </form>
         </div>
 
-        {q && (
+        {hasExtraFilters && (
           <p className="mb-5 text-sm text-thor-muted">
-            Resultados para <strong className="text-thor-ink">“{q}”</strong> ({products.length}).{" "}
-            <Link href={tabHref(type)} className="text-thor-gold underline">
-              Limpiar
+            {q ? (
+              <>
+                Resultados para <strong className="text-thor-ink">“{q}”</strong> ({products.length}).{" "}
+              </>
+            ) : (
+              <>{products.length} resultado{products.length === 1 ? "" : "s"} con estos filtros. </>
+            )}
+            <Link href={clearHref} className="text-thor-gold underline">
+              Limpiar filtros
             </Link>
           </p>
         )}

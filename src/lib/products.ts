@@ -36,8 +36,16 @@ export function serializeProduct(p: ProductRow): Product {
   };
 }
 
+export type ProductSort = "newest" | "price-asc" | "price-desc";
+
 export async function getProducts(
-  params: { type?: ProductType; q?: string } = {},
+  params: {
+    type?: ProductType;
+    q?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    sort?: ProductSort;
+  } = {},
 ): Promise<Product[]> {
   const where: Prisma.ProductWhereInput = {};
   if (params.type) where.type = params.type;
@@ -47,9 +55,20 @@ export async function getProducts(
       { description: { contains: params.q, mode: "insensitive" } },
     ];
   }
+  if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+    where.price = {};
+    if (params.minPrice !== undefined) where.price.gte = params.minPrice;
+    if (params.maxPrice !== undefined) where.price.lte = params.maxPrice;
+  }
+  const orderBy: Prisma.ProductOrderByWithRelationInput =
+    params.sort === "price-asc"
+      ? { price: "asc" }
+      : params.sort === "price-desc"
+        ? { price: "desc" }
+        : { createdAt: "desc" };
   const rows = await prisma.product.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy,
     ...withPatches,
   });
   return rows.map(serializeProduct);

@@ -19,6 +19,7 @@ import {
 import { AdminOrders } from "./AdminOrders";
 import { AdminTestimonials } from "./AdminTestimonials";
 import { AdminHeroImages } from "./AdminHeroImages";
+import { AdminStats } from "./AdminStats";
 import { parseCsv } from "@/lib/csv";
 
 const TYPES = Object.entries(PRODUCT_TYPE_LABELS) as [ProductInput["type"], string][];
@@ -92,7 +93,7 @@ const EMPTY: ProductInput = {
 
 export function AdminDashboard() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"products" | "orders" | "testimonials" | "hero">("products");
+  const [tab, setTab] = useState<"products" | "orders" | "testimonials" | "hero" | "stats">("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
 
@@ -437,6 +438,7 @@ export function AdminDashboard() {
           [
             ["products", "Productos"],
             ["orders", "Pedidos"],
+            ["stats", "Estadísticas"],
             ["testimonials", "Testimonios"],
             ["hero", "Inicio"],
           ] as const
@@ -635,6 +637,9 @@ export function AdminDashboard() {
           <AdminOrders />
         </div>
       )}
+
+      {/* Estadísticas */}
+      {tab === "stats" && <AdminStats />}
 
       {/* Testimonios */}
       {tab === "testimonials" && (
