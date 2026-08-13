@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/talles", label: "Guía de talles" },
   { href: "/preguntas-frecuentes", label: "Preguntas frecuentes" },
   { href: "/pedido", label: "Seguir mi pedido" },
+  { href: "/sobre-nosotros", label: "Sobre nosotros" },
   { href: "/contacto", label: "Contacto" },
 ];
 
