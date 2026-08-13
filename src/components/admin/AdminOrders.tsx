@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   adminListOrders,
   adminSetOrderStatus,
+  adminSetOrderTotal,
   type AdminOrder,
 } from "@/lib/admin";
 
@@ -74,7 +75,7 @@ function exportCsv(orders: AdminOrder[]) {
     formatAddress(o),
     o.deliveryNotes ?? "",
     o.notes ?? "",
-    o.kind === "Custom" ? "a coordinar" : String(o.total),
+    o.kind === "Custom" && o.total <= 0 ? "a coordinar" : String(o.total),
     paymentLabel(o),
     o.receiptUrl ?? "",
     detalle(o),
@@ -97,6 +98,9 @@ export function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [editingTotal, setEditingTotal] = useState<Record<string, string>>({});
+  const [savingTotal, setSavingTotal] = useState<string | null>(null);
+  const [totalError, setTotalError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -114,6 +118,39 @@ export function AdminOrders() {
   async function changeStatus(publicId: string, status: string) {
     await adminSetOrderStatus(publicId, status);
     setOrders((prev) => prev.map((o) => (o.publicId === publicId ? { ...o, status } : o)));
+  }
+
+  function startEditTotal(o: AdminOrder) {
+    setTotalError("");
+    setEditingTotal((prev) => ({ ...prev, [o.publicId]: o.total > 0 ? String(o.total) : "" }));
+  }
+
+  function cancelEditTotal(publicId: string) {
+    setEditingTotal((prev) => {
+      const next = { ...prev };
+      delete next[publicId];
+      return next;
+    });
+  }
+
+  async function saveTotal(publicId: string) {
+    const raw = editingTotal[publicId];
+    const value = Number(raw);
+    if (!raw || !Number.isFinite(value) || value < 0) {
+      setTotalError("Ingresá un precio válido.");
+      return;
+    }
+    setTotalError("");
+    setSavingTotal(publicId);
+    try {
+      await adminSetOrderTotal(publicId, value);
+      setOrders((prev) => prev.map((o) => (o.publicId === publicId ? { ...o, total: value } : o)));
+      cancelEditTotal(publicId);
+    } catch (err) {
+      setTotalError(err instanceof Error ? err.message : "No se pudo guardar el precio.");
+    } finally {
+      setSavingTotal(null);
+    }
   }
 
   const q = search.trim().toLowerCase();
@@ -173,6 +210,8 @@ export function AdminOrders() {
           ))}
         </div>
       </div>
+
+      {totalError && <p className="mb-3 text-sm text-red-600">{totalError}</p>}
 
       <div className="overflow-x-auto rounded-2xl border border-thor-line bg-thor-paper">
         <table className="w-full text-sm">
@@ -261,7 +300,52 @@ export function AdminOrders() {
                     )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 font-mono tabular-nums text-thor-ink">
-                    {o.kind === "Custom" ? "a coordinar" : `$${o.total.toLocaleString("es-AR")}`}
+                    {o.kind === "Custom" ? (
+                      editingTotal[o.publicId] !== undefined ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min={0}
+                            autoFocus
+                            value={editingTotal[o.publicId]}
+                            onChange={(e) =>
+                              setEditingTotal((prev) => ({ ...prev, [o.publicId]: e.target.value }))
+                            }
+                            className="w-24 rounded-md border border-thor-line bg-thor-cream px-2 py-1 text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => saveTotal(o.publicId)}
+                            disabled={savingTotal === o.publicId}
+                            aria-label="Guardar precio"
+                            className="text-thor-gold hover:underline disabled:opacity-50"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => cancelEditTotal(o.publicId)}
+                            aria-label="Cancelar"
+                            className="text-thor-muted hover:underline"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span>{o.total > 0 ? `$${o.total.toLocaleString("es-AR")}` : "a coordinar"}</span>
+                          <button
+                            type="button"
+                            onClick={() => startEditTotal(o)}
+                            className="font-mono text-[11px] font-normal normal-case text-thor-gold underline"
+                          >
+                            {o.total > 0 ? "Editar" : "Poner precio"}
+                          </button>
+                        </div>
+                      )
+                    ) : (
+                      `$${o.total.toLocaleString("es-AR")}`
+                    )}
                   </td>
                   <td className="px-4 py-3 text-[11px]">
                     <span className="block text-thor-ink">{paymentLabel(o)}</span>

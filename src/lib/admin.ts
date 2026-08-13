@@ -162,6 +162,25 @@ export async function adminSetOrderStatus(publicId: string, status: string): Pro
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+/** Fija el precio final de un pedido personalizado (coordinado por WhatsApp). */
+export async function adminSetOrderTotal(publicId: string, total: number): Promise<void> {
+  const res = await fetch(`/api/admin/orders/${publicId}/status`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ total }),
+  });
+  if (!res.ok) {
+    let msg = `Error ${res.status}`;
+    try {
+      const data = await res.json();
+      if (data?.error) msg = data.error;
+    } catch {
+      /* sin cuerpo */
+    }
+    throw new Error(msg);
+  }
+}
+
 // ---- Testimonios ----
 export type AdminTestimonial = {
   id: number;

@@ -46,8 +46,10 @@ export function AdminStats() {
       </div>
     );
 
+  // Cuenta pedidos de catálogo (siempre con precio) y personalizados una vez que
+  // el admin les puso un precio final — hasta entonces total=0 y no deben contar.
   const facturados = orders.filter(
-    (o) => o.kind === "Stock" && (o.status === "Paid" || o.status === "Delivered"),
+    (o) => (o.status === "Paid" || o.status === "Delivered") && o.total > 0,
   );
   const totalFacturado = facturados.reduce((sum, o) => sum + o.total, 0);
   const ticketPromedio = facturados.length > 0 ? totalFacturado / facturados.length : 0;
@@ -113,7 +115,9 @@ export function AdminStats() {
         <h3 className="font-mono text-xs font-bold uppercase tracking-wide text-thor-muted">
           Ventas de los últimos {MONTHS_BACK} meses
         </h3>
-        <p className="mt-1 text-xs text-thor-muted">Solo pedidos de catálogo pagados o entregados.</p>
+        <p className="mt-1 text-xs text-thor-muted">
+          Pedidos pagados o entregados con precio confirmado.
+        </p>
         <div className="mt-4 flex items-end gap-3" style={{ height: 140 }}>
           {months.map((m) => {
             const val = salesByMonth.get(m) ?? 0;

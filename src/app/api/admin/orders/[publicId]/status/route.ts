@@ -8,16 +8,29 @@ const VALID = ["Pending", "Paid", "Cancelled", "Delivered"];
 export async function POST(req: Request, { params }: { params: Promise<{ publicId: string }> }) {
   if (!isAdmin(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const { publicId } = await params;
-  const { status } = (await req.json()) as { status?: string };
+  const { status, total } = (await req.json()) as { status?: string; total?: number };
 
-  if (!status || !VALID.includes(status))
+  if (status !== undefined && !VALID.includes(status))
     return NextResponse.json({ error: "Estado inválido." }, { status: 400 });
+  if (total !== undefined && (typeof total !== "number" || !Number.isFinite(total) || total < 0))
+    return NextResponse.json({ error: "Precio inválido." }, { status: 400 });
+  if (status === undefined && total === undefined)
+    return NextResponse.json({ error: "Nada para actualizar." }, { status: 400 });
 
   const order = await prisma.order.findUnique({ where: { publicId }, include: { items: true } });
   if (!order) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
+  // El precio de los pedidos de catálogo se calcula server-side desde los productos —
+  // solo los pedidos personalizados (sin precio hasta coordinar) aceptan un total manual.
+  if (total !== undefined && order.kind !== "Custom")
+    return NextResponse.json(
+      { error: "El precio de los pedidos de catálogo no se puede editar." },
+      { status: 400 },
+    );
+
+  const finalStatus = status ?? order.status;
   const wasCancelled = order.status === "Cancelled";
-  const willBeCancelled = status === "Cancelled";
+  const willBeCancelled = finalStatus === "Cancelled";
 
   const updated = await prisma.$transaction(async (tx) => {
     // Solo los pedidos de catálogo (Stock) descuentan/reponen stock de productos.
@@ -36,7 +49,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ publicI
         }
       }
     }
-    return tx.order.update({ where: { publicId }, data: { status } });
+    return tx.order.update({
+      where: { publicId },
+      data: { ...(status !== undefined ? { status } : {}), ...(total !== undefined ? { total } : {}) },
+    });
   });
 
   // Avisamos al comprador solo si el pago recién se confirma ahora (pedidos de catálogo).
@@ -49,5 +65,5 @@ export async function POST(req: Request, { params }: { params: Promise<{ publicI
     }).catch(() => {});
   }
 
-  return NextResponse.json({ orderId: updated.publicId, status: updated.status });
+  return NextResponse.json({ orderId: updated.publicId, status: updated.status, total: updated.total });
 }
