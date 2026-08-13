@@ -17,11 +17,11 @@ export type ProductInput = {
   colorCss: string;
   images: string[]; // hasta 3 fotos
   description: string;
-  stock: number; // unidades disponibles
   presetName: string | null; // si está, el comprador no elige nombre
   presetNumber: string | null; // si está, el comprador no elige número
   patches: PatchInput[]; // opciones de parche (vacío = sin opciones)
   sizes: string[]; // talles disponibles
+  sizeStock: Record<string, number>; // unidades disponibles por talle
   slug?: string | null;
 };
 
@@ -32,8 +32,6 @@ export function validateProduct(input: ProductInput): Record<string, string[]> |
   if (typeof input?.price !== "number" || input.price < 0) e.price = ["El precio no puede ser negativo."];
   if (!Array.isArray(input?.images) || input.images.length > 3)
     e.images = ["Podés subir hasta 3 fotos."];
-  if (typeof input?.stock !== "number" || !Number.isInteger(input.stock) || input.stock < 0)
-    e.stock = ["El stock debe ser un número entero, 0 o mayor."];
   if (input?.presetNumber) {
     const n = Number(input.presetNumber);
     if (!Number.isInteger(n) || n < 0 || n > 99) e.presetNumber = ["El número debe estar entre 0 y 99."];
@@ -51,12 +49,18 @@ export function validateProduct(input: ProductInput): Record<string, string[]> |
   ) {
     e.sizes = ["Elegí al menos un talle disponible."];
   }
+  const stockEntries = Object.entries(input?.sizeStock ?? {});
+  const badStock = stockEntries.some(
+    ([, qty]) => typeof qty !== "number" || !Number.isInteger(qty) || qty < 0,
+  );
+  if (badStock) e.sizeStock = ["El stock de cada talle debe ser un número entero, 0 o mayor."];
   return Object.keys(e).length ? e : null;
 }
 
-/** Datos escalares listos para Prisma (create/update). Los parches se manejan aparte. */
+/** Datos escalares listos para Prisma (create/update). Parches y stock por talle se manejan aparte. */
 export function toProductData(input: ProductInput, slug: string): Prisma.ProductUncheckedCreateInput {
   const customizable = typeAllowsCustomization(input.type);
+  const totalStock = input.sizes.reduce((sum, s) => sum + (input.sizeStock?.[s] ?? 0), 0);
   return {
     slug,
     team: input.team.trim(),
@@ -65,10 +69,15 @@ export function toProductData(input: ProductInput, slug: string): Prisma.Product
     colorCss: input.colorCss?.trim() || "linear-gradient(160deg,#FFC44D,#DE9A26)",
     images: (input.images ?? []).slice(0, 3).map((u) => u.trim()).filter(Boolean),
     description: (input.description ?? "").trim(),
-    stock: input.stock,
+    stock: totalStock,
     // Nombre/número solo tienen sentido en camisetas; en el resto se ignoran aunque lleguen.
     presetName: customizable ? input.presetName?.trim() || null : null,
     presetNumber: customizable ? input.presetNumber?.trim() || null : null,
     sizes: input.sizes,
   };
+}
+
+/** Filas de ProductSize (stock por talle) listas para crear, en base a `sizes` + `sizeStock`. */
+export function toSizeStockRows(input: ProductInput): { size: string; stock: number }[] {
+  return input.sizes.map((size) => ({ size, stock: Math.max(0, input.sizeStock?.[size] ?? 0) }));
 }

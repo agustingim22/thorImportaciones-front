@@ -4,7 +4,7 @@ import { prisma } from "./prisma";
 import type { Product, ProductType } from "./api";
 
 const withPatches = Prisma.validator<Prisma.ProductDefaultArgs>()({
-  include: { patches: { orderBy: { id: "asc" } } },
+  include: { patches: { orderBy: { id: "asc" } }, sizeStocks: true },
 });
 type ProductRow = Prisma.ProductGetPayload<typeof withPatches>;
 
@@ -24,6 +24,7 @@ function serialize(p: ProductRow): Product {
     presetName: p.presetName,
     presetNumber: p.presetNumber,
     sizes: p.sizes,
+    sizeStock: Object.fromEntries(p.sizeStocks.map((s) => [s.size, s.stock])),
     patches: p.patches.map((patch) => ({
       id: patch.id,
       label: patch.label,

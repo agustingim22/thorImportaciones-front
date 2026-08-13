@@ -4,7 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
-import { LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS, typeAllowsCustomization } from "@/lib/api";
+import {
+  LOW_STOCK_THRESHOLD,
+  PRODUCT_TYPE_LABELS,
+  PRODUCT_TYPE_TALLES_CATEGORY,
+  typeAllowsCustomization,
+} from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { FavoriteButton } from "./FavoriteButton";
 
@@ -136,25 +141,35 @@ export function ProductPurchase({ product }: { product: Product }) {
         <div className="mt-5">
           <span className="mb-1 flex items-center justify-between font-mono text-[11px] uppercase tracking-wide text-thor-muted">
             Talle
-            <Link href="/talles" className="normal-case tracking-normal text-thor-gold underline">
+            <Link
+              href={`/talles?cat=${PRODUCT_TYPE_TALLES_CATEGORY[product.type]}`}
+              className="normal-case tracking-normal text-thor-gold underline"
+            >
               Ver guía de talles
             </Link>
           </span>
           <div className="flex flex-wrap gap-2">
-            {product.sizes.map((s) => (
+            {product.sizes.map((s) => {
+              const sizeOutOfStock = (product.sizeStock[s] ?? 0) <= 0;
+              return (
               <button
                 key={s}
                 type="button"
+                disabled={sizeOutOfStock}
                 onClick={() => setSize(s)}
+                title={sizeOutOfStock ? "Sin stock en este talle" : undefined}
                 className={`rounded-lg border px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
-                  size === s
-                    ? "border-thor-gold bg-thor-gold/15 text-thor-ink"
-                    : "border-thor-line text-thor-muted hover:text-thor-ink"
+                  sizeOutOfStock
+                    ? "cursor-not-allowed border-thor-line text-thor-muted/40 line-through"
+                    : size === s
+                      ? "border-thor-gold bg-thor-gold/15 text-thor-ink"
+                      : "border-thor-line text-thor-muted hover:text-thor-ink"
                 }`}
               >
                 {s}
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 

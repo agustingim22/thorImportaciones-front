@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
 import { uniqueSlug } from "@/lib/server/slug";
-import { toProductData, validateProduct, type ProductInput } from "@/lib/server/productInput";
+import {
+  toProductData,
+  toSizeStockRows,
+  validateProduct,
+  type ProductInput,
+} from "@/lib/server/productInput";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!isAdmin(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
@@ -36,8 +41,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
             extraPrice: p.extraPrice,
           })),
         },
+        sizeStocks: {
+          deleteMany: {},
+          create: toSizeStockRows(input),
+        },
       },
-      include: { patches: true },
+      include: { patches: true, sizeStocks: true },
     }),
   ]);
   return NextResponse.json(product);

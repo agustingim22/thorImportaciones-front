@@ -18,12 +18,36 @@ import {
 } from "@/lib/admin";
 import { AdminOrders } from "./AdminOrders";
 import { AdminTestimonials } from "./AdminTestimonials";
+import { parseCsv } from "@/lib/csv";
 
 const TYPES = Object.entries(PRODUCT_TYPE_LABELS) as [ProductInput["type"], string][];
+const TYPE_LABEL_TO_KEY = new Map(
+  Object.entries(PRODUCT_TYPE_LABELS).map(([key, label]) => [label.toLowerCase(), key as ProductInput["type"]]),
+);
+
+/** Parsea "S:2|M:0|L:5" a talles + stock por talle. */
+function parseSizeStockCell(cell: string): { sizes: string[]; sizeStock: Record<string, number> } {
+  const sizes: string[] = [];
+  const sizeStock: Record<string, number> = {};
+  for (const part of cell.split("|")) {
+    const [size, qty] = part.split(":").map((x) => x.trim());
+    if (!size) continue;
+    sizes.push(size.toUpperCase());
+    sizeStock[size.toUpperCase()] = Number(qty) || 0;
+  }
+  return { sizes, sizeStock };
+}
+
+type ImportRowResult = { row: number; team: string; ok: boolean; error?: string };
+
+/** "S:2|M:0|L:5" — mismo formato que lee el importador CSV. */
+function sizeStockToCsv(p: Product): string {
+  return p.sizes.map((s) => `${s}:${p.sizeStock[s] ?? 0}`).join("|");
+}
 
 function exportProductsCsv(products: Product[]) {
   const headers = [
-    "Producto", "Tipo", "Precio", "Stock", "Talles", "Nombre predefinido",
+    "Producto", "Tipo", "Precio", "Stock total", "Talles y stock", "Nombre predefinido",
     "Número predefinido", "Parches", "Slug", "Creado",
   ];
   const rows = products.map((p) => [
@@ -31,7 +55,7 @@ function exportProductsCsv(products: Product[]) {
     PRODUCT_TYPE_LABELS[p.type],
     String(p.price),
     String(p.stock),
-    p.sizes.join(", "),
+    sizeStockToCsv(p),
     p.presetName ?? "",
     p.presetNumber ?? "",
     p.patches.map((patch) => `${patch.label}${patch.extraPrice > 0 ? ` (+$${patch.extraPrice})` : ""}`).join(" | "),
@@ -57,11 +81,11 @@ const EMPTY: ProductInput = {
   colorCss: "",
   images: [],
   description: "",
-  stock: 0,
   presetName: null,
   presetNumber: null,
   patches: [],
   sizes: DEFAULT_SIZES,
+  sizeStock: {},
   slug: null,
 };
 
@@ -82,6 +106,8 @@ export function AdminDashboard() {
   const [formError, setFormError] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResults, setImportResults] = useState<ImportRowResult[] | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,11 +164,11 @@ export function AdminDashboard() {
       colorCss: p.colorCss,
       images: p.images,
       description: p.description,
-      stock: p.stock,
       presetName: p.presetName,
       presetNumber: p.presetNumber,
       patches: p.patches.map(({ label, imageUrl, extraPrice }) => ({ label, imageUrl, extraPrice })),
       sizes: p.sizes,
+      sizeStock: { ...p.sizeStock },
       slug: p.slug,
     });
     setFormError("");
@@ -158,11 +184,11 @@ export function AdminDashboard() {
       colorCss: p.colorCss,
       images: p.images,
       description: p.description,
-      stock: 0,
       presetName: p.presetName,
       presetNumber: p.presetNumber,
       patches: p.patches.map(({ label, imageUrl, extraPrice }) => ({ label, imageUrl, extraPrice })),
       sizes: p.sizes,
+      sizeStock: {}, // arranca en 0, hay que cargar el stock a mano para la copia
       slug: null,
     });
     setFormError("");
@@ -194,6 +220,89 @@ export function AdminDashboard() {
     if (!confirm(`¿Borrar "${p.team}"? Esta acción no se puede deshacer.`)) return;
     await adminDeleteProduct(p.id);
     await load();
+  }
+
+  // ---- Importar CSV ----
+  async function handleImportCsv(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportResults(null);
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      if (rows.length < 2) {
+        setImportResults([{ row: 0, team: "", ok: false, error: "El archivo no tiene filas para importar." }]);
+        return;
+      }
+      const headers = rows[0].map((h) => h.trim());
+      const col = (name: string) => headers.findIndex((h) => h.toLowerCase() === name.toLowerCase());
+      const idx = {
+        team: col("Producto"),
+        type: col("Tipo"),
+        price: col("Precio"),
+        sizeStock: col("Talles y stock"),
+        presetName: col("Nombre predefinido"),
+        presetNumber: col("Número predefinido"),
+        slug: col("Slug"),
+      };
+      if (idx.team === -1 || idx.type === -1 || idx.price === -1 || idx.sizeStock === -1) {
+        setImportResults([
+          {
+            row: 0,
+            team: "",
+            ok: false,
+            error: 'Faltan columnas obligatorias: "Producto", "Tipo", "Precio", "Talles y stock".',
+          },
+        ]);
+        return;
+      }
+
+      const results: ImportRowResult[] = [];
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const team = r[idx.team]?.trim() ?? "";
+        const rowNum = i + 1; // +1 porque la fila 1 es el header
+        try {
+          if (!team) throw new Error("Falta el nombre del producto.");
+          const typeKey = TYPE_LABEL_TO_KEY.get((r[idx.type] ?? "").trim().toLowerCase());
+          if (!typeKey) throw new Error(`Tipo "${r[idx.type]}" no reconocido.`);
+          const price = Number(r[idx.price]);
+          if (!Number.isFinite(price) || price < 0) throw new Error("Precio inválido.");
+          const { sizes, sizeStock } = parseSizeStockCell(r[idx.sizeStock] ?? "");
+          if (sizes.length === 0) throw new Error('Columna "Talles y stock" vacía o mal formada (ej: S:2|M:0|L:5).');
+
+          const input: ProductInput = {
+            team,
+            type: typeKey,
+            price,
+            colorCss: "",
+            images: [],
+            description: "",
+            presetName: idx.presetName >= 0 ? r[idx.presetName]?.trim() || null : null,
+            presetNumber: idx.presetNumber >= 0 ? r[idx.presetNumber]?.trim() || null : null,
+            patches: [],
+            sizes,
+            sizeStock,
+            slug: idx.slug >= 0 ? r[idx.slug]?.trim() || null : null,
+          };
+          await adminCreateProduct(input);
+          results.push({ row: rowNum, team, ok: true });
+        } catch (err) {
+          results.push({
+            row: rowNum,
+            team,
+            ok: false,
+            error: err instanceof Error ? err.message : "Error desconocido.",
+          });
+        }
+      }
+      setImportResults(results);
+      await load();
+    } finally {
+      setImporting(false);
+      e.target.value = "";
+    }
   }
 
   // ---- Galería (hasta 3 fotos) ----
@@ -290,12 +399,24 @@ export function AdminDashboard() {
         <h1 className="font-display text-3xl tracking-wide text-thor-ink">Panel Thor</h1>
         <div className="flex gap-2">
           {tab === "products" && (
-            <button
-              onClick={openNew}
-              className="rounded-lg bg-thor-gold px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink"
-            >
-              + Nuevo producto
-            </button>
+            <>
+              <label className="cursor-pointer rounded-lg border border-thor-line px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold">
+                {importing ? "Importando…" : "Importar CSV"}
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={handleImportCsv}
+                  disabled={importing}
+                />
+              </label>
+              <button
+                onClick={openNew}
+                className="rounded-lg bg-thor-gold px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink"
+              >
+                + Nuevo producto
+              </button>
+            </>
           )}
           <button
             onClick={() => {
@@ -329,6 +450,37 @@ export function AdminDashboard() {
           </button>
         ))}
       </div>
+
+      {/* Resultado de la importación CSV */}
+      {tab === "products" && importResults && (
+        <div className="mt-5 rounded-2xl border border-thor-line bg-thor-paper p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-mono text-xs font-bold uppercase tracking-wide text-thor-ink">
+              Importación: {importResults.filter((r) => r.ok).length} creados
+              {importResults.some((r) => !r.ok) &&
+                `, ${importResults.filter((r) => !r.ok).length} con error`}
+            </p>
+            <button
+              onClick={() => setImportResults(null)}
+              className="font-mono text-xs text-thor-muted underline hover:text-thor-ink"
+            >
+              Cerrar
+            </button>
+          </div>
+          {importResults.some((r) => !r.ok) && (
+            <ul className="mt-2 space-y-1 text-xs text-red-600">
+              {importResults
+                .filter((r) => !r.ok)
+                .map((r, i) => (
+                  <li key={i}>
+                    Fila {r.row}
+                    {r.team ? ` (${r.team})` : ""}: {r.error}
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Productos */}
       {tab === "products" && (
@@ -381,6 +533,7 @@ export function AdminDashboard() {
               <th className="px-4 py-3">Tipo</th>
               <th className="px-4 py-3">Nombre / N°</th>
               <th className="px-4 py-3">Precio</th>
+              <th className="px-4 py-3">Talles</th>
               <th className="px-4 py-3">Stock</th>
               <th className="px-4 py-3 text-right">Acciones</th>
             </tr>
@@ -388,14 +541,14 @@ export function AdminDashboard() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">
                   Cargando…
                 </td>
               </tr>
             )}
             {!loading && products.length > 0 && filteredProducts.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">
                   Ningún producto coincide con la búsqueda o el filtro.
                 </td>
               </tr>
@@ -418,6 +571,18 @@ export function AdminDashboard() {
                   </td>
                   <td className="px-4 py-3 font-mono tabular-nums text-thor-gold">
                     ${p.price.toLocaleString("es-AR")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 font-mono text-[11px]">
+                      {p.sizes.map((s) => {
+                        const qty = p.sizeStock[s] ?? 0;
+                        return (
+                          <span key={s} className={qty === 0 ? "text-red-500" : "text-thor-ink-soft"}>
+                            {s}:{qty}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -666,17 +831,7 @@ export function AdminDashboard() {
                 />
               </Field>
 
-              <Field label="Stock disponible (unidades)">
-                <input
-                  type="number"
-                  min={0}
-                  value={form.stock}
-                  onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
-                  className={`${inputCls} max-w-[140px]`}
-                />
-              </Field>
-
-              <Field label="Talles disponibles">
+              <Field label="Talles y stock disponible">
                 <div className="flex flex-wrap gap-2">
                   {ALL_SIZES.map((s) => {
                     const checked = form.sizes.includes(s);
@@ -705,6 +860,36 @@ export function AdminDashboard() {
                 </div>
                 <p className="mt-1 text-[11px] text-thor-muted">
                   S a XXL vienen tildados por defecto. Sumá 3XL/4XL solo si tenés stock real de esos talles.
+                </p>
+
+                {form.sizes.length > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {form.sizes.map((s) => (
+                      <label
+                        key={s}
+                        className="flex items-center gap-2 rounded-lg border border-thor-line bg-thor-paper px-2 py-1.5"
+                      >
+                        <span className="w-9 shrink-0 font-mono text-xs font-bold text-thor-ink">
+                          {s}
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={form.sizeStock[s] ?? 0}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              sizeStock: { ...form.sizeStock, [s]: Number(e.target.value) },
+                            })
+                          }
+                          className="w-full rounded-md border border-thor-line bg-thor-cream px-2 py-1 text-sm text-thor-ink"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <p className="mt-2 font-mono text-[11px] uppercase tracking-wide text-thor-muted">
+                  Total: {form.sizes.reduce((sum, s) => sum + (form.sizeStock[s] ?? 0), 0)} unidades
                 </p>
               </Field>
 

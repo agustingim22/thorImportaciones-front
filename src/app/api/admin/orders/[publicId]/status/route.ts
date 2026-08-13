@@ -23,15 +23,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ publicI
     // Solo los pedidos de catálogo (Stock) descuentan/reponen stock de productos.
     if (order.kind === "Stock" && wasCancelled !== willBeCancelled) {
       for (const item of order.items) {
-        await tx.product.updateMany({
-          where: { id: item.productId },
-          data: {
-            // Al cancelar, se repone; si se reactiva un pedido cancelado, se vuelve a descontar
-            // (puede dejar el stock en negativo si mientras tanto se vendió a otro cliente;
-            // es una decisión consciente del admin, no se bloquea).
-            stock: willBeCancelled ? { increment: item.quantity } : { decrement: item.quantity },
-          },
-        });
+        const delta = willBeCancelled ? { increment: item.quantity } : { decrement: item.quantity };
+        // Al cancelar, se repone; si se reactiva un pedido cancelado, se vuelve a descontar
+        // (puede dejar el stock en negativo si mientras tanto se vendió a otro cliente;
+        // es una decisión consciente del admin, no se bloquea).
+        await tx.product.updateMany({ where: { id: item.productId }, data: { stock: delta } });
+        if (item.size) {
+          await tx.productSize.updateMany({
+            where: { productId: item.productId, size: item.size },
+            data: { stock: delta },
+          });
+        }
       }
     }
     return tx.order.update({ where: { publicId }, data: { status } });

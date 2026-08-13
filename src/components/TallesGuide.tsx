@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { whatsappUrl } from "@/lib/site";
 
 type Chart = {
@@ -267,8 +268,11 @@ function SizeTable({ chart }: { chart: Chart }) {
   );
 }
 
-export function TallesGuide() {
-  const [active, setActive] = useState(CATEGORIES[0].key);
+function TallesGuideInner() {
+  const params = useSearchParams();
+  const requestedCat = params.get("cat");
+  const initial = CATEGORIES.find((c) => c.key === requestedCat)?.key ?? CATEGORIES[0].key;
+  const [active, setActive] = useState(initial);
   const category = CATEGORIES.find((c) => c.key === active)!;
 
   return (
@@ -328,5 +332,13 @@ export function TallesGuide() {
         </p>
       </section>
     </>
+  );
+}
+
+export function TallesGuide() {
+  return (
+    <Suspense fallback={<p className="px-5 py-16 text-center text-thor-muted">Cargando…</p>}>
+      <TallesGuideInner />
+    </Suspense>
   );
 }

@@ -17,11 +17,11 @@ export type ProductInput = {
   colorCss: string;
   images: string[]; // hasta 3 fotos
   description: string;
-  stock: number;
   presetName: string | null;
   presetNumber: string | null;
   patches: PatchInput[];
   sizes: string[];
+  sizeStock: Record<string, number>; // unidades disponibles por talle
   slug: string | null;
 };
 

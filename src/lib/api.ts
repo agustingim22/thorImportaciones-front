@@ -36,6 +36,7 @@ export type Product = {
   presetNumber: string | null; // si está, el comprador no elige número
   patches: Patch[]; // opciones de parche disponibles (vacío = sin parche)
   sizes: string[]; // talles disponibles para esta camiseta
+  sizeStock: Record<string, number>; // unidades disponibles por talle (talle -> stock)
   createdAt: string;
 };
 
@@ -62,6 +63,18 @@ export const CUSTOMIZABLE_PRODUCT_TYPES: ProductType[] = ["retro", "fan", "playe
 export function typeAllowsCustomization(type: ProductType): boolean {
   return CUSTOMIZABLE_PRODUCT_TYPES.includes(type);
 }
+
+/** A qué pestaña de /talles corresponde cada tipo de producto (ver TallesGuide). */
+export const PRODUCT_TYPE_TALLES_CATEGORY: Record<ProductType, string> = {
+  retro: "futbol",
+  fan: "futbol",
+  player: "futbol",
+  nba: "otros-deportes",
+  rugby: "otros-deportes",
+  remera: "remeras",
+  conjunto: "remeras",
+  pantalon: "pantalones",
+};
 
 /** Todos los talles posibles del catálogo. S a XXL siempre están; XXXL/XXXXL son opcionales por producto. */
 export const ALL_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;

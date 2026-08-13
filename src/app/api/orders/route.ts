@@ -102,15 +102,21 @@ export async function POST(req: Request) {
           if (!patch) throw new OrderError("El parche elegido no es válido para ese producto.");
         }
 
-        const reserved = await tx.product.updateMany({
-          where: { id: product.id, stock: { gte: qty } },
+        // El stock se reserva de forma atómica por talle (no solo por producto), así dos
+        // compras simultáneas del mismo talle nunca pueden vender la misma última unidad dos veces.
+        const reserved = await tx.productSize.updateMany({
+          where: { productId: product.id, size, stock: { gte: qty } },
           data: { stock: { decrement: qty } },
         });
         if (reserved.count === 0) {
+          const current = await tx.productSize.findUnique({
+            where: { productId_size: { productId: product.id, size } },
+          });
           throw new OrderError(
-            `No hay stock suficiente de "${product.team}" (quedan ${product.stock}).`,
+            `No hay stock suficiente de "${product.team}" en talle ${size} (quedan ${current?.stock ?? 0}).`,
           );
         }
+        await tx.product.update({ where: { id: product.id }, data: { stock: { decrement: qty } } });
         if (product.stock - qty === 0) {
           justSoldOut.push({ team: product.team, slug: product.slug });
         }

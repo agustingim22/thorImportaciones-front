@@ -2,12 +2,17 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
 import { uniqueSlug } from "@/lib/server/slug";
-import { toProductData, validateProduct, type ProductInput } from "@/lib/server/productInput";
+import {
+  toProductData,
+  toSizeStockRows,
+  validateProduct,
+  type ProductInput,
+} from "@/lib/server/productInput";
 
 export async function GET(req: Request) {
   if (!isAdmin(req)) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   const products = await prisma.product.findMany({
-    include: { patches: { orderBy: { id: "asc" } } },
+    include: { patches: { orderBy: { id: "asc" } }, sizeStocks: true },
     orderBy: { createdAt: "desc" },
   });
   return NextResponse.json(products);
@@ -30,8 +35,9 @@ export async function POST(req: Request) {
           extraPrice: p.extraPrice,
         })),
       },
+      sizeStocks: { create: toSizeStockRows(input) },
     },
-    include: { patches: true },
+    include: { patches: true, sizeStocks: true },
   });
   return NextResponse.json(product, { status: 201 });
 }
