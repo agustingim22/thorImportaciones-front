@@ -308,7 +308,9 @@ export function TallesGuide() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {category.charts.map((chart) => (
-            <SizeTable key={chart.title} chart={chart} />
+            <div key={chart.title} className={chart.headers.length > 5 ? "lg:col-span-2" : ""}>
+              <SizeTable chart={chart} />
+            </div>
           ))}
         </div>
 
