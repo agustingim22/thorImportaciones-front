@@ -4,12 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
-import { LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS, typeAllowsCustomization } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { FavoriteButton } from "./FavoriteButton";
 
 export function ProductPurchase({ product }: { product: Product }) {
   const { add } = useCart();
+  const canCustomize = typeAllowsCustomization(product.type);
   const [activeImage, setActiveImage] = useState(0);
   const [size, setSize] = useState("");
   const [name, setName] = useState("");
@@ -51,11 +52,11 @@ export function ProductPurchase({ product }: { product: Product }) {
       colorCss: product.colorCss,
       presetNumber: product.presetNumber,
       size,
-      customName: product.presetName ?? (name.trim() || null),
-      customNumber: product.presetNumber ?? (number.trim() || null),
-      patchId: selectedPatch?.id ?? null,
-      patchLabel: selectedPatch?.label ?? null,
-      patchExtraPrice: selectedPatch?.extraPrice ?? 0,
+      customName: canCustomize ? product.presetName ?? (name.trim() || null) : null,
+      customNumber: canCustomize ? product.presetNumber ?? (number.trim() || null) : null,
+      patchId: canCustomize ? selectedPatch?.id ?? null : null,
+      patchLabel: canCustomize ? selectedPatch?.label ?? null : null,
+      patchExtraPrice: canCustomize ? selectedPatch?.extraPrice ?? 0 : 0,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
@@ -158,6 +159,7 @@ export function ProductPurchase({ product }: { product: Product }) {
         </div>
 
         {/* Nombre */}
+        {canCustomize && (
         <div className="mt-5">
           <span className="mb-1 block font-mono text-[11px] uppercase tracking-wide text-thor-muted">
             Nombre
@@ -175,8 +177,10 @@ export function ProductPurchase({ product }: { product: Product }) {
             />
           )}
         </div>
+        )}
 
         {/* Número */}
+        {canCustomize && (
         <div className="mt-3">
           <span className="mb-1 block font-mono text-[11px] uppercase tracking-wide text-thor-muted">
             Número
@@ -197,9 +201,10 @@ export function ProductPurchase({ product }: { product: Product }) {
             />
           )}
         </div>
+        )}
 
         {/* Parche */}
-        {product.patches.length > 0 && (
+        {canCustomize && product.patches.length > 0 && (
           <div className="mt-3">
             <span className="mb-1 block font-mono text-[11px] uppercase tracking-wide text-thor-muted">
               Parche

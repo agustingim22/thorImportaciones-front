@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Product } from "@/lib/api";
-import { ALL_SIZES, DEFAULT_SIZES, PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { ALL_SIZES, DEFAULT_SIZES, PRODUCT_TYPE_LABELS, typeAllowsCustomization } from "@/lib/api";
 import {
   adminCreateProduct,
   adminDeleteProduct,
@@ -23,7 +23,7 @@ const TYPES = Object.entries(PRODUCT_TYPE_LABELS) as [ProductInput["type"], stri
 
 function exportProductsCsv(products: Product[]) {
   const headers = [
-    "Camiseta", "Versión", "Precio", "Stock", "Talles", "Nombre predefinido",
+    "Producto", "Tipo", "Precio", "Stock", "Talles", "Nombre predefinido",
     "Número predefinido", "Parches", "Slug", "Creado",
   ];
   const rows = products.map((p) => [
@@ -294,7 +294,7 @@ export function AdminDashboard() {
               onClick={openNew}
               className="rounded-lg bg-thor-gold px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink"
             >
-              + Nueva camiseta
+              + Nuevo producto
             </button>
           )}
           <button
@@ -335,7 +335,7 @@ export function AdminDashboard() {
       <>
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <p className="text-sm text-thor-muted">
-          {filteredProducts.length} de {products.length} camisetas
+          {filteredProducts.length} de {products.length} productos
         </p>
         <button
           onClick={() => exportProductsCsv(filteredProducts)}
@@ -377,8 +377,8 @@ export function AdminDashboard() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-thor-line text-left font-mono text-[11px] uppercase tracking-wide text-thor-muted">
-              <th className="px-4 py-3">Camiseta</th>
-              <th className="px-4 py-3">Versión</th>
+              <th className="px-4 py-3">Producto</th>
+              <th className="px-4 py-3">Tipo</th>
               <th className="px-4 py-3">Nombre / N°</th>
               <th className="px-4 py-3">Precio</th>
               <th className="px-4 py-3">Stock</th>
@@ -396,7 +396,7 @@ export function AdminDashboard() {
             {!loading && products.length > 0 && filteredProducts.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-thor-muted">
-                  Ninguna camiseta coincide con la búsqueda o el filtro.
+                  Ningún producto coincide con la búsqueda o el filtro.
                 </td>
               </tr>
             )}
@@ -484,11 +484,11 @@ export function AdminDashboard() {
             className="mt-10 w-full max-w-xl rounded-2xl border border-thor-line bg-thor-cream p-6"
           >
             <h2 className="font-display text-2xl tracking-wide text-thor-ink">
-              {editingId ? "Editar camiseta" : "Nueva camiseta"}
+              {editingId ? "Editar producto" : "Nuevo producto"}
             </h2>
 
             <div className="mt-4 grid gap-3">
-              <Field label="Nombre / equipo">
+              <Field label="Nombre / equipo (o nombre del producto)">
                 <input
                   required
                   value={form.team}
@@ -498,10 +498,17 @@ export function AdminDashboard() {
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Versión">
+                <Field label="Tipo de producto">
                   <select
                     value={form.type}
-                    onChange={(e) => setForm({ ...form, type: e.target.value as ProductInput["type"] })}
+                    onChange={(e) => {
+                      const type = e.target.value as ProductInput["type"];
+                      setForm(
+                        typeAllowsCustomization(type)
+                          ? { ...form, type }
+                          : { ...form, type, presetName: null, presetNumber: null, patches: [] },
+                      );
+                    }}
                     className={inputCls}
                   >
                     {TYPES.map(([value, label]) => (
@@ -522,33 +529,35 @@ export function AdminDashboard() {
                 </Field>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Nombre predefinido (opcional)">
-                  <input
-                    value={form.presetName ?? ""}
-                    onChange={(e) => setForm({ ...form, presetName: e.target.value || null })}
-                    placeholder="Ej: GONZÁLEZ"
-                    className={inputCls}
-                  />
-                </Field>
-                <Field label="Número predefinido (opcional)">
-                  <input
-                    type="number"
-                    min={0}
-                    max={99}
-                    value={form.presetNumber ?? ""}
-                    onChange={(e) => setForm({ ...form, presetNumber: e.target.value || null })}
-                    placeholder="10"
-                    className={inputCls}
-                  />
-                </Field>
-                <p className="col-span-2 -mt-1 text-[11px] text-thor-muted">
-                  Si dejás estos dos vacíos, el comprador elige su propio nombre y número al comprar.
-                </p>
-              </div>
+              {typeAllowsCustomization(form.type) && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Nombre predefinido (opcional)">
+                    <input
+                      value={form.presetName ?? ""}
+                      onChange={(e) => setForm({ ...form, presetName: e.target.value || null })}
+                      placeholder="Ej: GONZÁLEZ"
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label="Número predefinido (opcional)">
+                    <input
+                      type="number"
+                      min={0}
+                      max={99}
+                      value={form.presetNumber ?? ""}
+                      onChange={(e) => setForm({ ...form, presetNumber: e.target.value || null })}
+                      placeholder="10"
+                      className={inputCls}
+                    />
+                  </Field>
+                  <p className="col-span-2 -mt-1 text-[11px] text-thor-muted">
+                    Si dejás estos dos vacíos, el comprador elige su propio nombre y número al comprar.
+                  </p>
+                </div>
+              )}
 
               {/* Galería de fotos */}
-              <Field label={`Fotos de la camiseta (${form.images.length}/3)`}>
+              <Field label={`Fotos del producto (${form.images.length}/3)`}>
                 <div className="flex flex-wrap items-center gap-3">
                   {form.images.map((url, i) => (
                     <div key={i} className="relative">
@@ -584,6 +593,7 @@ export function AdminDashboard() {
               </Field>
 
               {/* Parches */}
+              {typeAllowsCustomization(form.type) && (
               <div>
                 <span className="mb-1 block font-mono text-[11px] uppercase tracking-wide text-thor-muted">
                   Parches (opcional — el comprador elige uno)
@@ -645,6 +655,7 @@ export function AdminDashboard() {
                   </button>
                 </div>
               </div>
+              )}
 
               <Field label="Descripción">
                 <textarea

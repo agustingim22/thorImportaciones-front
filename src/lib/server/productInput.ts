@@ -1,7 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
+import { PRODUCT_TYPES, typeAllowsCustomization, type ProductType } from "@/lib/api";
 
-const VALID_TYPES = ["retro", "fan", "player"] as const;
 const VALID_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
 
 export type PatchInput = {
@@ -12,7 +12,7 @@ export type PatchInput = {
 
 export type ProductInput = {
   team: string;
-  type: "retro" | "fan" | "player";
+  type: ProductType;
   price: number;
   colorCss: string;
   images: string[]; // hasta 3 fotos
@@ -28,7 +28,7 @@ export type ProductInput = {
 export function validateProduct(input: ProductInput): Record<string, string[]> | null {
   const e: Record<string, string[]> = {};
   if (!input?.team?.trim()) e.team = ["El nombre de la camiseta es obligatorio."];
-  if (!VALID_TYPES.includes(input?.type)) e.type = ["La versión debe ser retro, fan o jugador."];
+  if (!PRODUCT_TYPES.includes(input?.type)) e.type = ["Elegí un tipo de producto válido."];
   if (typeof input?.price !== "number" || input.price < 0) e.price = ["El precio no puede ser negativo."];
   if (!Array.isArray(input?.images) || input.images.length > 3)
     e.images = ["Podés subir hasta 3 fotos."];
@@ -56,6 +56,7 @@ export function validateProduct(input: ProductInput): Record<string, string[]> |
 
 /** Datos escalares listos para Prisma (create/update). Los parches se manejan aparte. */
 export function toProductData(input: ProductInput, slug: string): Prisma.ProductUncheckedCreateInput {
+  const customizable = typeAllowsCustomization(input.type);
   return {
     slug,
     team: input.team.trim(),
@@ -65,8 +66,9 @@ export function toProductData(input: ProductInput, slug: string): Prisma.Product
     images: (input.images ?? []).slice(0, 3).map((u) => u.trim()).filter(Boolean),
     description: (input.description ?? "").trim(),
     stock: input.stock,
-    presetName: input.presetName?.trim() || null,
-    presetNumber: input.presetNumber?.trim() || null,
+    // Nombre/número solo tienen sentido en camisetas; en el resto se ignoran aunque lleguen.
+    presetName: customizable ? input.presetName?.trim() || null : null,
+    presetNumber: customizable ? input.presetNumber?.trim() || null : null,
     sizes: input.sizes,
   };
 }

@@ -1,14 +1,16 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
-import { isNewProduct, LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { isNewProduct, LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS, typeAllowsCustomization } from "@/lib/api";
 import { FavoriteButton } from "./FavoriteButton";
 
 export function ProductCard({ product }: { product: Product }) {
   // Si el comprador tiene algo para elegir (nombre, número o parche), lo mandamos
   // al detalle a personalizar en vez de agregarlo directo desde la card.
+  // Las prendas que no son camisetas (remeras, conjuntos, pantalones) nunca se personalizan.
+  const canCustomize = typeAllowsCustomization(product.type);
   const isCustomizable =
-    !product.presetName || !product.presetNumber || product.patches.length > 0;
+    canCustomize && (!product.presetName || !product.presetNumber || product.patches.length > 0);
   const lowStock = product.inStock && product.stock <= LOW_STOCK_THRESHOLD;
   const isNew = isNewProduct(product.createdAt);
 
@@ -98,7 +100,7 @@ export function ProductCard({ product }: { product: Product }) {
           )}
         </div>
 
-        {!isCustomizable && (
+        {canCustomize && !isCustomizable && (
           <Link
             href="/pedido-personalizado"
             className="mt-3 block font-mono text-[11px] text-thor-muted underline decoration-thor-line underline-offset-4 hover:text-thor-gold"

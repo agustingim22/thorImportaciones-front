@@ -3,7 +3,15 @@
  * Los datos se obtienen con Prisma en Server Components (ver lib/products.ts)
  * y con route handlers (/api/...) desde componentes de cliente.
  */
-export type ProductType = "retro" | "fan" | "player";
+export type ProductType =
+  | "retro"
+  | "fan"
+  | "player"
+  | "nba"
+  | "rugby"
+  | "remera"
+  | "conjunto"
+  | "pantalon";
 
 export type Patch = {
   id: number;
@@ -35,7 +43,25 @@ export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   retro: "Retro",
   fan: "Versión Fan",
   player: "Versión Jugador",
+  nba: "NBA",
+  rugby: "Rugby",
+  remera: "Remera",
+  conjunto: "Conjunto deportivo",
+  pantalon: "Pantalón / Short",
 };
+
+/** Todos los tipos válidos (única fuente de verdad, usada para validar en el servidor). */
+export const PRODUCT_TYPES = Object.keys(PRODUCT_TYPE_LABELS) as ProductType[];
+
+/**
+ * Camisetas: se compran con nombre, número y parche a elección.
+ * El resto (remeras, conjuntos, pantalones) se compra solo por talle.
+ */
+export const CUSTOMIZABLE_PRODUCT_TYPES: ProductType[] = ["retro", "fan", "player", "nba", "rugby"];
+
+export function typeAllowsCustomization(type: ProductType): boolean {
+  return CUSTOMIZABLE_PRODUCT_TYPES.includes(type);
+}
 
 /** Todos los talles posibles del catálogo. S a XXL siempre están; XXXL/XXXXL son opcionales por producto. */
 export const ALL_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;

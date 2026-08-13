@@ -14,12 +14,22 @@ const TELAS = [
   "Retro (algodón/poliéster clásico)",
   "Versión Fan (poliéster liviano)",
   "Versión Jugador (dry-fit premium)",
+  "NBA (mesh/dry-fit)",
+  "Rugby (algodón reforzado)",
+  "Remera (algodón/poliéster)",
+  "Conjunto deportivo (poliéster liviano)",
+  "Pantalón / short (poliéster liviano)",
 ];
 const TALLES = ["S", "M", "L", "XL", "XXL"];
 const TYPE_TO_TELA: Record<ProductType, string> = {
   retro: TELAS[0],
   fan: TELAS[1],
   player: TELAS[2],
+  nba: TELAS[3],
+  rugby: TELAS[4],
+  remera: TELAS[5],
+  conjunto: TELAS[6],
+  pantalon: TELAS[7],
 };
 
 let seq = 1;

@@ -6,6 +6,7 @@ import { ProductPurchase } from "@/components/ProductPurchase";
 import { ProductCard } from "@/components/ProductCard";
 import { Testimonials } from "@/components/Testimonials";
 import { getPublishedTestimonials } from "@/lib/testimonials";
+import { PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -15,12 +16,11 @@ export async function generateMetadata(props: {
 }): Promise<Metadata> {
   const { slug } = await props.params;
   const p = await getProductByIdOrSlug(slug);
-  if (!p) return { title: "Camiseta no encontrada" };
-  const typeLabel = p.type === "retro" ? "Retro" : p.type === "player" ? "Player Version" : "";
+  if (!p) return { title: "Producto no encontrado" };
   return {
     title: p.team,
     description: p.description,
-    keywords: [p.team, "camiseta de fútbol", typeLabel].filter(Boolean),
+    keywords: [p.team, PRODUCT_TYPE_LABELS[p.type]].filter(Boolean),
     alternates: { canonical: `/producto/${p.slug}` },
     openGraph: {
       title: p.team,

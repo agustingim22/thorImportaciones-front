@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getProducts } from "@/lib/products";
-import type { Product } from "@/lib/api";
+import type { Product, ProductType } from "@/lib/api";
+import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -10,20 +11,19 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Camisetas",
   description:
-    "Catálogo de camisetas de fútbol retro y versión jugador, importadas y listas para enviar. Filtrá por tipo o buscá tu equipo.",
+    "Catálogo de camisetas de fútbol, NBA, rugby, remeras y conjuntos deportivos, importados y listos para enviar. Filtrá por tipo o buscá lo que necesitás.",
   alternates: { canonical: "/camisetas" },
 };
 
 const TABS = [
   { key: undefined, label: "Todas" },
-  { key: "retro", label: "Retro Fan" },
-  { key: "player", label: "Player Version" },
+  ...PRODUCT_TYPES.map((key) => ({ key, label: PRODUCT_TYPE_LABELS[key] })),
 ] as const;
 
 export default async function CamisetasPage(props: PageProps<"/camisetas">) {
   const sp = await props.searchParams;
   const rawType = Array.isArray(sp.type) ? sp.type[0] : sp.type;
-  const type = rawType === "retro" || rawType === "player" ? rawType : undefined;
+  const type = PRODUCT_TYPES.includes(rawType as ProductType) ? (rawType as ProductType) : undefined;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim() || undefined;
 
   let products: Product[] = [];
@@ -46,7 +46,7 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
       <PageHeader
         eyebrow="Catálogo"
         title="Camisetas"
-        subtitle="Importadas y disponibles para envío. Elegí entre Retro Fan o Player Version."
+        subtitle="Importado y disponible para envío. Filtrá por categoría o buscá lo que necesitás."
       />
 
       <section className="mx-auto max-w-6xl px-5 py-12">
@@ -106,7 +106,7 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
         ) : (
           <div className="rounded-2xl border border-dashed border-thor-line bg-thor-paper p-10 text-center">
             <p className="text-sm text-thor-muted">
-              No encontramos camisetas con esos filtros.
+              No encontramos productos con esos filtros.
             </p>
           </div>
         )}

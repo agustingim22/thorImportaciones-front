@@ -7,6 +7,7 @@ import { getSessionUser } from "@/lib/server/session";
 import { MERCADOPAGO_ENABLED } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { rateLimit } from "@/lib/server/ratelimit";
+import { typeAllowsCustomization, type ProductType } from "@/lib/api";
 
 type Body = {
   customerName?: string;
@@ -93,8 +94,10 @@ export async function POST(req: Request) {
           throw new OrderError(`Elegí un talle válido para "${product.team}".`);
         }
 
+        const canCustomize = typeAllowsCustomization(product.type as ProductType);
+
         let patch = null;
-        if (line.patchId != null) {
+        if (canCustomize && line.patchId != null) {
           patch = product.patches.find((p) => p.id === Number(line.patchId));
           if (!patch) throw new OrderError("El parche elegido no es válido para ese producto.");
         }
@@ -118,8 +121,8 @@ export async function POST(req: Request) {
           unitPrice: product.price + (patch?.extraPrice ?? 0),
           quantity: qty,
           size,
-          customName: product.presetName ?? (line.customName?.trim() || null),
-          customNumber: product.presetNumber ?? (line.customNumber?.trim() || null),
+          customName: canCustomize ? product.presetName ?? (line.customName?.trim() || null) : null,
+          customNumber: canCustomize ? product.presetNumber ?? (line.customNumber?.trim() || null) : null,
           patchLabel: patch?.label ?? null,
           patchExtraPrice: patch ? patch.extraPrice : null,
         });
