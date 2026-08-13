@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createCustomOrder, type CustomItemInput } from "@/lib/orders";
 import { SITE_URL, whatsappUrl } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
@@ -190,7 +191,11 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl px-5 py-12">
       {/* Ítems */}
       <div className="flex flex-col gap-5">
-        {items.map((it, idx) => (
+        {items.map((it, idx) => {
+          const catalogProduct =
+            it.mode === "catalog" ? products.find((p) => p.id === it.productId) : undefined;
+          const hasCatalogPatches = (catalogProduct?.patches.length ?? 0) > 0;
+          return (
           <div key={it.id} className="rounded-2xl border border-thor-line bg-thor-paper p-5">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-mono text-xs font-bold uppercase tracking-wide text-thor-gold">
@@ -266,7 +271,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
               </Field>
             )}
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <div className={`mt-3 grid gap-3 ${hasCatalogPatches ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
               <Field label="Tela">
                 <select
                   value={it.fabric}
@@ -286,21 +291,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
                   ))}
                 </select>
               </Field>
-              {it.mode === "catalog" && (products.find((p) => p.id === it.productId)?.patches.length ?? 0) > 0 ? (
-                <Field label="Parche (opcional)">
-                  <select value={it.patch} onChange={(e) => patch(it.id, "patch", e.target.value)} className={inputCls}>
-                    <option value="">Sin parche</option>
-                    {products
-                      .find((p) => p.id === it.productId)!
-                      .patches.map((pt) => (
-                        <option key={pt.id} value={pt.label}>
-                          {pt.label}
-                          {pt.extraPrice > 0 ? ` (+$${pt.extraPrice.toLocaleString("es-AR")})` : ""}
-                        </option>
-                      ))}
-                  </select>
-                </Field>
-              ) : (
+              {!hasCatalogPatches && (
                 <Field label="Parche (opcional)">
                   <input
                     value={it.patch}
@@ -311,6 +302,52 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
                 </Field>
               )}
             </div>
+
+            {hasCatalogPatches && (
+              <div className="mt-3">
+                <Field label="Parche (opcional)">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <button
+                      type="button"
+                      onClick={() => patch(it.id, "patch", "")}
+                      className={`rounded-xl border px-3 py-2 text-left font-mono text-xs transition-colors ${
+                        it.patch === ""
+                          ? "border-thor-gold bg-thor-gold/10 text-thor-ink"
+                          : "border-thor-line text-thor-muted hover:border-thor-gold"
+                      }`}
+                    >
+                      Sin parche
+                    </button>
+                    {catalogProduct!.patches.map((pt) => (
+                      <button
+                        key={pt.id}
+                        type="button"
+                        onClick={() => patch(it.id, "patch", pt.label)}
+                        className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-left font-mono text-xs transition-colors ${
+                          it.patch === pt.label
+                            ? "border-thor-gold bg-thor-gold/10 text-thor-ink"
+                            : "border-thor-line text-thor-muted hover:border-thor-gold"
+                        }`}
+                      >
+                        {pt.imageUrl && (
+                          <Image
+                            src={pt.imageUrl}
+                            alt=""
+                            width={28}
+                            height={28}
+                            className="h-7 w-7 shrink-0 rounded-md object-contain"
+                          />
+                        )}
+                        <span className="truncate">
+                          {pt.label}
+                          {pt.extraPrice > 0 ? ` (+$${pt.extraPrice.toLocaleString("es-AR")})` : ""}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              </div>
+            )}
 
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <Field label="Número (opcional)">
@@ -336,7 +373,8 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <button
