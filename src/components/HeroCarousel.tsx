@@ -35,7 +35,7 @@ export function HeroCarousel({ images }: { images: HeroImage[] }) {
   }
 
   return (
-    <div className="relative flex h-80 items-center justify-center sm:h-96 md:h-[28rem]">
+    <div className="flex flex-col items-center">
       <div className="relative h-72 w-72 overflow-hidden rounded-3xl bg-thor-cream-2 shadow-2xl shadow-black/10 sm:h-[22rem] sm:w-[22rem] md:h-[26rem] md:w-[26rem]">
         {images.map((img, i) => (
           <Image
@@ -53,7 +53,7 @@ export function HeroCarousel({ images }: { images: HeroImage[] }) {
       </div>
 
       {images.length > 1 && (
-        <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+        <div className="mt-4 flex gap-1.5">
           {images.map((img, i) => (
             <button
               key={img.id}
@@ -61,7 +61,7 @@ export function HeroCarousel({ images }: { images: HeroImage[] }) {
               onClick={() => setActive(i)}
               aria-label={`Ver foto ${i + 1}`}
               className={`h-1.5 rounded-full transition-all ${
-                i === active ? "w-5 bg-thor-gold" : "w-1.5 bg-thor-paper/80"
+                i === active ? "w-5 bg-thor-gold" : "w-2 bg-thor-line"
               }`}
             />
           ))}

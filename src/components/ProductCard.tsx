@@ -29,37 +29,38 @@ export function ProductCard({ product }: { product: Product }) {
           Nuevo
         </span>
       ) : null}
-      <FavoriteButton
-        productId={product.id}
-        className="absolute bottom-3 right-3 z-10 h-8 w-8 shadow-sm"
-      />
-
       {/* imagen (link al detalle) — tamaño fijo (1:1) para que todas las cards queden simétricas */}
-      <Link
-        href={`/producto/${product.slug}`}
-        className="relative flex aspect-square items-center justify-center overflow-hidden bg-thor-cream-2"
-      >
-        {product.imageUrl ? (
-          <Image
-            src={product.imageUrl}
-            alt={product.team}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover"
-          />
-        ) : (
-          <div
-            className="jersey-shape flex h-[64%] w-[56%] items-center justify-center transition-transform group-hover:scale-105"
-            style={{ background: product.colorCss }}
-          >
-            {product.presetNumber && (
-              <span className="font-display text-6xl text-thor-ink/80">
-                {product.presetNumber}
-              </span>
-            )}
-          </div>
-        )}
-      </Link>
+      <div className="relative">
+        <Link
+          href={`/producto/${product.slug}`}
+          className="relative flex aspect-square items-center justify-center overflow-hidden bg-thor-cream-2"
+        >
+          {product.imageUrl ? (
+            <Image
+              src={product.imageUrl}
+              alt={product.team}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover"
+            />
+          ) : (
+            <div
+              className="jersey-shape flex h-[64%] w-[56%] items-center justify-center transition-transform group-hover:scale-105"
+              style={{ background: product.colorCss }}
+            >
+              {product.presetNumber && (
+                <span className="font-display text-6xl text-thor-ink/80">
+                  {product.presetNumber}
+                </span>
+              )}
+            </div>
+          )}
+        </Link>
+        <FavoriteButton
+          productId={product.id}
+          className="absolute bottom-3 right-3 z-10 h-8 w-8 shadow-sm"
+        />
+      </div>
 
       {/* perforaciones tipo ticket + divisor punteado */}
       <div className="relative">
@@ -95,7 +96,7 @@ export function ProductCard({ product }: { product: Product }) {
               href={`/producto/${product.slug}`}
               className="rounded-lg bg-thor-ink px-3.5 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream transition-colors hover:bg-thor-ink-soft"
             >
-              {isCustomizable ? "Personalizar" : "Elegir talle"}
+              {isCustomizable ? "Comprar" : "Elegir talle"}
             </Link>
           )}
         </div>
