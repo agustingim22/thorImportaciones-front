@@ -17,6 +17,14 @@ const STATUS = [
 ];
 const statusLabel = (s: string) => STATUS.find((x) => x.value === s)?.label ?? s;
 
+/** Un pedido "Pendiente" que no se movió en más de 2 semanas se marca como estancado. */
+const STALE_DAYS = 14;
+function isStalled(o: AdminOrder): boolean {
+  if (o.status !== "Pending") return false;
+  const ageMs = Date.now() - new Date(o.createdAt).getTime();
+  return ageMs > STALE_DAYS * 24 * 60 * 60 * 1000;
+}
+
 function detalle(o: AdminOrder): string {
   if (o.kind === "Custom") {
     return o.customItems
@@ -189,6 +197,11 @@ export function AdminOrders() {
   const [savingTracking, setSavingTracking] = useState<string | null>(null);
   const [trackingError, setTrackingError] = useState("");
   const [printingOrder, setPrintingOrder] = useState<AdminOrder | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus] = useState(STATUS[0].value);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkError, setBulkError] = useState("");
+  const [onlyStalled, setOnlyStalled] = useState(false);
 
   useEffect(() => {
     if (!printingOrder) return;
@@ -285,6 +298,7 @@ export function AdminOrders() {
   const q = search.trim().toLowerCase();
   const filtered = orders.filter((o) => {
     if (statusFilter && o.status !== statusFilter) return false;
+    if (onlyStalled && !isStalled(o)) return false;
     if (!q) return true;
     return (
       o.publicId.toLowerCase().includes(q) ||
@@ -293,6 +307,42 @@ export function AdminOrders() {
       o.customerPhone.toLowerCase().includes(q)
     );
   });
+  const stalledCount = orders.filter(isStalled).length;
+
+  function toggleSelected(publicId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(publicId)) next.delete(publicId);
+      else next.add(publicId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelected((prev) =>
+      prev.size === filtered.length ? new Set() : new Set(filtered.map((o) => o.publicId)),
+    );
+  }
+
+  async function applyBulkStatus() {
+    setBulkError("");
+    setBulkRunning(true);
+    const ids = Array.from(selected);
+    const failed: string[] = [];
+    for (const publicId of ids) {
+      try {
+        await adminSetOrderStatus(publicId, bulkStatus);
+        setOrders((prev) => prev.map((o) => (o.publicId === publicId ? { ...o, status: bulkStatus } : o)));
+      } catch {
+        failed.push(publicId);
+      }
+    }
+    setBulkRunning(false);
+    setSelected(new Set());
+    if (failed.length > 0) {
+      setBulkError(`No se pudo actualizar: ${failed.join(", ")}.`);
+    }
+  }
 
   return (
     <>
@@ -341,13 +391,72 @@ export function AdminOrders() {
         </div>
       </div>
 
+      {stalledCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setOnlyStalled((v) => !v)}
+          className={`mb-4 flex w-full items-center gap-2 rounded-xl border px-4 py-2.5 text-left text-sm ${
+            onlyStalled
+              ? "border-red-400 bg-red-50 text-red-700"
+              : "border-red-300/60 bg-red-50/60 text-red-700 hover:bg-red-50"
+          }`}
+        >
+          ⚠️ {stalledCount} pedido{stalledCount === 1 ? "" : "s"} pendiente
+          {stalledCount === 1 ? "" : "s"} hace más de {STALE_DAYS} días sin moverse.
+          <span className="ml-auto font-mono text-[11px] font-bold uppercase tracking-wider underline">
+            {onlyStalled ? "Ver todos" : "Ver estancados"}
+          </span>
+        </button>
+      )}
+
       {totalError && <p className="mb-3 text-sm text-red-600">{totalError}</p>}
       {trackingError && <p className="mb-3 text-sm text-red-600">{trackingError}</p>}
+      {bulkError && <p className="mb-3 text-sm text-red-600">{bulkError}</p>}
+
+      {selected.size > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-thor-gold/40 bg-thor-gold/10 px-4 py-3">
+          <span className="font-mono text-xs font-bold uppercase tracking-wide text-thor-ink">
+            {selected.size} seleccionado{selected.size === 1 ? "" : "s"}
+          </span>
+          <select
+            value={bulkStatus}
+            onChange={(e) => setBulkStatus(e.target.value)}
+            className="rounded-md border border-thor-line bg-thor-cream px-2 py-1.5 font-mono text-xs text-thor-ink"
+          >
+            {STATUS.map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={applyBulkStatus}
+            disabled={bulkRunning}
+            className="rounded-lg bg-thor-ink px-4 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream disabled:opacity-60"
+          >
+            {bulkRunning ? "Aplicando…" : "Marcar como"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="font-mono text-xs text-thor-muted underline hover:text-thor-ink"
+          >
+            Cancelar selección
+          </button>
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-2xl border border-thor-line bg-thor-paper">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-thor-line text-left font-mono text-[11px] uppercase tracking-wide text-thor-muted">
+              <th className="px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && selected.size === filtered.length}
+                  onChange={toggleSelectAll}
+                  aria-label="Seleccionar todos"
+                />
+              </th>
               <th className="px-4 py-3">Fecha</th>
               <th className="px-4 py-3">Pedido</th>
               <th className="px-4 py-3">Tipo</th>
@@ -363,28 +472,46 @@ export function AdminOrders() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
+                <td colSpan={10} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
               </tr>
             )}
             {!loading && orders.length > 0 && filtered.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={10} className="px-4 py-8 text-center text-thor-muted">
                   Ningún pedido coincide con la búsqueda o el filtro.
                 </td>
               </tr>
             )}
             {!loading && orders.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={10} className="px-4 py-8 text-center text-thor-muted">
                   Todavía no hay pedidos.
                 </td>
               </tr>
             )}
             {!loading &&
               filtered.map((o) => (
-                <tr key={o.publicId} className="border-b border-thor-line align-top last:border-0">
+                <tr
+                  key={o.publicId}
+                  className={`border-b border-thor-line align-top last:border-0 ${
+                    isStalled(o) ? "bg-red-50" : ""
+                  }`}
+                >
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(o.publicId)}
+                      onChange={() => toggleSelected(o.publicId)}
+                      aria-label={`Seleccionar pedido ${o.publicId}`}
+                    />
+                  </td>
                   <td className="whitespace-nowrap px-4 py-3 text-thor-muted">
                     {new Date(o.createdAt).toLocaleDateString("es-AR")}
+                    {isStalled(o) && (
+                      <span className="mt-1 block font-mono text-[10px] font-bold uppercase text-red-600">
+                        ⚠ Estancado
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span className="font-mono text-xs text-thor-ink">{o.publicId}</span>

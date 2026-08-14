@@ -79,6 +79,7 @@ model User {
   sessions       Session[]
   passwordResets PasswordReset[]
   orders         Order[]
+  savedCartItems SavedCartItem[]
 }
 
 model Session {
@@ -171,6 +172,20 @@ model ShippingSettings {
   id                    Int  @id @default(1)
   flatCost              Int  @default(0) // ARS, se suma al total de pedidos de catálogo
   freeShippingThreshold Int? // si el subtotal de productos llega a este monto, el envío es gratis
+}
+
+/// Carrito de un usuario logueado, para que persista entre dispositivos. Sin relación a
+/// Product/Patch (igual que OrderItem) para no romper si el producto se borra después.
+model SavedCartItem {
+  id           Int     @id @default(autoincrement())
+  userId       Int
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId    Int
+  qty          Int
+  size         String
+  customName   String?
+  customNumber String?
+  patchId      Int?
 }
 
 model OrderItem {
