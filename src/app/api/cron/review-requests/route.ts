@@ -6,28 +6,10 @@ import { sendReviewRequest } from "@/lib/server/email";
 const REVIEW_REQUEST_DELAY_DAYS = 4;
 
 /** Vercel Cron llama esto con Authorization: Bearer $CRON_SECRET. */
-function mask(s: string | undefined): string {
-  if (!s) return "(vacío)";
-  if (s.length <= 8) return `${s.length} chars`;
-  return `${s.slice(0, 4)}…${s.slice(-4)} (${s.length} chars)`;
-}
-
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization");
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    // DEBUG temporal, sin exponer los secretos completos.
-    return NextResponse.json(
-      {
-        error: "No autorizado",
-        debug: {
-          envSet: process.env.CRON_SECRET !== undefined,
-          envMasked: mask(process.env.CRON_SECRET),
-          receivedMasked: mask(auth?.replace(/^Bearer /, "")),
-          receivedHadBearerPrefix: auth?.startsWith("Bearer ") ?? false,
-        },
-      },
-      { status: 401 },
-    );
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
   const cutoff = new Date(Date.now() - REVIEW_REQUEST_DELAY_DAYS * 24 * 60 * 60 * 1000);
