@@ -146,6 +146,8 @@ export type AdminOrder = {
   paymentMethod: string | null;
   receiptUrl: string | null;
   trackingNumber: string | null;
+  isGift: boolean;
+  giftMessage: string | null;
   createdAt: string;
   items: AdminOrderItem[];
   customItems: AdminCustomItem[];
@@ -374,6 +376,37 @@ export async function adminListStockNotifications(): Promise<{ productId: number
   const res = await fetch(`/api/admin/stock-notifications`, { headers: authHeaders(), cache: "no-store" });
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
+}
+
+// ---- Preguntas de producto ----
+export type AdminQuestion = {
+  id: number;
+  productId: number;
+  productName: string;
+  name: string;
+  question: string;
+  answer: string | null;
+  createdAt: string;
+};
+
+export async function adminListQuestions(): Promise<AdminQuestion[]> {
+  const res = await fetch(`/api/admin/questions`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminAnswerQuestion(id: number, answer: string | null): Promise<void> {
+  const res = await fetch(`/api/admin/questions/${id}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ answer }),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+export async function adminDeleteQuestion(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/questions/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
 async function toError(res: Response): Promise<Error> {

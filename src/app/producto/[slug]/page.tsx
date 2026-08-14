@@ -6,6 +6,8 @@ import { ProductPurchase } from "@/components/ProductPurchase";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductReviews } from "@/components/ProductReviews";
 import { getProductReviews } from "@/lib/reviews";
+import { ProductQuestions } from "@/components/ProductQuestions";
+import { getProductQuestions } from "@/lib/questions";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { Testimonials } from "@/components/Testimonials";
 import { getPublishedTestimonials } from "@/lib/testimonials";
@@ -58,6 +60,13 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     reviews = await getProductReviews(product.id);
   } catch {
     reviews = [];
+  }
+
+  let questions: Awaited<ReturnType<typeof getProductQuestions>> = [];
+  try {
+    questions = await getProductQuestions(product.id);
+  } catch {
+    questions = [];
   }
 
   const averageRating =
@@ -131,6 +140,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
           </section>
         )}
 
+        <ProductQuestions productId={product.id} questions={questions} />
         <ProductReviews productId={product.id} reviews={reviews} />
       </div>
 

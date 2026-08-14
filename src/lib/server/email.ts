@@ -247,6 +247,28 @@ export async function sendOutOfStockAlert(
   await send(SITE.adminEmail, subject, layout("Stock agotado", body));
 }
 
+/** Aviso interno cuando alguien deja una pregunta nueva sobre un producto. */
+export async function sendAdminNewQuestion(q: {
+  productTeam: string;
+  name: string;
+  question: string;
+}): Promise<void> {
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">
+      <strong>${q.name}</strong> preguntó sobre "${q.productTeam}":
+    </p>
+    <p style="margin:12px 0;padding:12px 16px;background:#FAF4E7;border-radius:10px;color:#14323F;font-size:14px;">
+      ${q.question}
+    </p>
+    <p style="text-align:center;margin:20px 0 4px;">
+      <a href="${SITE_URL}/admin" style="color:#DE9A26;font-size:13px;font-weight:700;text-decoration:none;">
+        Responder en el panel →
+      </a>
+    </p>
+  `;
+  await send(SITE.adminEmail, `Pregunta nueva sobre "${q.productTeam}"`, layout("Pregunta de un visitante", body));
+}
+
 /** Aviso a un comprador que pidió que le avisen cuando un producto vuelva a tener stock. */
 export async function sendStockBackNotification(to: {
   email: string;

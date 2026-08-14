@@ -23,6 +23,8 @@ export type CreateOrderPayload = ShippingAddress & {
   customerPhone: string;
   paymentMethod: "MercadoPago" | "Transfer";
   items: OrderItemInput[];
+  isGift?: boolean;
+  giftMessage?: string;
 };
 
 export type CreateOrderResult = {

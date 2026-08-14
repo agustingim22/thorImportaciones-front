@@ -174,13 +174,22 @@ function RemitoPrintable({ order: o }: { order: AdminOrder }) {
         )}
       </div>
 
-      <div className="mt-6 flex justify-between border-t border-black pt-3 text-lg font-bold">
-        <span>Total</span>
-        <span>
-          {o.kind === "Custom" && o.total <= 0 ? "A coordinar" : `$${o.total.toLocaleString("es-AR")}`}
-        </span>
-      </div>
-      <p className="mt-1 text-sm">Forma de pago: {paymentLabel(o)}</p>
+      {o.isGift ? (
+        <div className="mt-6 rounded border border-black px-4 py-3 text-center">
+          <p className="font-bold">🎁 Es un regalo</p>
+          {o.giftMessage && <p className="mt-1 text-sm italic">&quot;{o.giftMessage}&quot;</p>}
+        </div>
+      ) : (
+        <>
+          <div className="mt-6 flex justify-between border-t border-black pt-3 text-lg font-bold">
+            <span>Total</span>
+            <span>
+              {o.kind === "Custom" && o.total <= 0 ? "A coordinar" : `$${o.total.toLocaleString("es-AR")}`}
+            </span>
+          </div>
+          <p className="mt-1 text-sm">Forma de pago: {paymentLabel(o)}</p>
+        </>
+      )}
     </div>
   );
 }
@@ -550,7 +559,17 @@ export function AdminOrders() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="block font-semibold text-thor-ink">{o.customerName}</span>
+                    <span className="block font-semibold text-thor-ink">
+                      {o.customerName}
+                      {o.isGift && (
+                        <span
+                          title={o.giftMessage ? `Regalo: ${o.giftMessage}` : "Es un regalo"}
+                          className="ml-1.5"
+                        >
+                          🎁
+                        </span>
+                      )}
+                    </span>
                     <span className="block text-[11px] text-thor-muted">{o.customerPhone}</span>
                   </td>
                   <td className="max-w-[220px] px-4 py-3 text-[11px] text-thor-muted">

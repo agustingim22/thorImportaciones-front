@@ -22,6 +22,8 @@ type Body = {
   apartment?: string;
   deliveryNotes?: string;
   paymentMethod?: "MercadoPago" | "Transfer";
+  isGift?: boolean;
+  giftMessage?: string;
   items?: {
     productId: number;
     quantity: number;
@@ -160,6 +162,8 @@ export async function POST(req: Request) {
           floor: body.floor?.trim() || null,
           apartment: body.apartment?.trim() || null,
           deliveryNotes: body.deliveryNotes?.trim() || null,
+          isGift: !!body.isGift,
+          giftMessage: body.isGift ? body.giftMessage?.trim() || null : null,
           paymentMethod,
           total,
           shippingCost,

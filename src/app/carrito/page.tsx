@@ -25,6 +25,8 @@ export default function CarritoPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<CreateOrderResult | null>(null);
   const [shipping, setShipping] = useState<ShippingSettings>({ flatCost: 0, freeShippingThreshold: null });
+  const [isGift, setIsGift] = useState(false);
+  const [giftMessage, setGiftMessage] = useState("");
 
   useEffect(() => {
     getShippingSettings().then(setShipping);
@@ -73,6 +75,8 @@ export default function CarritoPage() {
         ...contact,
         ...address,
         paymentMethod,
+        isGift,
+        giftMessage,
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.qty,
@@ -275,6 +279,26 @@ export default function CarritoPage() {
           </h3>
           <div className="mt-3">
             <AddressFields value={address} onChange={setAddress} />
+          </div>
+
+          <div className="mt-4">
+            <label className="flex items-center gap-2 text-sm text-thor-ink">
+              <input
+                type="checkbox"
+                checked={isGift}
+                onChange={(e) => setIsGift(e.target.checked)}
+              />
+              🎁 Es un regalo
+            </label>
+            {isGift && (
+              <textarea
+                rows={2}
+                value={giftMessage}
+                onChange={(e) => setGiftMessage(e.target.value)}
+                placeholder="Mensaje para incluir (opcional): «De parte de...»"
+                className={`${inputCls} mt-2`}
+              />
+            )}
           </div>
 
           {MERCADOPAGO_ENABLED ? (

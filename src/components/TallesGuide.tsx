@@ -229,6 +229,91 @@ const CATEGORIES: Category[] = [
   },
 ];
 
+/** Extrae un rango de altura tipo "160-165 cm" (o "160-165 cm / 50-60 kg") de una celda. */
+function parseHeightRange(cell: string): [number, number] | null {
+  const m = cell.match(/(\d+)\s*-\s*(\d+)\s*cm/);
+  if (!m) return null;
+  return [Number(m[1]), Number(m[2])];
+}
+
+/** Sugiere un talle según la altura, buscando la columna "Altura" de la tabla. */
+function suggestSize(chart: Chart, heightCm: number): string | null {
+  const col = chart.headers.findIndex((h) => h.toLowerCase().includes("altura"));
+  if (col === -1) return null;
+
+  const parsed = chart.rows
+    .map((row) => ({ size: row[0], range: parseHeightRange(row[col]) }))
+    .filter((r): r is { size: string; range: [number, number] } => r.range !== null);
+  if (parsed.length === 0) return null;
+
+  const exact = parsed.find(({ range }) => heightCm >= range[0] && heightCm <= range[1]);
+  if (exact) return exact.size;
+  if (heightCm < parsed[0].range[0]) return parsed[0].size;
+  if (heightCm > parsed[parsed.length - 1].range[1]) return parsed[parsed.length - 1].size;
+
+  let best = parsed[0];
+  let bestDist = Infinity;
+  for (const p of parsed) {
+    const dist = Math.min(Math.abs(heightCm - p.range[0]), Math.abs(heightCm - p.range[1]));
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = p;
+    }
+  }
+  return best.size;
+}
+
+function SizeCalculator({ category }: { category: Category }) {
+  const [heightInput, setHeightInput] = useState("");
+  const heightNum = Number(heightInput);
+  const hasHeight = heightInput.trim() !== "" && Number.isFinite(heightNum) && heightNum > 0;
+
+  const suggestions = hasHeight
+    ? category.charts
+        .map((chart) => ({ chart, size: suggestSize(chart, heightNum) }))
+        .filter((s): s is { chart: Chart; size: string } => s.size !== null)
+    : [];
+
+  return (
+    <div className="mb-8 rounded-2xl border border-thor-line bg-thor-cream-2 p-5">
+      <h2 className="font-body text-sm font-extrabold uppercase tracking-wide text-thor-ink">
+        📏 Calculadora de talle
+      </h2>
+      <p className="mt-1 text-xs text-thor-muted">
+        Ingresá tu altura y te sugerimos el talle para &quot;{category.label}&quot;.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <input
+          type="number"
+          min={100}
+          max={230}
+          value={heightInput}
+          onChange={(e) => setHeightInput(e.target.value)}
+          placeholder="Tu altura en cm"
+          className="w-40 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+        />
+      </div>
+      {hasHeight &&
+        (suggestions.length > 0 ? (
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {suggestions.map(({ chart, size }) => (
+              <li
+                key={chart.title}
+                className="rounded-lg border border-thor-gold/40 bg-thor-gold/10 px-3 py-1.5 font-mono text-xs text-thor-ink"
+              >
+                {chart.title}: <strong className="text-thor-gold">{size}</strong>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-xs text-thor-muted">
+            Todavía no tenemos datos de altura para esta categoría — escribinos y te ayudamos.
+          </p>
+        ))}
+    </div>
+  );
+}
+
 function SizeTable({ chart }: { chart: Chart }) {
   return (
     <div className="overflow-x-auto rounded-2xl border border-thor-line bg-thor-paper">
@@ -309,6 +394,8 @@ function TallesGuideInner() {
             </button>
           ))}
         </div>
+
+        <SizeCalculator category={category} />
 
         <div className="grid gap-6 lg:grid-cols-2">
           {category.charts.map((chart) => (

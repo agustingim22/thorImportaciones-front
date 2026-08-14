@@ -24,6 +24,7 @@ import { AdminStats } from "./AdminStats";
 import { AdminReviews } from "./AdminReviews";
 import { AdminNewsletter } from "./AdminNewsletter";
 import { AdminShipping } from "./AdminShipping";
+import { AdminQuestions } from "./AdminQuestions";
 
 import { parseCsv } from "@/lib/csv";
 
@@ -107,6 +108,7 @@ export function AdminDashboard() {
     | "hero"
     | "stats"
     | "reviews"
+    | "questions"
     | "newsletter"
     | "shipping"
   >("products");
@@ -471,6 +473,7 @@ export function AdminDashboard() {
             ["orders", "Pedidos"],
             ["stats", "Estadísticas"],
             ["reviews", "Reseñas"],
+            ["questions", "Preguntas"],
             ["testimonials", "Testimonios"],
             ["newsletter", "Newsletter"],
             ["shipping", "Envío"],
@@ -696,6 +699,13 @@ export function AdminDashboard() {
       {tab === "reviews" && (
         <div className="mt-6">
           <AdminReviews />
+        </div>
+      )}
+
+      {/* Preguntas */}
+      {tab === "questions" && (
+        <div className="mt-6">
+          <AdminQuestions />
         </div>
       )}
 
