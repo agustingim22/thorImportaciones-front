@@ -25,7 +25,8 @@ export type Product = {
   slug: string;
   team: string;
   type: ProductType;
-  price: number;
+  price: number; // precio de lista
+  salePrice: number | null; // si está seteado y es menor a price, es el precio de oferta
   colorCss: string;
   images: string[]; // hasta 3 fotos; images[0] es la portada
   imageUrl: string | null; // = images[0] ?? null, para las cards/carrito
@@ -80,6 +81,11 @@ export const PRODUCT_TYPE_TALLES_CATEGORY: Record<ProductType, string> = {
 /** Todos los talles posibles del catálogo. S a XXL siempre están; XXXL/XXXXL son opcionales por producto. */
 export const ALL_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
 export const DEFAULT_SIZES = ["S", "M", "L", "XL", "XXL"];
+
+/** Precio que realmente se cobra: la oferta si hay una válida (menor al de lista), si no el de lista. */
+export function effectivePrice(p: Pick<Product, "price" | "salePrice">): number {
+  return p.salePrice != null && p.salePrice < p.price ? p.salePrice : p.price;
+}
 
 /** A partir de cuántas unidades o menos mostramos el aviso de "últimas unidades". */
 export const LOW_STOCK_THRESHOLD = 3;

@@ -5,6 +5,8 @@ import { useAuth } from "@/lib/auth";
 import { getMyOrders, type MyOrder } from "@/lib/myOrders";
 import { whatsappUrl } from "@/lib/site";
 import { Field, inputCls } from "@/components/AddressFields";
+import { useCart } from "@/lib/cart";
+import { effectivePrice, type Product } from "@/lib/api";
 
 const STATUS_LABEL: Record<string, string> = {
   Pending: "Pendiente",
@@ -268,12 +270,67 @@ function orderDetail(o: MyOrder): string {
 
 function OrderHistory() {
   const [orders, setOrders] = useState<MyOrder[] | null>(null);
+  const { add } = useCart();
+  const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [reorderDoneId, setReorderDoneId] = useState<string | null>(null);
+  const [reorderError, setReorderError] = useState<Record<string, string>>({});
 
   useEffect(() => {
     getMyOrders()
       .then(setOrders)
       .catch(() => setOrders([]));
   }, []);
+
+  async function handleReorder(o: MyOrder) {
+    setReorderingId(o.publicId);
+    setReorderDoneId(null);
+    setReorderError((prev) => ({ ...prev, [o.publicId]: "" }));
+    const skipped: string[] = [];
+    try {
+      for (const item of o.items) {
+        try {
+          const res = await fetch(`/api/products/${item.productId}`, { cache: "no-store" });
+          if (!res.ok) throw new Error();
+          const product: Product = await res.json();
+          if (!product.inStock) throw new Error();
+          const size = item.size && product.sizes.includes(item.size) ? item.size : product.sizes[0];
+          if ((product.sizeStock[size] ?? 0) <= 0) throw new Error();
+          const patch = item.patchLabel
+            ? product.patches.find((p) => p.label === item.patchLabel)
+            : undefined;
+          add(
+            {
+              productId: product.id,
+              team: product.team,
+              price: effectivePrice(product),
+              imageUrl: product.imageUrl,
+              colorCss: product.colorCss,
+              presetNumber: product.presetNumber,
+              size,
+              customName: item.customName,
+              customNumber: item.customNumber,
+              patchId: patch?.id ?? null,
+              patchLabel: patch?.label ?? null,
+              patchExtraPrice: patch?.extraPrice ?? 0,
+            },
+            item.quantity,
+          );
+        } catch {
+          skipped.push(item.productName);
+        }
+      }
+      if (skipped.length > 0) {
+        setReorderError((prev) => ({
+          ...prev,
+          [o.publicId]: `No se pudo agregar (sin stock o ya no disponible): ${skipped.join(", ")}.`,
+        }));
+      } else {
+        setReorderDoneId(o.publicId);
+      }
+    } finally {
+      setReorderingId(null);
+    }
+  }
 
   if (orders === null) return <p className="text-sm text-thor-muted">Cargando pedidos…</p>;
   if (orders.length === 0) {
@@ -306,6 +363,26 @@ function OrderHistory() {
             </span>
           </div>
           <p className="mt-2 text-sm text-thor-ink-soft">{orderDetail(o)}</p>
+
+          {o.kind === "Stock" && (
+            <div className="mt-3">
+              {reorderDoneId === o.publicId ? (
+                <p className="font-mono text-xs text-thor-land">✓ Agregado al carrito.</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleReorder(o)}
+                  disabled={reorderingId === o.publicId}
+                  className="rounded-lg border border-thor-line px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold disabled:opacity-60"
+                >
+                  {reorderingId === o.publicId ? "Agregando…" : "Comprar de nuevo"}
+                </button>
+              )}
+              {reorderError[o.publicId] && (
+                <p className="mt-1 text-xs text-red-600">{reorderError[o.publicId]}</p>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

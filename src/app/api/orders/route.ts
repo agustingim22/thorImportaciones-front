@@ -8,7 +8,7 @@ import { computeShippingCost } from "@/lib/shippingCalc";
 import { MERCADOPAGO_ENABLED } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { rateLimit } from "@/lib/server/ratelimit";
-import { typeAllowsCustomization, type ProductType } from "@/lib/api";
+import { effectivePrice, typeAllowsCustomization, type ProductType } from "@/lib/api";
 
 type Body = {
   customerName?: string;
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
         itemsData.push({
           productId: product.id,
           productName: product.team,
-          unitPrice: product.price + (patch?.extraPrice ?? 0),
+          unitPrice: effectivePrice(product) + (patch?.extraPrice ?? 0),
           quantity: qty,
           size,
           customName: canCustomize ? product.presetName ?? (line.customName?.trim() || null) : null,

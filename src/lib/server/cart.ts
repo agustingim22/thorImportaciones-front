@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { SavedCartItem } from "@prisma/client";
+import { effectivePrice } from "@/lib/api";
 
 export type ResolvedCartItem = {
   productId: number;
@@ -38,7 +39,7 @@ export async function resolveCartItems(rows: SavedCartItem[]): Promise<ResolvedC
         productId: product.id,
         team: product.team,
         slug: product.slug,
-        price: product.price,
+        price: effectivePrice(product),
         qty: r.qty,
         imageUrl: product.images[0] ?? null,
         colorCss: product.colorCss,

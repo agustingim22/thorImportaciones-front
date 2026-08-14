@@ -14,7 +14,8 @@ model Product {
   slug               String              @unique
   team               String
   type               String // "retro" | "fan" | "player"
-  price              Int // ARS
+  price              Int // ARS, precio de lista
+  salePrice          Int? // ARS, si está seteado (y es menor a price) se muestra como oferta
   colorCss           String
   images             String[]            @default([]) // hasta 3 fotos (la primera es la portada)
   description        String

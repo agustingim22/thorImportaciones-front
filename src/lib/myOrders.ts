@@ -1,4 +1,5 @@
 export type MyOrderItem = {
+  productId: number;
   productName: string;
   unitPrice: number;
   quantity: number;

@@ -15,6 +15,7 @@ export type ProductInput = {
   team: string;
   type: ProductType;
   price: number;
+  salePrice: number | null;
   colorCss: string;
   images: string[]; // hasta 3 fotos
   description: string;
@@ -366,6 +367,13 @@ export async function adminSetShipping(settings: ShippingSettings): Promise<void
     body: JSON.stringify(settings),
   });
   if (!res.ok) throw await toError(res);
+}
+
+// ---- Avisos de stock ----
+export async function adminListStockNotifications(): Promise<{ productId: number; count: number }[]> {
+  const res = await fetch(`/api/admin/stock-notifications`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
 }
 
 async function toError(res: Response): Promise<Error> {

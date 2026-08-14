@@ -7,6 +7,7 @@ import {
   adminCreateProduct,
   adminDeleteProduct,
   adminListProducts,
+  adminListStockNotifications,
   adminPing,
   adminUpdateProduct,
   adminUploadImage,
@@ -53,13 +54,14 @@ function sizeStockToCsv(p: Product): string {
 
 function exportProductsCsv(products: Product[]) {
   const headers = [
-    "Producto", "Tipo", "Precio", "Stock total", "Talles y stock", "Nombre predefinido",
+    "Producto", "Tipo", "Precio", "Precio de oferta", "Stock total", "Talles y stock", "Nombre predefinido",
     "Número predefinido", "Parches", "Slug", "Creado",
   ];
   const rows = products.map((p) => [
     p.team,
     PRODUCT_TYPE_LABELS[p.type],
     String(p.price),
+    p.salePrice != null ? String(p.salePrice) : "",
     String(p.stock),
     sizeStockToCsv(p),
     p.presetName ?? "",
@@ -84,6 +86,7 @@ const EMPTY: ProductInput = {
   team: "",
   type: "retro",
   price: 0,
+  salePrice: null,
   colorCss: "",
   images: [],
   description: "",
@@ -123,11 +126,17 @@ export function AdminDashboard() {
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState<ImportRowResult[] | null>(null);
+  const [waitingStock, setWaitingStock] = useState<Record<number, number>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setProducts(await adminListProducts());
+      const [productsList, notifications] = await Promise.all([
+        adminListProducts(),
+        adminListStockNotifications().catch(() => []),
+      ]);
+      setProducts(productsList);
+      setWaitingStock(Object.fromEntries(notifications.map((n) => [n.productId, n.count])));
     } finally {
       setLoading(false);
     }
@@ -176,6 +185,7 @@ export function AdminDashboard() {
       team: p.team,
       type: p.type,
       price: p.price,
+      salePrice: p.salePrice,
       colorCss: p.colorCss,
       images: p.images,
       description: p.description,
@@ -196,6 +206,7 @@ export function AdminDashboard() {
       team: `${p.team} (copia)`,
       type: p.type,
       price: p.price,
+      salePrice: p.salePrice,
       colorCss: p.colorCss,
       images: p.images,
       description: p.description,
@@ -256,6 +267,7 @@ export function AdminDashboard() {
         team: col("Producto"),
         type: col("Tipo"),
         price: col("Precio"),
+        salePrice: col("Precio de oferta"),
         sizeStock: col("Talles y stock"),
         presetName: col("Nombre predefinido"),
         presetNumber: col("Número predefinido"),
@@ -284,6 +296,11 @@ export function AdminDashboard() {
           if (!typeKey) throw new Error(`Tipo "${r[idx.type]}" no reconocido.`);
           const price = Number(r[idx.price]);
           if (!Number.isFinite(price) || price < 0) throw new Error("Precio inválido.");
+          const salePriceRaw = idx.salePrice >= 0 ? r[idx.salePrice]?.trim() : "";
+          const salePrice =
+            salePriceRaw && Number.isFinite(Number(salePriceRaw)) && Number(salePriceRaw) < price
+              ? Number(salePriceRaw)
+              : null;
           const { sizes, sizeStock } = parseSizeStockCell(r[idx.sizeStock] ?? "");
           if (sizes.length === 0) throw new Error('Columna "Talles y stock" vacía o mal formada (ej: S:2|M:0|L:5).');
 
@@ -291,6 +308,7 @@ export function AdminDashboard() {
             team,
             type: typeKey,
             price,
+            salePrice,
             colorCss: "",
             images: [],
             description: "",
@@ -590,7 +608,16 @@ export function AdminDashboard() {
                     )}
                   </td>
                   <td className="px-4 py-3 font-mono tabular-nums text-thor-gold">
-                    ${p.price.toLocaleString("es-AR")}
+                    {p.salePrice != null && p.salePrice < p.price ? (
+                      <>
+                        <span className="mr-1 text-thor-muted line-through">
+                          ${p.price.toLocaleString("es-AR")}
+                        </span>
+                        ${p.salePrice.toLocaleString("es-AR")}
+                      </>
+                    ) : (
+                      `$${p.price.toLocaleString("es-AR")}`
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 font-mono text-[11px]">
@@ -616,6 +643,14 @@ export function AdminDashboard() {
                     >
                       {p.stock === 0 ? "Sin stock" : `${p.stock} unidad${p.stock === 1 ? "" : "es"}`}
                     </span>
+                    {(waitingStock[p.id] ?? 0) > 0 && (
+                      <span
+                        title="Personas que pidieron que les avisen cuando haya stock"
+                        className="ml-1.5 rounded-full bg-thor-sky/15 px-2 py-0.5 font-mono text-[10px] uppercase text-thor-sky"
+                      >
+                        ⏳ {waitingStock[p.id]} esperando
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
@@ -744,6 +779,19 @@ export function AdminDashboard() {
                   />
                 </Field>
               </div>
+
+              <Field label="Precio de oferta (ARS, opcional)">
+                <input
+                  type="number"
+                  min={0}
+                  value={form.salePrice ?? ""}
+                  onChange={(e) =>
+                    setForm({ ...form, salePrice: e.target.value === "" ? null : Number(e.target.value) })
+                  }
+                  placeholder="Dejar vacío si no está en oferta"
+                  className={inputCls}
+                />
+              </Field>
 
               {typeAllowsCustomization(form.type) && (
                 <div className="grid grid-cols-2 gap-3">

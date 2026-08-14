@@ -16,6 +16,7 @@ export function serializeProduct(p: ProductRow, bestSellerIds: Set<number> = new
     team: p.team,
     type: p.type as ProductType,
     price: p.price,
+    salePrice: p.salePrice,
     colorCss: p.colorCss,
     images: p.images,
     imageUrl: p.images[0] ?? null,

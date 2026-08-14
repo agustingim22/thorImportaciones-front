@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createCustomOrder, uploadCustomOrderImage, type CustomItemInput } from "@/lib/orders";
-import { SITE_URL, whatsappUrl } from "@/lib/site";
+import { SITE, SITE_URL, whatsappUrl } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
 import { OrderNextSteps } from "@/components/OrderNextSteps";
@@ -237,6 +237,10 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl px-5 py-12">
+      <p className="mb-6 flex items-center gap-1.5 rounded-xl border border-thor-line bg-thor-cream-2 px-4 py-2.5 text-xs text-thor-ink-soft">
+        <span aria-hidden>🌍</span> {SITE.delivery.custom}
+      </p>
+
       {/* Ítems */}
       <div className="flex flex-col gap-5">
         {items.map((it, idx) => {

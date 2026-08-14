@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
 import {
+  effectivePrice,
   LOW_STOCK_THRESHOLD,
   PRODUCT_TYPE_LABELS,
   PRODUCT_TYPE_TALLES_CATEGORY,
@@ -14,6 +15,7 @@ import { useCart } from "@/lib/cart";
 import { useRecentlyViewed } from "@/lib/recentlyViewed";
 import { trackPixelEvent } from "@/lib/metaPixel";
 import { notifyStockAvailable } from "@/lib/stockNotify";
+import { SITE } from "@/lib/site";
 import { FavoriteButton } from "./FavoriteButton";
 
 export function ProductPurchase({ product }: { product: Product }) {
@@ -67,7 +69,7 @@ export function ProductPurchase({ product }: { product: Product }) {
       content_ids: [String(product.id)],
       content_name: product.team,
       content_type: "product",
-      value: product.price,
+      value: effectivePrice(product),
       currency: "ARS",
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -93,7 +95,8 @@ export function ProductPurchase({ product }: { product: Product }) {
   }
 
   const selectedPatch = product.patches.find((p) => p.id === patchId) ?? null;
-  const finalPrice = product.price + (selectedPatch?.extraPrice ?? 0);
+  const onSale = product.salePrice != null && product.salePrice < product.price;
+  const finalPrice = effectivePrice(product) + (selectedPatch?.extraPrice ?? 0);
   const currentImage = product.images[activeImage] ?? null;
 
   function handleAdd() {
@@ -101,7 +104,7 @@ export function ProductPurchase({ product }: { product: Product }) {
     add({
       productId: product.id,
       team: product.team,
-      price: product.price,
+      price: effectivePrice(product),
       imageUrl: product.imageUrl,
       colorCss: product.colorCss,
       presetNumber: product.presetNumber,
@@ -239,14 +242,30 @@ export function ProductPurchase({ product }: { product: Product }) {
           {product.team}
         </h1>
 
-        {product.inStock && product.stock <= LOW_STOCK_THRESHOLD && (
-          <p className="mt-2 w-fit rounded-md border border-red-600/30 bg-red-50 px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider text-red-600">
-            {product.stock === 1 ? "¡Última unidad!" : `¡Quedan ${product.stock} unidades!`}
-          </p>
-        )}
+        <div className="mt-2 flex flex-wrap gap-2">
+          {onSale && (
+            <span className="w-fit rounded-md border border-red-600/30 bg-red-50 px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider text-red-600">
+              Oferta
+            </span>
+          )}
+          {product.inStock && product.stock <= LOW_STOCK_THRESHOLD && (
+            <span className="w-fit rounded-md border border-red-600/30 bg-red-50 px-2 py-1 font-mono text-xs font-bold uppercase tracking-wider text-red-600">
+              {product.stock === 1 ? "¡Última unidad!" : `¡Quedan ${product.stock} unidades!`}
+            </span>
+          )}
+        </div>
 
         <div className="mt-4 rounded-xl border border-thor-line bg-thor-paper px-4 py-3">
-          <p className="font-display text-2xl text-thor-gold">${finalPrice.toLocaleString("es-AR")}</p>
+          <p className="flex items-baseline gap-2">
+            {onSale && (
+              <span className="font-mono text-base text-thor-muted line-through">
+                ${(product.price + (selectedPatch?.extraPrice ?? 0)).toLocaleString("es-AR")}
+              </span>
+            )}
+            <span className="font-display text-2xl text-thor-gold">
+              ${finalPrice.toLocaleString("es-AR")}
+            </span>
+          </p>
           <p className="mt-1.5 text-sm leading-snug text-thor-ink-soft">{product.description}</p>
         </div>
 
@@ -400,6 +419,12 @@ export function ProductPurchase({ product }: { product: Product }) {
             {shared ? "✓ Link copiado" : "Compartir ↗"}
           </button>
         </div>
+
+        {product.inStock && (
+          <p className="mt-2 flex items-center gap-1.5 text-xs text-thor-muted">
+            <span aria-hidden>📦</span> {SITE.delivery.stock}
+          </p>
+        )}
 
         {!product.inStock && (
           <div className="mt-3">

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
-import { typeAllowsCustomization } from "@/lib/api";
+import { effectivePrice, typeAllowsCustomization } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { trackPixelEvent } from "@/lib/metaPixel";
 
@@ -13,6 +13,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
   const canCustomize = typeAllowsCustomization(product.type);
   const isCustomizable =
     canCustomize && (!product.presetName || !product.presetNumber || product.patches.length > 0);
+  const onSale = product.salePrice != null && product.salePrice < product.price;
   const [size, setSize] = useState("");
   const [added, setAdded] = useState(false);
 
@@ -29,7 +30,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
     add({
       productId: product.id,
       team: product.team,
-      price: product.price,
+      price: effectivePrice(product),
       imageUrl: product.imageUrl,
       colorCss: product.colorCss,
       presetNumber: product.presetNumber,
@@ -44,7 +45,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
       content_ids: [String(product.id)],
       content_name: product.team,
       content_type: "product",
-      value: product.price,
+      value: effectivePrice(product),
       currency: "ARS",
     });
     setAdded(true);
@@ -95,8 +96,15 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
 
           <div className="flex flex-col">
             <h2 className="font-display text-xl tracking-wide text-thor-ink">{product.team}</h2>
-            <p className="mt-1 font-mono text-lg font-bold text-thor-gold">
-              ${product.price.toLocaleString("es-AR")}
+            <p className="mt-1 flex items-baseline gap-2">
+              {onSale && (
+                <span className="font-mono text-sm text-thor-muted line-through">
+                  ${product.price.toLocaleString("es-AR")}
+                </span>
+              )}
+              <span className="font-mono text-lg font-bold text-thor-gold">
+                ${effectivePrice(product).toLocaleString("es-AR")}
+              </span>
             </p>
             <p className="mt-2 line-clamp-3 text-sm text-thor-ink-soft">{product.description}</p>
 

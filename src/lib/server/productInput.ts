@@ -14,6 +14,7 @@ export type ProductInput = {
   team: string;
   type: ProductType;
   price: number;
+  salePrice: number | null; // precio de oferta, opcional (debe ser menor a price)
   colorCss: string;
   images: string[]; // hasta 3 fotos
   description: string;
@@ -30,6 +31,13 @@ export function validateProduct(input: ProductInput): Record<string, string[]> |
   if (!input?.team?.trim()) e.team = ["El nombre de la camiseta es obligatorio."];
   if (!PRODUCT_TYPES.includes(input?.type)) e.type = ["Elegí un tipo de producto válido."];
   if (typeof input?.price !== "number" || input.price < 0) e.price = ["El precio no puede ser negativo."];
+  if (input?.salePrice != null) {
+    if (typeof input.salePrice !== "number" || input.salePrice < 0) {
+      e.salePrice = ["El precio de oferta no puede ser negativo."];
+    } else if (typeof input.price === "number" && input.salePrice >= input.price) {
+      e.salePrice = ["El precio de oferta tiene que ser menor al precio de lista."];
+    }
+  }
   if (!Array.isArray(input?.images) || input.images.length > 3)
     e.images = ["Podés subir hasta 3 fotos."];
   if (input?.presetNumber) {
@@ -66,6 +74,7 @@ export function toProductData(input: ProductInput, slug: string): Prisma.Product
     team: input.team.trim(),
     type: input.type,
     price: input.price,
+    salePrice: input.salePrice != null && input.salePrice < input.price ? input.salePrice : null,
     colorCss: input.colorCss?.trim() || "linear-gradient(160deg,#FFC44D,#DE9A26)",
     images: (input.images ?? []).slice(0, 3).map((u) => u.trim()).filter(Boolean),
     description: (input.description ?? "").trim(),

@@ -4,7 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
-import { isNewProduct, LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS, typeAllowsCustomization } from "@/lib/api";
+import {
+  effectivePrice,
+  isNewProduct,
+  LOW_STOCK_THRESHOLD,
+  PRODUCT_TYPE_LABELS,
+  typeAllowsCustomization,
+} from "@/lib/api";
 import { FavoriteButton } from "./FavoriteButton";
 import { QuickViewModal } from "./QuickViewModal";
 
@@ -17,6 +23,7 @@ export function ProductCard({ product }: { product: Product }) {
     canCustomize && (!product.presetName || !product.presetNumber || product.patches.length > 0);
   const lowStock = product.inStock && product.stock <= LOW_STOCK_THRESHOLD;
   const isNew = isNewProduct(product.createdAt);
+  const onSale = product.salePrice != null && product.salePrice < product.price;
   const [quickView, setQuickView] = useState(false);
 
   return (
@@ -25,7 +32,11 @@ export function ProductCard({ product }: { product: Product }) {
       <span className="absolute left-3 top-3 z-10 rounded-md border border-thor-line bg-thor-cream/80 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-thor-ink-soft">
         {PRODUCT_TYPE_LABELS[product.type]}
       </span>
-      {lowStock ? (
+      {onSale ? (
+        <span className="absolute right-3 top-3 z-10 rounded-md border border-red-600/30 bg-red-50 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-red-600">
+          Oferta
+        </span>
+      ) : lowStock ? (
         <span className="absolute right-3 top-3 z-10 rounded-md border border-red-600/30 bg-red-50 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-red-600">
           {product.stock === 1 ? "¡Última unidad!" : `¡Últimas ${product.stock}!`}
         </span>
@@ -101,8 +112,15 @@ export function ProductCard({ product }: { product: Product }) {
         )}
 
         <div className="mt-2.5 flex items-center justify-between gap-3">
-          <span className="font-mono text-base font-bold text-thor-gold tabular-nums">
-            ${product.price.toLocaleString("es-AR")}
+          <span className="flex items-baseline gap-1.5">
+            {onSale && (
+              <span className="font-mono text-xs text-thor-muted line-through">
+                ${product.price.toLocaleString("es-AR")}
+              </span>
+            )}
+            <span className="font-mono text-base font-bold text-thor-gold tabular-nums">
+              ${effectivePrice(product).toLocaleString("es-AR")}
+            </span>
           </span>
           {!product.inStock ? (
             <span className="rounded-lg border border-thor-line px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-muted">
