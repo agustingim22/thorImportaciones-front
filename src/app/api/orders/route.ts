@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { sendAdminOrderNotification, sendOrderConfirmation, sendOutOfStockAlert } from "@/lib/server/email";
 import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
 import { getSessionUser } from "@/lib/server/session";
+import { computeShippingCost } from "@/lib/shippingCalc";
 import { MERCADOPAGO_ENABLED } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { rateLimit } from "@/lib/server/ratelimit";
@@ -134,7 +135,13 @@ export async function POST(req: Request) {
         });
       }
 
-      const total = itemsData.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+      const subtotal = itemsData.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+      const shippingSettings = await tx.shippingSettings.findUnique({ where: { id: 1 } });
+      const shippingCost = computeShippingCost(subtotal, {
+        flatCost: shippingSettings?.flatCost ?? 0,
+        freeShippingThreshold: shippingSettings?.freeShippingThreshold ?? null,
+      });
+      const total = subtotal + shippingCost;
       const publicId = crypto.randomBytes(6).toString("hex");
 
       return tx.order.create({
@@ -155,6 +162,7 @@ export async function POST(req: Request) {
           deliveryNotes: body.deliveryNotes?.trim() || null,
           paymentMethod,
           total,
+          shippingCost,
           items: { create: itemsData },
         },
         include: { items: true },
@@ -212,11 +220,13 @@ export async function POST(req: Request) {
       customerName: order.customerName,
       customerEmail: order.customerEmail,
       items: order.items,
+      shippingCost: order.shippingCost,
     });
   }
 
   return NextResponse.json({
     orderId: order.publicId,
+    shippingCost: order.shippingCost,
     total: order.total,
     status: order.status,
     paymentMethod: order.paymentMethod,

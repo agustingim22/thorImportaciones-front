@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { getOrder, syncPayment, type OrderStatus } from "@/lib/orders";
 import { useCart } from "@/lib/cart";
+import { OrderNextSteps } from "@/components/OrderNextSteps";
 
 const VIEW: Record<string, { icon: string; title: string; text: string }> = {
   Paid: { icon: "✅", title: "¡Pago confirmado!", text: "Tu pedido está pago. Te enviamos el resumen y el seguimiento por email." },
@@ -52,6 +53,7 @@ function Resultado() {
           <strong className="text-thor-ink">${order.total.toLocaleString("es-AR")}</strong>
         </p>
       )}
+      {order && order.status !== "Cancelled" && <OrderNextSteps kind="stock" />}
       <Link
         href="/camisetas"
         className="mt-8 inline-block rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"

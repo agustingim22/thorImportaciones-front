@@ -1,6 +1,7 @@
 "use client";
 
 import type { Product, ProductType } from "./api";
+import type { ShippingSettings } from "./shippingCalc";
 
 const TOKEN_KEY = "thor-admin-token";
 
@@ -140,6 +141,7 @@ export type AdminOrder = {
   deliveryNotes: string | null;
   notes: string | null;
   total: number;
+  shippingCost: number;
   paymentMethod: string | null;
   receiptUrl: string | null;
   trackingNumber: string | null;
@@ -348,6 +350,22 @@ export async function adminListSubscribers(): Promise<AdminSubscriber[]> {
   const res = await fetch(`/api/admin/subscribers`, { headers: authHeaders(), cache: "no-store" });
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
+}
+
+// ---- Envío ----
+export async function adminGetShipping(): Promise<ShippingSettings> {
+  const res = await fetch(`/api/admin/shipping`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminSetShipping(settings: ShippingSettings): Promise<void> {
+  const res = await fetch(`/api/admin/shipping`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(settings),
+  });
+  if (!res.ok) throw await toError(res);
 }
 
 async function toError(res: Response): Promise<Error> {

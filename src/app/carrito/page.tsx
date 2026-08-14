@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
-import { createOrder, uploadReceipt, type CreateOrderResult } from "@/lib/orders";
+import { createOrder, getShippingSettings, uploadReceipt, type CreateOrderResult } from "@/lib/orders";
+import { computeShippingCost, type ShippingSettings } from "@/lib/shippingCalc";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { MERCADOPAGO_ENABLED, SITE, whatsappUrl } from "@/lib/site";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
+import { OrderNextSteps } from "@/components/OrderNextSteps";
 
 export default function CarritoPage() {
   const { items, total, setQty, remove, clear } = useCart();
@@ -21,6 +23,14 @@ export default function CarritoPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<CreateOrderResult | null>(null);
+  const [shipping, setShipping] = useState<ShippingSettings>({ flatCost: 0, freeShippingThreshold: null });
+
+  useEffect(() => {
+    getShippingSettings().then(setShipping);
+  }, []);
+
+  const shippingCost = computeShippingCost(total, shipping);
+  const grandTotal = total + shippingCost;
 
   // Si el comprador está logueado, prellenamos con sus datos guardados
   // (solo si el formulario todavía no fue tocado).
@@ -91,6 +101,7 @@ export default function CarritoPage() {
           Tu número de pedido es <strong className="font-mono text-thor-ink">{result.orderId}</strong>. Te
           contactamos para coordinar el pago.
         </p>
+        <OrderNextSteps kind="stock" />
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             href="/camisetas"
@@ -194,9 +205,23 @@ export default function CarritoPage() {
           onSubmit={handleCheckout}
           className="h-fit rounded-2xl border border-thor-line bg-thor-paper p-6"
         >
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-sm uppercase tracking-wide text-thor-muted">Total</span>
-            <span className="font-display text-2xl text-thor-ink">${total.toLocaleString("es-AR")}</span>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-sm text-thor-ink-soft">
+              <span>Subtotal</span>
+              <span className="tabular-nums">${total.toLocaleString("es-AR")}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm text-thor-ink-soft">
+              <span>Envío</span>
+              <span className="tabular-nums">
+                {shippingCost === 0 ? "Gratis" : `$${shippingCost.toLocaleString("es-AR")}`}
+              </span>
+            </div>
+            <div className="flex items-center justify-between border-t border-thor-line pt-1.5">
+              <span className="font-mono text-sm uppercase tracking-wide text-thor-muted">Total</span>
+              <span className="font-display text-2xl text-thor-ink">
+                ${grandTotal.toLocaleString("es-AR")}
+              </span>
+            </div>
           </div>
 
           <div className="mt-5 grid gap-3">
@@ -432,6 +457,8 @@ function TransferResult({ orderId, total }: { orderId: string; total: number }) 
           .
         </p>
       </div>
+
+      <OrderNextSteps kind="transfer" />
 
       <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2">
         <Link

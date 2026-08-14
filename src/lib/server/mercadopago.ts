@@ -7,6 +7,7 @@ type OrderForPreference = {
   customerName: string;
   customerEmail: string;
   items: { productName: string; unitPrice: number; quantity: number }[];
+  shippingCost: number;
 };
 
 export function isMpConfigured(): boolean {
@@ -22,13 +23,18 @@ export async function createPreference(order: OrderForPreference): Promise<strin
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
   const back = `${appBase()}/checkout/resultado?order=${order.publicId}`;
 
+  const items = order.items.map((i) => ({
+    title: i.productName,
+    quantity: i.quantity,
+    unit_price: i.unitPrice,
+    currency_id: "ARS",
+  }));
+  if (order.shippingCost > 0) {
+    items.push({ title: "Envío", quantity: 1, unit_price: order.shippingCost, currency_id: "ARS" });
+  }
+
   const body: Record<string, unknown> = {
-    items: order.items.map((i) => ({
-      title: i.productName,
-      quantity: i.quantity,
-      unit_price: i.unitPrice,
-      currency_id: "ARS",
-    })),
+    items,
     payer: { name: order.customerName, email: order.customerEmail },
     external_reference: order.publicId,
     back_urls: { success: back, failure: back, pending: back },

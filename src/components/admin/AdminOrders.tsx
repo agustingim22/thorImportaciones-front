@@ -95,6 +95,88 @@ function exportCsv(orders: AdminOrder[]) {
   URL.revokeObjectURL(url);
 }
 
+function RemitoPrintable({ order: o }: { order: AdminOrder }) {
+  return (
+    <div className="p-10 text-black">
+      <h1 className="text-2xl font-bold">Remito — Pedido #{o.publicId}</h1>
+      <p className="mt-1 text-sm">
+        {new Date(o.createdAt).toLocaleDateString("es-AR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}
+      </p>
+
+      <div className="mt-6">
+        <h2 className="text-sm font-bold uppercase">Cliente</h2>
+        <p>{o.customerName}</p>
+        <p>
+          {o.customerPhone}
+          {o.customerEmail ? ` · ${o.customerEmail}` : ""}
+        </p>
+      </div>
+
+      <div className="mt-4">
+        <h2 className="text-sm font-bold uppercase">Dirección de envío</h2>
+        <p>{formatAddress(o)}</p>
+        {o.deliveryNotes && <p className="italic">{o.deliveryNotes}</p>}
+      </div>
+
+      <div className="mt-6">
+        <h2 className="text-sm font-bold uppercase">Detalle</h2>
+        {o.kind === "Custom" ? (
+          <ul className="mt-2 list-disc pl-5">
+            {o.customItems.map((c, i) => (
+              <li key={i}>
+                {c.reference} — Tela: {c.fabric}, Talle: {c.size}
+                {c.patch && `, Parche: ${c.patch}`}
+                {c.number && `, N°: ${c.number}`}
+                {c.name && `, Nombre: ${c.name}`}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <table className="mt-2 w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-black text-left">
+                <th className="py-1">Producto</th>
+                <th className="py-1">Talle</th>
+                <th className="py-1">Cant.</th>
+                <th className="py-1 text-right">Precio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {o.items.map((it, i) => (
+                <tr key={i} className="border-b border-gray-300">
+                  <td className="py-1">
+                    {it.productName}
+                    {it.customName && ` · ${it.customName}`}
+                    {it.customNumber && ` #${it.customNumber}`}
+                    {it.patchLabel && ` · ${it.patchLabel}`}
+                  </td>
+                  <td className="py-1">{it.size ?? "-"}</td>
+                  <td className="py-1">{it.quantity}</td>
+                  <td className="py-1 text-right">
+                    ${(it.unitPrice * it.quantity).toLocaleString("es-AR")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="mt-6 flex justify-between border-t border-black pt-3 text-lg font-bold">
+        <span>Total</span>
+        <span>
+          {o.kind === "Custom" && o.total <= 0 ? "A coordinar" : `$${o.total.toLocaleString("es-AR")}`}
+        </span>
+      </div>
+      <p className="mt-1 text-sm">Forma de pago: {paymentLabel(o)}</p>
+    </div>
+  );
+}
+
 export function AdminOrders() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +188,18 @@ export function AdminOrders() {
   const [editingTracking, setEditingTracking] = useState<Record<string, string>>({});
   const [savingTracking, setSavingTracking] = useState<string | null>(null);
   const [trackingError, setTrackingError] = useState("");
+  const [printingOrder, setPrintingOrder] = useState<AdminOrder | null>(null);
+
+  useEffect(() => {
+    if (!printingOrder) return;
+    const t = setTimeout(() => window.print(), 50);
+    const onAfterPrint = () => setPrintingOrder(null);
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+  }, [printingOrder]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -201,7 +295,8 @@ export function AdminOrders() {
   });
 
   return (
-    <div>
+    <>
+    <div className="print:hidden">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-thor-muted">
           {filtered.length} de {orders.length} pedidos
@@ -262,24 +357,25 @@ export function AdminOrders() {
               <th className="px-4 py-3">Pago</th>
               <th className="px-4 py-3">Seguimiento</th>
               <th className="px-4 py-3">Estado</th>
+              <th className="px-4 py-3">Remito</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
+                <td colSpan={9} className="px-4 py-8 text-center text-thor-muted">Cargando…</td>
               </tr>
             )}
             {!loading && orders.length > 0 && filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={9} className="px-4 py-8 text-center text-thor-muted">
                   Ningún pedido coincide con la búsqueda o el filtro.
                 </td>
               </tr>
             )}
             {!loading && orders.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-thor-muted">
+                <td colSpan={9} className="px-4 py-8 text-center text-thor-muted">
                   Todavía no hay pedidos.
                 </td>
               </tr>
@@ -452,11 +548,26 @@ export function AdminOrders() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setPrintingOrder(o)}
+                      className="rounded-md border border-thor-line px-2.5 py-1 font-mono text-xs text-thor-ink hover:border-thor-gold"
+                    >
+                      🖨 Imprimir
+                    </button>
+                  </td>
                 </tr>
               ))}
           </tbody>
         </table>
       </div>
     </div>
+    {printingOrder && (
+      <div className="hidden print:block">
+        <RemitoPrintable order={printingOrder} />
+      </div>
+    )}
+    </>
   );
 }

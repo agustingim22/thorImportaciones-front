@@ -118,6 +118,7 @@ model Order {
   deliveryNotes  String? // referencias para el envío (horarios, entre calles, etc.)
   notes          String?
   total          Int
+  shippingCost   Int          @default(0) // snapshot de lo cobrado por envío en este pedido
   paymentMethod  String? // "MercadoPago" | "Transfer" (solo pedidos de stock)
   paymentId      String?
   receiptUrl     String? // comprobante de transferencia
@@ -163,6 +164,13 @@ model Subscriber {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   createdAt DateTime @default(now())
+}
+
+/// Configuración de envío (fila única, id=1), editable desde el admin.
+model ShippingSettings {
+  id                    Int  @id @default(1)
+  flatCost              Int  @default(0) // ARS, se suma al total de pedidos de catálogo
+  freeShippingThreshold Int? // si el subtotal de productos llega a este monto, el envío es gratis
 }
 
 model OrderItem {

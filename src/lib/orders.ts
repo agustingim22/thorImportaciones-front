@@ -28,10 +28,18 @@ export type CreateOrderPayload = ShippingAddress & {
 export type CreateOrderResult = {
   orderId: string;
   total: number;
+  shippingCost: number;
   status: string;
   paymentMethod: "MercadoPago" | "Transfer";
   checkoutUrl: string | null;
 };
+
+/** Configuración de envío pública, para mostrar el costo estimado antes de confirmar el pedido. */
+export async function getShippingSettings(): Promise<import("./shippingCalc").ShippingSettings> {
+  const res = await fetch(`/api/shipping`, { cache: "no-store" });
+  if (!res.ok) return { flatCost: 0, freeShippingThreshold: null };
+  return res.json();
+}
 
 export async function createOrder(payload: CreateOrderPayload): Promise<CreateOrderResult> {
   const res = await fetch(`/api/orders`, {

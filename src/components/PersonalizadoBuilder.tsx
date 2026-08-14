@@ -7,6 +7,7 @@ import { createCustomOrder, uploadCustomOrderImage, type CustomItemInput } from 
 import { SITE_URL, whatsappUrl } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
+import { OrderNextSteps } from "@/components/OrderNextSteps";
 import type { Product, ProductType } from "@/lib/api";
 
 type Item = CustomItemInput & {
@@ -210,6 +211,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
           Se abrió WhatsApp con el resumen — mandanos el mensaje y coordinamos precio final, tiempo
           de importación y forma de pago.
         </p>
+        <OrderNextSteps kind="custom" />
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             href="/camisetas"

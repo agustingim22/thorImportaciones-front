@@ -60,6 +60,9 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     reviews = [];
   }
 
+  const averageRating =
+    reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -67,6 +70,13 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     description: product.description,
     image: product.images,
     url: `${SITE_URL}/producto/${product.slug}`,
+    ...(reviews.length > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: averageRating.toFixed(1),
+        reviewCount: reviews.length,
+      },
+    }),
     offers: {
       "@type": "Offer",
       priceCurrency: "ARS",
