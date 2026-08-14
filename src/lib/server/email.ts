@@ -247,6 +247,51 @@ export async function sendOutOfStockAlert(
   await send(SITE.adminEmail, subject, layout("Stock agotado", body));
 }
 
+/** Aviso a un comprador que pidió que le avisen cuando un producto vuelva a tener stock. */
+export async function sendStockBackNotification(to: {
+  email: string;
+  team: string;
+  slug: string;
+}): Promise<void> {
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">
+      "${to.team}" volvió a tener stock. Si todavía te interesa, no esperes mucho —
+      no sabemos cuánto va a durar.
+    </p>
+    <p style="text-align:center;margin:24px 0;">
+      <a href="${SITE_URL}/producto/${to.slug}" style="background:#DE9A26;color:#14323F;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:10px;display:inline-block;">
+        Ver "${to.team}" →
+      </a>
+    </p>
+  `;
+  await send(to.email, `¡Ya hay stock de "${to.team}"!`, layout("Volvió el stock", body));
+}
+
+/** Pide una reseña unos días después de que el pedido se marca como entregado. */
+export async function sendReviewRequest(to: {
+  email: string;
+  customerName: string;
+  products: { team: string; slug: string }[];
+}): Promise<void> {
+  if (!to.email || to.products.length === 0) return;
+  const rows = to.products
+    .map(
+      (p) => `<li style="margin-bottom:10px;color:#14323F;font-size:14px;">
+        ${p.team}
+        <br><a href="${SITE_URL}/producto/${p.slug}#resenas" style="font-size:12px;color:#DE9A26;">Dejar mi reseña →</a>
+      </li>`,
+    )
+    .join("");
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">
+      Hola ${to.customerName}, esperamos que estés disfrutando tu pedido. ¿Nos contás cómo te fue?
+      Tu reseña ayuda a otros hinchas a decidirse.
+    </p>
+    <ul style="padding-left:18px;margin:12px 0;">${rows}</ul>
+  `;
+  await send(to.email, "¿Cómo te fue con tu pedido?", layout("Contanos qué te pareció", body));
+}
+
 /** Link para restablecer la contraseña. */
 export async function sendPasswordReset(email: string, resetUrl: string): Promise<void> {
   const body = `

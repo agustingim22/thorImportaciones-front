@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
 import { uniqueSlug } from "@/lib/server/slug";
 import { serializeProduct, withPatches } from "@/lib/products";
+import { sendStockBackNotification } from "@/lib/server/email";
 import {
   toProductData,
   toSizeStockRows,
@@ -50,6 +51,27 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       ...withPatches,
     }),
   ]);
+
+  // Si el producto pasó de "sin stock" a "con stock", avisamos a quien lo pidió.
+  if (existing.stock <= 0 && product.stock > 0) {
+    const pending = await prisma.stockNotification.findMany({
+      where: { productId, notified: false },
+    });
+    if (pending.length > 0) {
+      await Promise.all(
+        pending.map((n) =>
+          sendStockBackNotification({ email: n.email, team: product.team, slug: product.slug }).catch(
+            () => {},
+          ),
+        ),
+      );
+      await prisma.stockNotification.updateMany({
+        where: { productId, notified: false },
+        data: { notified: true },
+      });
+    }
+  }
+
   return NextResponse.json(serializeProduct(product));
 }
 

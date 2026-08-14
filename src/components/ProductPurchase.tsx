@@ -13,6 +13,7 @@ import {
 import { useCart } from "@/lib/cart";
 import { useRecentlyViewed } from "@/lib/recentlyViewed";
 import { trackPixelEvent } from "@/lib/metaPixel";
+import { notifyStockAvailable } from "@/lib/stockNotify";
 import { FavoriteButton } from "./FavoriteButton";
 
 export function ProductPurchase({ product }: { product: Product }) {
@@ -28,6 +29,10 @@ export function ProductPurchase({ product }: { product: Product }) {
   const [shared, setShared] = useState(false);
   const [lightbox, setLightbox] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifyDone, setNotifyDone] = useState(false);
+  const [notifyError, setNotifyError] = useState("");
 
   const imageCount = product.images.length;
   const nextImage = () => setActiveImage((i) => (i + 1) % imageCount);
@@ -116,6 +121,21 @@ export function ProductPurchase({ product }: { product: Product }) {
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
+  }
+
+  async function handleNotifyStock(e: React.FormEvent) {
+    e.preventDefault();
+    setNotifyError("");
+    setNotifyLoading(true);
+    try {
+      await notifyStockAvailable(product.id, notifyEmail);
+      setNotifyDone(true);
+      setNotifyEmail("");
+    } catch (err) {
+      setNotifyError(err instanceof Error ? err.message : "No se pudo registrar el aviso.");
+    } finally {
+      setNotifyLoading(false);
+    }
   }
 
   return (
@@ -380,6 +400,35 @@ export function ProductPurchase({ product }: { product: Product }) {
             {shared ? "✓ Link copiado" : "Compartir ↗"}
           </button>
         </div>
+
+        {!product.inStock && (
+          <div className="mt-3">
+            {notifyDone ? (
+              <p className="font-mono text-xs text-thor-land">
+                ✓ Listo, te avisamos por email apenas vuelva a tener stock.
+              </p>
+            ) : (
+              <form onSubmit={handleNotifyStock} className="flex flex-wrap items-center gap-2">
+                <input
+                  type="email"
+                  required
+                  value={notifyEmail}
+                  onChange={(e) => setNotifyEmail(e.target.value)}
+                  placeholder="tu@email.com"
+                  className="w-48 rounded-lg border border-thor-line bg-thor-paper px-3 py-1.5 text-sm text-thor-ink"
+                />
+                <button
+                  type="submit"
+                  disabled={notifyLoading}
+                  className="rounded-lg border border-thor-line px-3.5 py-1.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold disabled:opacity-60"
+                >
+                  {notifyLoading ? "…" : "Avisame cuando haya stock"}
+                </button>
+              </form>
+            )}
+            {notifyError && <p className="mt-1 text-xs text-red-600">{notifyError}</p>}
+          </div>
+        )}
         {product.inStock && !size && (
           <p className="mt-2 text-xs text-thor-muted">Elegí un talle para poder agregarlo al carrito.</p>
         )}

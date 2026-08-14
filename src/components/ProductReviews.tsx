@@ -57,7 +57,7 @@ export function ProductReviews({ productId, reviews }: { productId: number; revi
   }
 
   return (
-    <section className="mt-16 border-t border-thor-line pt-10">
+    <section id="resenas" className="mt-16 border-t border-thor-line pt-10">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl tracking-wide text-thor-ink">Reseñas</h2>

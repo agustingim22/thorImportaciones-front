@@ -59,6 +59,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ publicI
         ...(status !== undefined ? { status } : {}),
         ...(total !== undefined ? { total } : {}),
         ...(trackingNumber !== undefined ? { trackingNumber: trackingNumber.trim() || null } : {}),
+        // Guardamos la primera vez que se entrega, para poder pedir la reseña unos días después.
+        ...(status === "Delivered" && !order.deliveredAt ? { deliveredAt: new Date() } : {}),
       },
     });
   });

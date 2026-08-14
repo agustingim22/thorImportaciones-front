@@ -10,22 +10,35 @@ datasource db {
 }
 
 model Product {
-  id           Int           @id @default(autoincrement())
-  slug         String        @unique
-  team         String
-  type         String // "retro" | "fan" | "player"
-  price        Int // ARS
-  colorCss     String
-  images       String[]      @default([]) // hasta 3 fotos (la primera es la portada)
-  description  String
-  stock        Int           @default(0) // unidades disponibles (0 = sin stock)
-  presetName   String? // nombre ya definido por el admin (si está, el comprador no elige)
-  presetNumber String? // número ya definido por el admin (si está, el comprador no elige)
-  sizes        String[]      @default(["S", "M", "L", "XL", "XXL"]) // talles disponibles para esta camiseta
-  createdAt    DateTime      @default(now())
-  patches      Patch[]
-  sizeStocks   ProductSize[]
-  reviews      Review[]
+  id                 Int                 @id @default(autoincrement())
+  slug               String              @unique
+  team               String
+  type               String // "retro" | "fan" | "player"
+  price              Int // ARS
+  colorCss           String
+  images             String[]            @default([]) // hasta 3 fotos (la primera es la portada)
+  description        String
+  stock              Int                 @default(0) // unidades disponibles (0 = sin stock)
+  presetName         String? // nombre ya definido por el admin (si está, el comprador no elige)
+  presetNumber       String? // número ya definido por el admin (si está, el comprador no elige)
+  sizes              String[]            @default(["S", "M", "L", "XL", "XXL"]) // talles disponibles para esta camiseta
+  createdAt          DateTime            @default(now())
+  patches            Patch[]
+  sizeStocks         ProductSize[]
+  reviews            Review[]
+  stockNotifications StockNotification[]
+}
+
+/// Email de alguien que pidió que le avisen cuando un producto vuelva a tener stock.
+model StockNotification {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  email     String
+  notified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([productId, email])
 }
 
 /// Reseña de un comprador sobre un producto puntual. Queda oculta (`published=false`)
@@ -100,33 +113,35 @@ model PasswordReset {
 }
 
 model Order {
-  id             Int          @id @default(autoincrement())
-  publicId       String       @unique
-  kind           String       @default("Stock") // "Stock" | "Custom"
-  status         String       @default("Pending") // Pending | Paid | Cancelled | Delivered
-  userId         Int? // si el comprador estaba logueado al pagar
-  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  customerName   String
-  customerEmail  String
-  customerPhone  String
+  id                  Int          @id @default(autoincrement())
+  publicId            String       @unique
+  kind                String       @default("Stock") // "Stock" | "Custom"
+  status              String       @default("Pending") // Pending | Paid | Cancelled | Delivered
+  userId              Int? // si el comprador estaba logueado al pagar
+  user                User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  customerName        String
+  customerEmail       String
+  customerPhone       String
   // Dirección de envío estructurada
-  street         String // calle y número
-  postalCode     String
-  city           String
-  province       String
-  floor          String?
-  apartment      String?
-  deliveryNotes  String? // referencias para el envío (horarios, entre calles, etc.)
-  notes          String?
-  total          Int
-  shippingCost   Int          @default(0) // snapshot de lo cobrado por envío en este pedido
-  paymentMethod  String? // "MercadoPago" | "Transfer" (solo pedidos de stock)
-  paymentId      String?
-  receiptUrl     String? // comprobante de transferencia
-  trackingNumber String? // código de seguimiento del correo, cargado por el admin al despachar
-  createdAt      DateTime     @default(now())
-  items          OrderItem[]
-  customItems    CustomItem[]
+  street              String // calle y número
+  postalCode          String
+  city                String
+  province            String
+  floor               String?
+  apartment           String?
+  deliveryNotes       String? // referencias para el envío (horarios, entre calles, etc.)
+  notes               String?
+  total               Int
+  shippingCost        Int          @default(0) // snapshot de lo cobrado por envío en este pedido
+  paymentMethod       String? // "MercadoPago" | "Transfer" (solo pedidos de stock)
+  paymentId           String?
+  receiptUrl          String? // comprobante de transferencia
+  trackingNumber      String? // código de seguimiento del correo, cargado por el admin al despachar
+  deliveredAt         DateTime? // se marca la primera vez que el status pasa a "Delivered"
+  reviewRequestSentAt DateTime? // cuándo se mandó el mail pidiendo reseña (null = todavía no)
+  createdAt           DateTime     @default(now())
+  items               OrderItem[]
+  customItems         CustomItem[]
 }
 
 model CustomItem {
