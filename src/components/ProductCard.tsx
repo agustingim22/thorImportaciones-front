@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import type { Product } from "@/lib/api";
 import { isNewProduct, LOW_STOCK_THRESHOLD, PRODUCT_TYPE_LABELS, typeAllowsCustomization } from "@/lib/api";
 import { FavoriteButton } from "./FavoriteButton";
+import { QuickViewModal } from "./QuickViewModal";
 
 export function ProductCard({ product }: { product: Product }) {
   // Si el comprador tiene algo para elegir (nombre, número o parche), lo mandamos
@@ -13,6 +17,7 @@ export function ProductCard({ product }: { product: Product }) {
     canCustomize && (!product.presetName || !product.presetNumber || product.patches.length > 0);
   const lowStock = product.inStock && product.stock <= LOW_STOCK_THRESHOLD;
   const isNew = isNewProduct(product.createdAt);
+  const [quickView, setQuickView] = useState(false);
 
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-thor-line bg-thor-paper transition-transform duration-200 hover:-translate-y-1">
@@ -23,6 +28,10 @@ export function ProductCard({ product }: { product: Product }) {
       {lowStock ? (
         <span className="absolute right-3 top-3 z-10 rounded-md border border-red-600/30 bg-red-50 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-red-600">
           {product.stock === 1 ? "¡Última unidad!" : `¡Últimas ${product.stock}!`}
+        </span>
+      ) : product.isBestSeller ? (
+        <span className="absolute right-3 top-3 z-10 rounded-md border border-thor-gold/30 bg-thor-gold/15 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-thor-gold">
+          ★ Más vendido
         </span>
       ) : isNew ? (
         <span className="absolute right-3 top-3 z-10 rounded-md border border-thor-sky/30 bg-thor-sky/15 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-wider text-thor-sky">
@@ -60,6 +69,14 @@ export function ProductCard({ product }: { product: Product }) {
           productId={product.id}
           className="absolute bottom-3 right-3 z-10 h-8 w-8 shadow-sm"
         />
+        <button
+          type="button"
+          onClick={() => setQuickView(true)}
+          aria-label="Vista rápida"
+          className="absolute bottom-3 left-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-thor-paper/90 text-thor-ink shadow-sm hover:bg-thor-paper"
+        >
+          <span aria-hidden className="text-sm">👁</span>
+        </button>
       </div>
 
       {/* perforaciones tipo ticket + divisor punteado */}
@@ -110,6 +127,8 @@ export function ProductCard({ product }: { product: Product }) {
           </Link>
         )}
       </div>
+
+      {quickView && <QuickViewModal product={product} onClose={() => setQuickView(false)} />}
     </article>
   );
 }

@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     orderBy: { createdAt: "desc" },
     ...withPatches,
   });
-  return NextResponse.json(products.map(serializeProduct));
+  return NextResponse.json(products.map((p) => serializeProduct(p)));
 }
 
 export async function POST(req: Request) {

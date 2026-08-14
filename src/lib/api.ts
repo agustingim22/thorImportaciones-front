@@ -38,6 +38,7 @@ export type Product = {
   sizes: string[]; // talles disponibles para esta camiseta
   sizeStock: Record<string, number>; // unidades disponibles por talle (talle -> stock)
   createdAt: string;
+  isBestSeller: boolean; // entre los más pedidos históricamente (ver getBestSellerIds)
 };
 
 export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {

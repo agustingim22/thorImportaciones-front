@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getProducts, type ProductSort } from "@/lib/products";
 import type { Product, ProductType } from "@/lib/api";
-import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { ALL_SIZES, PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -40,9 +40,12 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
   const sortRaw = Array.isArray(sp.sort) ? sp.sort[0] : sp.sort;
   const sort: ProductSort = SORTS.some(([key]) => key === sortRaw) ? (sortRaw as ProductSort) : "newest";
 
+  const sizeRaw = Array.isArray(sp.size) ? sp.size[0] : sp.size;
+  const size = (ALL_SIZES as readonly string[]).includes(sizeRaw ?? "") ? sizeRaw : undefined;
+
   let products: Product[] = [];
   try {
-    products = await getProducts({ type, q, minPrice, maxPrice, sort });
+    products = await getProducts({ type, q, minPrice, maxPrice, size, sort });
   } catch {
     products = [];
   }
@@ -53,12 +56,14 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
     if (q) params.set("q", q);
     if (minPrice !== undefined) params.set("minPrice", String(minPrice));
     if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
+    if (size) params.set("size", size);
     if (sort !== "newest") params.set("sort", sort);
     const qs = params.toString();
     return qs ? `/camisetas?${qs}` : "/camisetas";
   };
 
-  const hasExtraFilters = !!q || minPrice !== undefined || maxPrice !== undefined || sort !== "newest";
+  const hasExtraFilters =
+    !!q || minPrice !== undefined || maxPrice !== undefined || !!size || sort !== "newest";
   const clearHref = type ? `/camisetas?type=${type}` : "/camisetas";
 
   return (
@@ -115,6 +120,18 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
               placeholder="Precio hasta"
               className="w-28 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
             />
+            <select
+              name="size"
+              defaultValue={size ?? ""}
+              className="rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+            >
+              <option value="">Todos los talles</option>
+              {ALL_SIZES.map((s) => (
+                <option key={s} value={s}>
+                  Talle {s}
+                </option>
+              ))}
+            </select>
             <select
               name="sort"
               defaultValue={sort}

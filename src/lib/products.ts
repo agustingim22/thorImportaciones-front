@@ -9,7 +9,7 @@ export const withPatches = Prisma.validator<Prisma.ProductDefaultArgs>()({
 type ProductRow = Prisma.ProductGetPayload<typeof withPatches>;
 
 /** Única fuente de verdad para pasar una fila cruda de Prisma a la forma `Product` pública. */
-export function serializeProduct(p: ProductRow): Product {
+export function serializeProduct(p: ProductRow, bestSellerIds: Set<number> = new Set()): Product {
   return {
     id: p.id,
     slug: p.slug,
@@ -33,7 +33,20 @@ export function serializeProduct(p: ProductRow): Product {
       extraPrice: patch.extraPrice,
     })),
     createdAt: p.createdAt.toISOString(),
+    isBestSeller: bestSellerIds.has(p.id),
   };
+}
+
+/** IDs de los productos más pedidos históricamente (pedidos no cancelados), para el badge "Más vendido". */
+export async function getBestSellerIds(limit = 6): Promise<Set<number>> {
+  const rows = await prisma.orderItem.groupBy({
+    by: ["productId"],
+    where: { order: { status: { not: "Cancelled" } } },
+    _sum: { quantity: true },
+    orderBy: { _sum: { quantity: "desc" } },
+    take: limit,
+  });
+  return new Set(rows.map((r) => r.productId));
 }
 
 export type ProductSort = "newest" | "price-asc" | "price-desc";
@@ -44,6 +57,7 @@ export async function getProducts(
     q?: string;
     minPrice?: number;
     maxPrice?: number;
+    size?: string;
     sort?: ProductSort;
   } = {},
 ): Promise<Product[]> {
@@ -60,18 +74,20 @@ export async function getProducts(
     if (params.minPrice !== undefined) where.price.gte = params.minPrice;
     if (params.maxPrice !== undefined) where.price.lte = params.maxPrice;
   }
+  if (params.size) {
+    where.sizeStocks = { some: { size: params.size, stock: { gt: 0 } } };
+  }
   const orderBy: Prisma.ProductOrderByWithRelationInput =
     params.sort === "price-asc"
       ? { price: "asc" }
       : params.sort === "price-desc"
         ? { price: "desc" }
         : { createdAt: "desc" };
-  const rows = await prisma.product.findMany({
-    where,
-    orderBy,
-    ...withPatches,
-  });
-  return rows.map(serializeProduct);
+  const [rows, bestSellerIds] = await Promise.all([
+    prisma.product.findMany({ where, orderBy, ...withPatches }),
+    getBestSellerIds(),
+  ]);
+  return rows.map((r) => serializeProduct(r, bestSellerIds));
 }
 
 /** Otras camisetas para mostrar como "también te puede interesar" en el detalle. */
@@ -79,13 +95,14 @@ export async function getRelatedProducts(
   product: Pick<Product, "id" | "type">,
   limit = 4,
 ): Promise<Product[]> {
+  const bestSellerIds = await getBestSellerIds();
   const rows = await prisma.product.findMany({
     where: { id: { not: product.id }, type: product.type },
     orderBy: { createdAt: "desc" },
     take: limit,
     ...withPatches,
   });
-  if (rows.length >= limit) return rows.map(serializeProduct);
+  if (rows.length >= limit) return rows.map((r) => serializeProduct(r, bestSellerIds));
 
   // Si no hay suficientes del mismo tipo, completamos con otras camisetas.
   const fillerRows = await prisma.product.findMany({
@@ -94,14 +111,16 @@ export async function getRelatedProducts(
     take: limit - rows.length,
     ...withPatches,
   });
-  return [...rows, ...fillerRows].map(serializeProduct);
+  return [...rows, ...fillerRows].map((r) => serializeProduct(r, bestSellerIds));
 }
 
 export async function getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {
   const asId = Number(idOrSlug);
-  const row =
+  const [row, bestSellerIds] = await Promise.all([
     Number.isInteger(asId) && String(asId) === idOrSlug
-      ? await prisma.product.findUnique({ where: { id: asId }, ...withPatches })
-      : await prisma.product.findUnique({ where: { slug: idOrSlug }, ...withPatches });
-  return row ? serializeProduct(row) : null;
+      ? prisma.product.findUnique({ where: { id: asId }, ...withPatches })
+      : prisma.product.findUnique({ where: { slug: idOrSlug }, ...withPatches }),
+    getBestSellerIds(),
+  ]);
+  return row ? serializeProduct(row, bestSellerIds) : null;
 }
