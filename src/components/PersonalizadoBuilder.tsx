@@ -8,6 +8,7 @@ import { SITE_URL, whatsappUrl } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
 import { OrderNextSteps } from "@/components/OrderNextSteps";
+import { trackPixelEvent } from "@/lib/metaPixel";
 import type { Product, ProductType } from "@/lib/api";
 
 type Item = CustomItemInput & {
@@ -190,6 +191,10 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
           number,
           name,
         })),
+      });
+      trackPixelEvent("Lead", {
+        content_name: "Pedido personalizado",
+        num_items: items.length,
       });
       // Abrimos WhatsApp con el resumen del pedido
       window.open(whatsappUrl(buildWhatsAppMessage(orderId)), "_blank");

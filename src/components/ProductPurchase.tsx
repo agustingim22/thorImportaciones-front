@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { useRecentlyViewed } from "@/lib/recentlyViewed";
+import { trackPixelEvent } from "@/lib/metaPixel";
 import { FavoriteButton } from "./FavoriteButton";
 
 export function ProductPurchase({ product }: { product: Product }) {
@@ -57,6 +58,13 @@ export function ProductPurchase({ product }: { product: Product }) {
 
   useEffect(() => {
     addView(product.id);
+    trackPixelEvent("ViewContent", {
+      content_ids: [String(product.id)],
+      content_name: product.team,
+      content_type: "product",
+      value: product.price,
+      currency: "ARS",
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
@@ -98,6 +106,13 @@ export function ProductPurchase({ product }: { product: Product }) {
       patchId: canCustomize ? selectedPatch?.id ?? null : null,
       patchLabel: canCustomize ? selectedPatch?.label ?? null : null,
       patchExtraPrice: canCustomize ? selectedPatch?.extraPrice ?? 0 : 0,
+    });
+    trackPixelEvent("AddToCart", {
+      content_ids: [String(product.id)],
+      content_name: product.team,
+      content_type: "product",
+      value: finalPrice,
+      currency: "ARS",
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);

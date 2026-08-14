@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { getOrder, syncPayment, type OrderStatus } from "@/lib/orders";
 import { useCart } from "@/lib/cart";
 import { OrderNextSteps } from "@/components/OrderNextSteps";
+import { trackPixelEvent } from "@/lib/metaPixel";
 
 const VIEW: Record<string, { icon: string; title: string; text: string }> = {
   Paid: { icon: "✅", title: "¡Pago confirmado!", text: "Tu pedido está pago. Te enviamos el resumen y el seguimiento por email." },
@@ -28,7 +29,17 @@ function Resultado() {
         try { await syncPayment(paymentId); } catch { /* seguimos */ }
       }
       if (orderId) {
-        try { setOrder(await getOrder(orderId)); } catch { /* seguimos */ }
+        try {
+          const o = await getOrder(orderId);
+          setOrder(o);
+          if (o.status === "Paid") {
+            trackPixelEvent("Purchase", {
+              value: o.total,
+              currency: "ARS",
+              content_ids: o.items.map((i) => i.productName),
+            });
+          }
+        } catch { /* seguimos */ }
       }
       clear(); // vaciar el carrito al volver del checkout
       setLoading(false);

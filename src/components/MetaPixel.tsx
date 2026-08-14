@@ -3,12 +3,7 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-
-declare global {
-  interface Window {
-    fbq?: (...args: unknown[]) => void;
-  }
-}
+import { trackPixelEvent } from "@/lib/metaPixel";
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
@@ -17,8 +12,8 @@ export function MetaPixel() {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!PIXEL_ID || !window.fbq) return;
-    window.fbq("track", "PageView");
+    if (!PIXEL_ID) return;
+    trackPixelEvent("PageView");
   }, [pathname]);
 
   if (!PIXEL_ID) return null;

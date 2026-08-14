@@ -10,6 +10,7 @@ import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { MERCADOPAGO_ENABLED, SITE, whatsappUrl } from "@/lib/site";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
 import { OrderNextSteps } from "@/components/OrderNextSteps";
+import { trackPixelEvent } from "@/lib/metaPixel";
 
 export default function CarritoPage() {
   const { items, total, setQty, remove, clear } = useCart();
@@ -60,6 +61,12 @@ export default function CarritoPage() {
       setPhoneError(PHONE_HINT);
       return;
     }
+    trackPixelEvent("InitiateCheckout", {
+      value: grandTotal,
+      currency: "ARS",
+      num_items: items.reduce((s, i) => s + i.qty, 0),
+      content_ids: items.map((i) => String(i.productId)),
+    });
     setLoading(true);
     try {
       const res = await createOrder({
@@ -79,6 +86,14 @@ export default function CarritoPage() {
         window.location.href = res.checkoutUrl; // redirige a Mercado Pago
         return;
       }
+      // El "Purchase" se cuenta acá (pedido creado) y no en el redirect a Mercado
+      // Pago, donde recién se confirma en /checkout/resultado si el pago se acreditó.
+      trackPixelEvent("Purchase", {
+        value: res.total,
+        currency: "ARS",
+        num_items: items.reduce((s, i) => s + i.qty, 0),
+        content_ids: items.map((i) => String(i.productId)),
+      });
       clear();
       setResult(res);
     } catch (err) {
