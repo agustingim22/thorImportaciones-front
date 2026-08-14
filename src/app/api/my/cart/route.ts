@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSessionUser } from "@/lib/server/session";
+import { resolveCartItems } from "@/lib/server/cart";
 
 /** Trae el carrito guardado del usuario, resuelto con precios/datos vigentes del producto. */
 export async function GET() {
@@ -8,38 +9,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const rows = await prisma.savedCartItem.findMany({ where: { userId: user.id } });
-  if (rows.length === 0) return NextResponse.json([]);
-
-  const products = await prisma.product.findMany({
-    where: { id: { in: rows.map((r) => r.productId) } },
-    include: { patches: true },
-  });
-  const byId = new Map(products.map((p) => [p.id, p]));
-
-  const items = rows
-    .map((r) => {
-      const product = byId.get(r.productId);
-      if (!product) return null; // el producto ya no existe: se descarta
-      const patch = r.patchId != null ? product.patches.find((p) => p.id === r.patchId) : undefined;
-      return {
-        productId: product.id,
-        team: product.team,
-        price: product.price,
-        qty: r.qty,
-        imageUrl: product.images[0] ?? null,
-        colorCss: product.colorCss,
-        presetNumber: product.presetNumber,
-        size: r.size,
-        customName: r.customName,
-        customNumber: r.customNumber,
-        patchId: patch?.id ?? null,
-        patchLabel: patch?.label ?? null,
-        patchExtraPrice: patch?.extraPrice ?? 0,
-      };
-    })
-    .filter((x) => x !== null);
-
-  return NextResponse.json(items);
+  return NextResponse.json(await resolveCartItems(rows));
 }
 
 type CartItemInput = {
@@ -78,6 +48,9 @@ export async function PUT(req: Request) {
           }),
         ]
       : []),
+    // El carrito cambió: si estaba "abandonado" y esperando un recordatorio, arrancamos
+    // el conteo de nuevo en vez de mandarle un mail sobre un carrito que ya no es ese.
+    prisma.user.update({ where: { id: user.id }, data: { cartReminderSentAt: null } }),
   ]);
 
   return NextResponse.json({ ok: true });

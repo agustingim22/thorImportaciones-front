@@ -267,6 +267,33 @@ export async function sendStockBackNotification(to: {
   await send(to.email, `¡Ya hay stock de "${to.team}"!`, layout("Volvió el stock", body));
 }
 
+/** Recordatorio de carrito abandonado (usuarios logueados con carrito guardado sin comprar). */
+export async function sendCartReminder(to: {
+  email: string;
+  customerName: string;
+  items: { team: string; qty: number }[];
+}): Promise<void> {
+  if (!to.email || to.items.length === 0) return;
+  const rows = to.items
+    .map(
+      (i) => `<li style="margin-bottom:8px;color:#14323F;font-size:14px;">${i.team} x${i.qty}</li>`,
+    )
+    .join("");
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">
+      Hola ${to.customerName}, dejaste esto en tu carrito. Sigue disponible, pero no te
+      prometemos que el stock dure para siempre.
+    </p>
+    <ul style="padding-left:18px;margin:12px 0;">${rows}</ul>
+    <p style="text-align:center;margin:24px 0;">
+      <a href="${SITE_URL}/carrito" style="background:#DE9A26;color:#14323F;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:10px;display:inline-block;">
+        Terminar mi compra →
+      </a>
+    </p>
+  `;
+  await send(to.email, "Te olvidaste algo en el carrito", layout("Tu carrito te espera", body));
+}
+
 /** Pide una reseña unos días después de que el pedido se marca como entregado. */
 export async function sendReviewRequest(to: {
   email: string;

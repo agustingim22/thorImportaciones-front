@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN "cartReminderSentAt" TIMESTAMP(3);
+
+-- AlterTable
+ALTER TABLE "SavedCartItem" ADD COLUMN "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;
