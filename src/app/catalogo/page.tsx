@@ -75,34 +75,41 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
       />
 
       <section className="mx-auto max-w-6xl px-5 py-12">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          {/* Filtros por tipo */}
-          <div className="inline-flex gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
-            {TABS.map((t) => {
-              const active = t.key === type;
-              return (
-                <Link
-                  key={t.label}
-                  href={tabHref(t.key)}
-                  className={`rounded-lg px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
-                    active ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
-                  }`}
-                >
-                  {t.label}
-                </Link>
-              );
-            })}
+        <div className="mb-8 flex flex-col gap-4">
+          {/* Filtros por tipo: tira horizontal con scroll en pantallas chicas, para
+              que no se amontonen en varias filas desparejas */}
+          <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+            <div className="inline-flex w-max gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
+              {TABS.map((t) => {
+                const active = t.key === type;
+                return (
+                  <Link
+                    key={t.label}
+                    href={tabHref(t.key)}
+                    className={`shrink-0 rounded-lg px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
+                      active ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+                    }`}
+                  >
+                    {t.label}
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Buscador + filtros */}
-          <form method="get" action="/catalogo" className="flex flex-wrap items-center gap-2">
+          {/* Buscador + filtros: grilla de 2 columnas en mobile, una sola fila desde sm */}
+          <form
+            method="get"
+            action="/catalogo"
+            className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center"
+          >
             {type && <input type="hidden" name="type" value={type} />}
             <input
               type="search"
               name="q"
               defaultValue={q ?? ""}
               placeholder="Buscar equipo…"
-              className="rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+              className="col-span-2 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink sm:w-auto"
             />
             <input
               type="number"
@@ -110,7 +117,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
               min={0}
               defaultValue={minPrice ?? ""}
               placeholder="Precio desde"
-              className="w-28 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+              className="w-full rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink sm:w-28"
             />
             <input
               type="number"
@@ -118,12 +125,12 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
               min={0}
               defaultValue={maxPrice ?? ""}
               placeholder="Precio hasta"
-              className="w-28 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+              className="w-full rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink sm:w-28"
             />
             <select
               name="size"
               defaultValue={size ?? ""}
-              className="rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+              className="w-full rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink sm:w-auto"
             >
               <option value="">Todos los talles</option>
               {ALL_SIZES.map((s) => (
@@ -135,7 +142,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
             <select
               name="sort"
               defaultValue={sort}
-              className="rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
+              className="w-full rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink sm:w-auto"
             >
               {SORTS.map(([key, label]) => (
                 <option key={key} value={key}>
@@ -145,7 +152,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
             </select>
             <button
               type="submit"
-              className="rounded-lg bg-thor-ink px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream"
+              className="col-span-2 rounded-lg bg-thor-ink px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-cream sm:col-span-1"
             >
               Buscar
             </button>
