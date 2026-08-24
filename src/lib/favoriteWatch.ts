@@ -4,10 +4,18 @@ import { sendLowStockAlert } from "./server/email";
 import { LOW_STOCK_THRESHOLD } from "./api";
 
 /** Registra (o confirma) que un email quiere que le avisen si estos productos se
- *  quedan sin stock / con pocas unidades. Idempotente: repetir no duplica ni molesta. */
+ *  quedan sin stock / con pocas unidades. Idempotente: repetir no duplica ni molesta.
+ *  Los ids que no correspondan a un producto real (ej. favorito guardado en el
+ *  navegador de un producto ya borrado) se ignoran en silencio, sin romper el resto. */
 export async function registerFavoriteWatch(email: string, productIds: number[]): Promise<void> {
+  const existing = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    select: { id: true },
+  });
+  const validIds = existing.map((p) => p.id);
+
   await Promise.all(
-    productIds.map((productId) =>
+    validIds.map((productId) =>
       prisma.favoriteWatch.upsert({
         where: { productId_email: { productId, email } },
         create: { productId, email },
