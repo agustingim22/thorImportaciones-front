@@ -115,6 +115,12 @@ export async function getRelatedProducts(
   return [...rows, ...fillerRows].map((r) => serializeProduct(r, bestSellerIds));
 }
 
+/** Slugs de todos los productos, para prerenderizar /producto/[slug] en el build (ISR). */
+export async function getAllProductSlugs(): Promise<string[]> {
+  const rows = await prisma.product.findMany({ select: { slug: true } });
+  return rows.map((r) => r.slug);
+}
+
 export async function getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {
   const asId = Number(idOrSlug);
   const [row, bestSellerIds] = await Promise.all([

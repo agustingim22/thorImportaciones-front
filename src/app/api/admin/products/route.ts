@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
 import { uniqueSlug } from "@/lib/server/slug";
@@ -40,5 +41,7 @@ export async function POST(req: Request) {
     },
     ...withPatches,
   });
+  revalidatePath("/");
+  revalidatePath(`/producto/${product.slug}`);
   return NextResponse.json(serializeProduct(product), { status: 201 });
 }

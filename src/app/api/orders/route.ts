@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { sendAdminOrderNotification, sendOrderConfirmation, sendOutOfStockAlert } from "@/lib/server/email";
 import { createPreference, isMpConfigured } from "@/lib/server/mercadopago";
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
   const sessionUser = await getSessionUser();
 
   const justSoldOut: { team: string; slug: string }[] = [];
+  const touchedSlugs = new Set<string>();
 
   let order;
   try {
@@ -120,6 +122,7 @@ export async function POST(req: Request) {
           );
         }
         await tx.product.update({ where: { id: product.id }, data: { stock: { decrement: qty } } });
+        touchedSlugs.add(product.slug);
         if (product.stock - qty === 0) {
           justSoldOut.push({ team: product.team, slug: product.slug });
         }
@@ -176,6 +179,11 @@ export async function POST(req: Request) {
     if (err instanceof OrderError) return NextResponse.json({ error: err.message }, { status: 400 });
     throw err;
   }
+
+  // El stock recién descontado no debe esperar hasta la próxima revalidación
+  // automática para reflejarse en la home y en las páginas de producto.
+  revalidatePath("/");
+  for (const slug of touchedSlugs) revalidatePath(`/producto/${slug}`);
 
   await sendOrderConfirmation({
     publicId: order.publicId,

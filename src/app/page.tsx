@@ -10,29 +10,25 @@ import { getHeroImages } from "@/lib/heroImages";
 import type { HeroImage } from "@/lib/heroImages";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
 
-export const dynamic = "force-dynamic";
+// No lee cookies/headers/searchParams: se puede servir cacheada y regenerar
+// en segundo plano en vez de golpear la base en cada visita.
+export const revalidate = 60;
 
 export default async function Home() {
-  let featured: Product[] = [];
-  try {
-    featured = (await getProducts()).slice(0, 3);
-  } catch {
-    featured = [];
-  }
+  // Las 3 consultas son independientes entre sí: se disparan en paralelo en vez
+  // de una tras otra para no sumar 3 round-trips a la base de forma innecesaria.
+  const [featuredResult, testimonialsResult, heroImagesResult] = await Promise.allSettled([
+    getProducts(),
+    getPublishedTestimonials(),
+    getHeroImages(),
+  ]);
 
-  let testimonials: Testimonial[] = [];
-  try {
-    testimonials = await getPublishedTestimonials();
-  } catch {
-    testimonials = [];
-  }
-
-  let heroImages: HeroImage[] = [];
-  try {
-    heroImages = await getHeroImages();
-  } catch {
-    heroImages = [];
-  }
+  const featured: Product[] =
+    featuredResult.status === "fulfilled" ? featuredResult.value.slice(0, 3) : [];
+  const testimonials: Testimonial[] =
+    testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [];
+  const heroImages: HeroImage[] =
+    heroImagesResult.status === "fulfilled" ? heroImagesResult.value : [];
 
   return (
     <>
@@ -57,9 +53,8 @@ export default async function Home() {
               <span className="text-thor-gold">De cualquier parte del mundo.</span>
             </h1>
             <p className="mt-5 max-w-md text-lg text-thor-ink-soft">
-              Camisetas de fútbol retro y versión jugador, importadas. Y si no está
-              en el catálogo, te la conseguimos con la tela, el número y el nombre
-              que quieras.
+              Camisetas de fútbol retro y versión jugador, importadas. Y si no está en el catálogo,
+              te la conseguimos con la tela, el número y el nombre que quieras.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
@@ -76,7 +71,7 @@ export default async function Home() {
               </Link>
             </div>
             <ul className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-thor-line pt-6">
-              {["Importación directa", "Retro y versión jugador", "Envíos a todo el país"].map(
+              {["Importación directa", "Fan, retro y versión jugador", "Envíos a todo el país"].map(
                 (t) => (
                   <li
                     key={t}
@@ -122,8 +117,8 @@ export default async function Home() {
         ) : (
           <div className="rounded-2xl border border-dashed border-thor-line bg-thor-paper p-10 text-center">
             <p className="text-sm text-thor-muted">
-              Estamos cargando el catálogo. Volvé en un ratito o escribinos por
-              WhatsApp y te mostramos lo que tenemos.
+              Estamos cargando el catálogo. Volvé en un ratito o escribinos por WhatsApp y te
+              mostramos lo que tenemos.
             </p>
           </div>
         )}
@@ -142,9 +137,8 @@ export default async function Home() {
             ¿No está en el catálogo?
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-thor-ink-soft">
-            Somos importadores: decinos qué camiseta querés y la conseguimos con
-            nuestros proveedores, personalizada con la tela, el parche, el número y
-            el nombre que quieras.
+            Somos importadores: decinos qué camiseta querés y la conseguimos con nuestros
+            proveedores, personalizada con la tela, el parche, el número y el nombre que quieras.
           </p>
           <Link
             href="/pedido-personalizado"

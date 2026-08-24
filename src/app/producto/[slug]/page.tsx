@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProductByIdOrSlug, getRelatedProducts } from "@/lib/products";
+import { getAllProductSlugs, getProductByIdOrSlug, getRelatedProducts } from "@/lib/products";
 import { ProductPurchase } from "@/components/ProductPurchase";
 import { ProductCard } from "@/components/ProductCard";
 import { ProductReviews } from "@/components/ProductReviews";
@@ -14,7 +14,22 @@ import { getPublishedTestimonials } from "@/lib/testimonials";
 import { PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { SITE_URL } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+// No lee cookies/headers: se sirve cacheada y se regenera en segundo plano
+// (el stock/precio real siempre se valida de nuevo en el checkout).
+export const revalidate = 60;
+
+/** Prerenderiza todos los productos existentes en el build; los nuevos se
+ *  generan on-demand en la primera visita y quedan cacheados igual. Si la
+ *  base no responde durante el build, no tira abajo el deploy entero: todas
+ *  las páginas de producto pasan a generarse on-demand igual que hoy. */
+export async function generateStaticParams() {
+  try {
+    const slugs = await getAllProductSlugs();
+    return slugs.map((slug) => ({ slug }));
+  } catch {
+    return [];
+  }
+}
 
 export async function generateMetadata(props: {
   params: Promise<{ slug: string }>;
@@ -41,33 +56,20 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
   const product = await getProductByIdOrSlug(slug);
   if (!product) notFound();
 
-  let related: Awaited<ReturnType<typeof getRelatedProducts>> = [];
-  try {
-    related = await getRelatedProducts(product);
-  } catch {
-    related = [];
-  }
+  // Las 4 consultas son independientes entre sí: se disparan en paralelo en vez
+  // de una tras otra para no sumar 4 round-trips a la base de forma innecesaria.
+  const [relatedResult, testimonialsResult, reviewsResult, questionsResult] =
+    await Promise.allSettled([
+      getRelatedProducts(product),
+      getPublishedTestimonials(),
+      getProductReviews(product.id),
+      getProductQuestions(product.id),
+    ]);
 
-  let testimonials: Awaited<ReturnType<typeof getPublishedTestimonials>> = [];
-  try {
-    testimonials = await getPublishedTestimonials();
-  } catch {
-    testimonials = [];
-  }
-
-  let reviews: Awaited<ReturnType<typeof getProductReviews>> = [];
-  try {
-    reviews = await getProductReviews(product.id);
-  } catch {
-    reviews = [];
-  }
-
-  let questions: Awaited<ReturnType<typeof getProductQuestions>> = [];
-  try {
-    questions = await getProductQuestions(product.id);
-  } catch {
-    questions = [];
-  }
+  const related = relatedResult.status === "fulfilled" ? relatedResult.value : [];
+  const testimonials = testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [];
+  const reviews = reviewsResult.status === "fulfilled" ? reviewsResult.value : [];
+  const questions = questionsResult.status === "fulfilled" ? questionsResult.value : [];
 
   const averageRating =
     reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;

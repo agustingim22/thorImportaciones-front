@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/server/auth";
 import { uniqueSlug } from "@/lib/server/slug";
@@ -72,6 +73,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
   }
 
+  revalidatePath("/");
+  revalidatePath(`/producto/${product.slug}`);
+  if (slug !== existing.slug) revalidatePath(`/producto/${existing.slug}`);
   return NextResponse.json(serializeProduct(product));
 }
 
@@ -84,5 +88,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   if (!existing) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
   await prisma.product.delete({ where: { id: productId } });
+  revalidatePath("/");
+  revalidatePath(`/producto/${existing.slug}`);
   return new NextResponse(null, { status: 204 });
 }
