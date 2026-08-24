@@ -339,6 +339,30 @@ export async function adminUpdateNewsletterPopup(
   return res.json();
 }
 
+// ---- Posts de Instagram (prueba social en la home) ----
+export type AdminInstagramPost = { id: number; url: string; createdAt: string };
+
+export async function adminListInstagramPosts(): Promise<AdminInstagramPost[]> {
+  const res = await fetch(`/api/admin/instagram-posts`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminCreateInstagramPost(url: string): Promise<AdminInstagramPost> {
+  const res = await fetch(`/api/admin/instagram-posts`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminDeleteInstagramPost(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/instagram-posts/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
 // ---- Carrusel de portada ----
 export type AdminHeroImage = {
   id: number;
@@ -497,6 +521,9 @@ async function toError(res: Response): Promise<Error> {
         .flat()
         .join(" ");
       return new Error(msgs || `Error ${res.status}`);
+    }
+    if (typeof data?.error === "string" && data.error) {
+      return new Error(data.error);
     }
   } catch {
     /* sin cuerpo JSON */

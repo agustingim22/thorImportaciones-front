@@ -10,18 +10,21 @@ import { getHeroImages } from "@/lib/heroImages";
 import type { HeroImage } from "@/lib/heroImages";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
+import { InstagramFeed } from "@/components/InstagramFeed";
+import { getInstagramPosts } from "@/lib/instagram";
 
 // No lee cookies/headers/searchParams: se puede servir cacheada y regenerar
 // en segundo plano en vez de golpear la base en cada visita.
 export const revalidate = 60;
 
 export default async function Home() {
-  // Las 3 consultas son independientes entre sí: se disparan en paralelo en vez
-  // de una tras otra para no sumar 3 round-trips a la base de forma innecesaria.
-  const [featuredResult, testimonialsResult, heroImagesResult] = await Promise.allSettled([
+  // Las 4 consultas son independientes entre sí: se disparan en paralelo en vez
+  // de una tras otra para no sumar round-trips a la base de forma innecesaria.
+  const [featuredResult, testimonialsResult, heroImagesResult, instagramResult] = await Promise.allSettled([
     getProducts(),
     getPublishedTestimonials(),
     getHeroImages(),
+    getInstagramPosts(),
   ]);
 
   const featured: Product[] =
@@ -30,6 +33,8 @@ export default async function Home() {
     testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [];
   const heroImages: HeroImage[] =
     heroImagesResult.status === "fulfilled" ? heroImagesResult.value : [];
+  const instagramPosts: string[] =
+    instagramResult.status === "fulfilled" ? instagramResult.value : [];
 
   return (
     <>
@@ -132,6 +137,9 @@ export default async function Home() {
 
       {/* ===== TESTIMONIOS ===== */}
       <Testimonials testimonials={testimonials} />
+
+      {/* ===== INSTAGRAM ===== */}
+      <InstagramFeed urls={instagramPosts} />
 
       {/* ===== PERSONALIZADO ===== */}
       <section className="border-y border-thor-line bg-thor-cream-2">

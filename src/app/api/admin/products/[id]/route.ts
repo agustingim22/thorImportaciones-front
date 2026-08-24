@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/server/auth";
 import { uniqueSlug } from "@/lib/server/slug";
 import { serializeProduct, withPatches } from "@/lib/products";
 import { sendStockBackNotification } from "@/lib/server/email";
+import { checkFavoriteStockCrossing } from "@/lib/favoriteWatch";
 import {
   toProductData,
   toSizeStockRows,
@@ -72,6 +73,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       });
     }
   }
+
+  checkFavoriteStockCrossing(product.id, existing.stock, product.stock).catch(() => {});
 
   revalidatePath("/");
   revalidatePath(`/producto/${product.slug}`);

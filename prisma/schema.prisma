@@ -29,6 +29,7 @@ model Product {
   reviews            Review[]
   stockNotifications StockNotification[]
   questions          ProductQuestion[]
+  favoriteWatches    FavoriteWatch[]
 }
 
 /// Pregunta pública de un visitante sobre un producto puntual. Queda oculta hasta que
@@ -52,6 +53,21 @@ model StockNotification {
   email     String
   notified  Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@unique([productId, email])
+}
+
+/// Aviso de stock bajo/agotado para un favorito (email + producto, sin necesitar
+/// cuenta). `notifiedAt` marca la última vez que se avisó por la caída actual de
+/// stock; se resetea a null cuando el stock vuelve a superar el umbral bajo, para
+/// poder avisar de nuevo si vuelve a caer más adelante.
+model FavoriteWatch {
+  id         Int       @id @default(autoincrement())
+  productId  Int
+  product    Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  email      String
+  notifiedAt DateTime?
+  createdAt  DateTime  @default(now())
 
   @@unique([productId, email])
 }
@@ -222,6 +238,14 @@ model SavedCartItem {
   customNumber String?
   patchId      Int?
   createdAt    DateTime @default(now()) // se recrea entera cada sync, sirve como "última vez tocado"
+}
+
+/// Post de Instagram elegido a mano por el admin (link pegado, sin token/API) para
+/// mostrar como prueba social en la home.
+model InstagramPost {
+  id        Int      @id @default(autoincrement())
+  url       String
+  createdAt DateTime @default(now())
 }
 
 /// Configuración del pop-up de newsletter con cupón de bienvenida (fila única, id=1).

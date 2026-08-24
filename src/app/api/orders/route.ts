@@ -11,6 +11,7 @@ import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { rateLimit } from "@/lib/server/ratelimit";
 import { effectivePrice, typeAllowsCustomization, type ProductType } from "@/lib/api";
 import { CouponError, computeDiscount, findValidCoupon } from "@/lib/coupons";
+import { checkFavoriteStockCrossing } from "@/lib/favoriteWatch";
 
 type Body = {
   customerName?: string;
@@ -65,6 +66,7 @@ export async function POST(req: Request) {
 
   const justSoldOut: { team: string; slug: string }[] = [];
   const touchedSlugs = new Set<string>();
+  const stockCrossings: { productId: number; previousStock: number; newStock: number }[] = [];
 
   let order;
   try {
@@ -125,6 +127,7 @@ export async function POST(req: Request) {
         }
         await tx.product.update({ where: { id: product.id }, data: { stock: { decrement: qty } } });
         touchedSlugs.add(product.slug);
+        stockCrossings.push({ productId: product.id, previousStock: product.stock, newStock: product.stock - qty });
         if (product.stock - qty === 0) {
           justSoldOut.push({ team: product.team, slug: product.slug });
         }
@@ -202,6 +205,10 @@ export async function POST(req: Request) {
   // automática para reflejarse en la home y en las páginas de producto.
   revalidatePath("/");
   for (const slug of touchedSlugs) revalidatePath(`/producto/${slug}`);
+
+  for (const c of stockCrossings) {
+    checkFavoriteStockCrossing(c.productId, c.previousStock, c.newStock).catch(() => {});
+  }
 
   await sendOrderConfirmation({
     publicId: order.publicId,

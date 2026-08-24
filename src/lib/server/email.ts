@@ -366,6 +366,35 @@ export async function sendPasswordReset(email: string, resetUrl: string): Promis
   await send(email, "Restablecer tu contraseña", layout("Restablecer contraseña", body));
 }
 
+/** Aviso a quien tiene el producto en watch (favorito) de que el stock está por agotarse o ya se agotó. */
+export async function sendLowStockAlert(to: {
+  email: string;
+  team: string;
+  slug: string;
+  stock: number;
+}): Promise<void> {
+  const isOut = to.stock <= 0;
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">
+      ${
+        isOut
+          ? `"${to.team}", que tenías en favoritos, se acaba de agotar.`
+          : `"${to.team}", que tenías en favoritos, está por agotarse — quedan ${to.stock} unidad${to.stock === 1 ? "" : "es"}.`
+      }
+    </p>
+    <p style="text-align:center;margin:24px 0;">
+      <a href="${SITE_URL}/producto/${to.slug}" style="background:#DE9A26;color:#14323F;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:10px;display:inline-block;">
+        Ver "${to.team}" →
+      </a>
+    </p>
+  `;
+  await send(
+    to.email,
+    isOut ? `Se agotó: "${to.team}"` : `¡Últimas unidades de "${to.team}"!`,
+    layout(isOut ? "Se agotó tu favorito" : "Quedan pocas unidades", body),
+  );
+}
+
 /** Cupón de bienvenida al suscribirse desde el pop-up de la home. */
 export async function sendNewsletterCoupon(to: {
   email: string;
