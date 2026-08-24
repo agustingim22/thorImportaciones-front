@@ -34,7 +34,7 @@ export function FavoritosGrid() {
           Tocá el corazón en cualquier camiseta del catálogo para guardarla acá.
         </p>
         <Link
-          href="/camisetas"
+          href="/catalogo"
           className="mt-8 inline-block rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"
         >
           Ver catálogo

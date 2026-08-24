@@ -12,7 +12,7 @@ import type { Product } from "@/lib/api";
 
 const LINKS = [
   { href: "/", label: "Inicio" },
-  { href: "/camisetas", label: "Catálogo" },
+  { href: "/catalogo", label: "Catálogo" },
   { href: "/talles", label: "Guía de talles" },
   { href: "/preguntas-frecuentes", label: "Preguntas frecuentes" },
   { href: "/contacto", label: "Contacto" },
@@ -57,7 +57,7 @@ export function Nav() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     const query = q.trim();
-    router.push(query ? `/camisetas?q=${encodeURIComponent(query)}` : "/camisetas");
+    router.push(query ? `/catalogo?q=${encodeURIComponent(query)}` : "/catalogo");
     closeSearch();
   }
 

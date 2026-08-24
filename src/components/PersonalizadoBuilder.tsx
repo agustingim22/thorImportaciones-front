@@ -219,7 +219,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
         <OrderNextSteps kind="custom" />
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            href="/camisetas"
+            href="/catalogo"
             className="rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"
           >
             Volver al catálogo

@@ -101,7 +101,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
-      { "@type": "ListItem", position: 2, name: "Catálogo", item: `${SITE_URL}/camisetas` },
+      { "@type": "ListItem", position: 2, name: "Catálogo", item: `${SITE_URL}/catalogo` },
       { "@type": "ListItem", position: 3, name: product.team, item: `${SITE_URL}/producto/${product.slug}` },
     ],
   };
@@ -119,7 +119,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
         />
         {/* Migas */}
         <nav className="mb-6 font-mono text-xs text-thor-muted">
-          <Link href="/camisetas" className="hover:text-thor-gold">
+          <Link href="/catalogo" className="hover:text-thor-gold">
             Catálogo
           </Link>{" "}
           / <span className="text-thor-ink">{product.team}</span>

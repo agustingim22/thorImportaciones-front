@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "Catálogo",
   description:
     "Catálogo de camisetas de fútbol, NBA, rugby, remeras y conjuntos deportivos, importados y listos para enviar. Filtrá por tipo o buscá lo que necesitás.",
-  alternates: { canonical: "/camisetas" },
+  alternates: { canonical: "/catalogo" },
 };
 
 const TABS = [
@@ -26,7 +26,7 @@ const TABS = [
   ...PRODUCT_TYPES.map((key) => ({ key, label: PRODUCT_TYPE_LABELS[key] })),
 ] as const;
 
-export default async function CamisetasPage(props: PageProps<"/camisetas">) {
+export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   const sp = await props.searchParams;
   const rawType = Array.isArray(sp.type) ? sp.type[0] : sp.type;
   const type = PRODUCT_TYPES.includes(rawType as ProductType) ? (rawType as ProductType) : undefined;
@@ -59,12 +59,12 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
     if (size) params.set("size", size);
     if (sort !== "newest") params.set("sort", sort);
     const qs = params.toString();
-    return qs ? `/camisetas?${qs}` : "/camisetas";
+    return qs ? `/catalogo?${qs}` : "/catalogo";
   };
 
   const hasExtraFilters =
     !!q || minPrice !== undefined || maxPrice !== undefined || !!size || sort !== "newest";
-  const clearHref = type ? `/camisetas?type=${type}` : "/camisetas";
+  const clearHref = type ? `/catalogo?type=${type}` : "/catalogo";
 
   return (
     <>
@@ -95,7 +95,7 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
           </div>
 
           {/* Buscador + filtros */}
-          <form method="get" action="/camisetas" className="flex flex-wrap items-center gap-2">
+          <form method="get" action="/catalogo" className="flex flex-wrap items-center gap-2">
             {type && <input type="hidden" name="type" value={type} />}
             <input
               type="search"

@@ -63,7 +63,7 @@ export default async function Home() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
-                href="/camisetas"
+                href="/catalogo"
                 className="rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink transition-transform hover:-translate-y-0.5"
               >
                 Ver catálogo
@@ -106,7 +106,7 @@ export default async function Home() {
             </p>
           </div>
           <Link
-            href="/camisetas"
+            href="/catalogo"
             className="rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold hover:bg-thor-gold/10"
           >
             Ver todo el catálogo

@@ -98,7 +98,7 @@ export default function SobreNosotrosPage() {
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Link
-            href="/camisetas"
+            href="/catalogo"
             className="rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink transition-transform hover:-translate-y-0.5"
           >
             Ver catálogo

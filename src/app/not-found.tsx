@@ -19,7 +19,7 @@ export default function NotFound() {
           Ir al inicio
         </Link>
         <Link
-          href="/camisetas"
+          href="/catalogo"
           className="rounded-xl border border-thor-line px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold"
         >
           Ver catálogo

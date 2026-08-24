@@ -123,7 +123,7 @@ export default function CarritoPage() {
         <OrderNextSteps kind="stock" />
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            href="/camisetas"
+            href="/catalogo"
             className="rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"
           >
             Seguir viendo camisetas
@@ -146,7 +146,7 @@ export default function CarritoPage() {
         <h1 className="mt-4 font-display text-3xl tracking-wide text-thor-ink">Tu carrito está vacío</h1>
         <p className="mt-3 text-thor-muted">Sumá camisetas del catálogo para comprar.</p>
         <Link
-          href="/camisetas"
+          href="/catalogo"
           className="mt-8 inline-block rounded-xl bg-thor-gold px-6 py-3 font-mono text-sm font-bold uppercase tracking-wider text-thor-ink"
         >
           Ver catálogo
@@ -501,7 +501,7 @@ function TransferResult({ orderId, total }: { orderId: string; total: number }) 
 
       <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2">
         <Link
-          href="/camisetas"
+          href="/catalogo"
           className="text-center font-mono text-xs uppercase tracking-wider text-thor-muted underline"
         >
           Seguir viendo camisetas
