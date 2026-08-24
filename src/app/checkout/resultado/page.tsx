@@ -7,6 +7,7 @@ import { getOrder, syncPayment, type OrderStatus } from "@/lib/orders";
 import { useCart } from "@/lib/cart";
 import { OrderNextSteps } from "@/components/OrderNextSteps";
 import { trackPixelEvent } from "@/lib/metaPixel";
+import { pushEcommerceEvent } from "@/lib/dataLayer";
 
 const VIEW: Record<string, { icon: string; title: string; text: string }> = {
   Paid: { icon: "✅", title: "¡Pago confirmado!", text: "Tu pedido está pago. Te enviamos el resumen y el seguimiento por email." },
@@ -37,6 +38,17 @@ function Resultado() {
               value: o.total,
               currency: "ARS",
               content_ids: o.items.map((i) => i.productName),
+            });
+            pushEcommerceEvent("purchase", {
+              currency: "ARS",
+              value: o.total,
+              transaction_id: o.orderId,
+              items: o.items.map((i) => ({
+                item_id: i.productName,
+                item_name: i.productName,
+                price: i.unitPrice,
+                quantity: i.quantity,
+              })),
             });
           }
         } catch { /* seguimos */ }

@@ -14,6 +14,7 @@ import {
 import { useCart } from "@/lib/cart";
 import { useRecentlyViewed } from "@/lib/recentlyViewed";
 import { trackPixelEvent } from "@/lib/metaPixel";
+import { pushEcommerceEvent } from "@/lib/dataLayer";
 import { notifyStockAvailable } from "@/lib/stockNotify";
 import { SITE } from "@/lib/site";
 import { FavoriteButton } from "./FavoriteButton";
@@ -72,6 +73,11 @@ export function ProductPurchase({ product }: { product: Product }) {
       value: effectivePrice(product),
       currency: "ARS",
     });
+    pushEcommerceEvent("view_item", {
+      currency: "ARS",
+      value: effectivePrice(product),
+      items: [{ item_id: String(product.id), item_name: product.team, price: effectivePrice(product) }],
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
@@ -121,6 +127,11 @@ export function ProductPurchase({ product }: { product: Product }) {
       content_type: "product",
       value: finalPrice,
       currency: "ARS",
+    });
+    pushEcommerceEvent("add_to_cart", {
+      currency: "ARS",
+      value: finalPrice,
+      items: [{ item_id: String(product.id), item_name: product.team, price: finalPrice, quantity: 1 }],
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);

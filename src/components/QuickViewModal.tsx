@@ -7,6 +7,7 @@ import type { Product } from "@/lib/api";
 import { effectivePrice, typeAllowsCustomization } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { trackPixelEvent } from "@/lib/metaPixel";
+import { pushEcommerceEvent } from "@/lib/dataLayer";
 
 export function QuickViewModal({ product, onClose }: { product: Product; onClose: () => void }) {
   const { add } = useCart();
@@ -47,6 +48,13 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
       content_type: "product",
       value: effectivePrice(product),
       currency: "ARS",
+    });
+    pushEcommerceEvent("add_to_cart", {
+      currency: "ARS",
+      value: effectivePrice(product),
+      items: [
+        { item_id: String(product.id), item_name: product.team, price: effectivePrice(product), quantity: 1 },
+      ],
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);

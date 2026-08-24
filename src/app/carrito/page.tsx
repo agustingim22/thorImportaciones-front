@@ -11,6 +11,7 @@ import { MERCADOPAGO_ENABLED, SITE, whatsappUrl } from "@/lib/site";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
 import { OrderNextSteps } from "@/components/OrderNextSteps";
 import { trackPixelEvent } from "@/lib/metaPixel";
+import { pushEcommerceEvent, type EcommerceItem } from "@/lib/dataLayer";
 
 export default function CarritoPage() {
   const { items, total, setQty, remove, clear } = useCart();
@@ -69,6 +70,13 @@ export default function CarritoPage() {
       num_items: items.reduce((s, i) => s + i.qty, 0),
       content_ids: items.map((i) => String(i.productId)),
     });
+    const gaItems: EcommerceItem[] = items.map((i) => ({
+      item_id: String(i.productId),
+      item_name: i.team,
+      price: i.price,
+      quantity: i.qty,
+    }));
+    pushEcommerceEvent("begin_checkout", { currency: "ARS", value: grandTotal, items: gaItems });
     setLoading(true);
     try {
       const res = await createOrder({
@@ -97,6 +105,12 @@ export default function CarritoPage() {
         currency: "ARS",
         num_items: items.reduce((s, i) => s + i.qty, 0),
         content_ids: items.map((i) => String(i.productId)),
+      });
+      pushEcommerceEvent("purchase", {
+        currency: "ARS",
+        value: res.total,
+        transaction_id: res.orderId,
+        items: gaItems,
       });
       clear();
       setResult(res);
