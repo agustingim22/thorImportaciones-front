@@ -353,12 +353,58 @@ function SizeTable({ chart }: { chart: Chart }) {
   );
 }
 
+/** Tabs + calculadora + tablas, sin la cabecera — reutilizable tanto en la página
+ *  /talles como en el modal que se abre desde la ficha de producto. */
+export function TallesGuideContent({ initialCategory }: { initialCategory?: string | null }) {
+  const initial = CATEGORIES.find((c) => c.key === initialCategory)?.key ?? CATEGORIES[0].key;
+  const [active, setActive] = useState(initial);
+  const category = CATEGORIES.find((c) => c.key === active)!;
+
+  return (
+    <>
+      <div className="mb-8 flex flex-wrap gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => setActive(c.key)}
+            className={`rounded-lg px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
+              active === c.key ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
+            }`}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      <SizeCalculator category={category} />
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {category.charts.map((chart) => (
+          <div key={chart.title} className={chart.headers.length > 5 ? "lg:col-span-2" : ""}>
+            <SizeTable chart={chart} />
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-8 text-sm text-thor-muted">
+        ¿No estás seguro de tu talle o buscás una medida que no está acá?{" "}
+        <a
+          href={whatsappUrl("¡Hola Thor! Quería consultar sobre talles.")}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-thor-gold underline"
+        >
+          Escribinos por WhatsApp
+        </a>{" "}
+        y te ayudamos a elegir antes de comprar.
+      </p>
+    </>
+  );
+}
+
 function TallesGuideInner() {
   const params = useSearchParams();
   const requestedCat = params.get("cat");
-  const initial = CATEGORIES.find((c) => c.key === requestedCat)?.key ?? CATEGORIES[0].key;
-  const [active, setActive] = useState(initial);
-  const category = CATEGORIES.find((c) => c.key === active)!;
 
   return (
     <>
@@ -379,44 +425,7 @@ function TallesGuideInner() {
       </div>
 
       <section className="mx-auto max-w-6xl px-5 py-14">
-        <div className="mb-8 flex flex-wrap gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.key}
-              onClick={() => setActive(c.key)}
-              className={`rounded-lg px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider transition-colors ${
-                active === c.key
-                  ? "bg-thor-gold text-thor-ink"
-                  : "text-thor-muted hover:text-thor-ink"
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
-
-        <SizeCalculator category={category} />
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {category.charts.map((chart) => (
-            <div key={chart.title} className={chart.headers.length > 5 ? "lg:col-span-2" : ""}>
-              <SizeTable chart={chart} />
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-8 text-sm text-thor-muted">
-          ¿No estás seguro de tu talle o buscás una medida que no está acá?{" "}
-          <a
-            href={whatsappUrl("¡Hola Thor! Quería consultar sobre talles.")}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-thor-gold underline"
-          >
-            Escribinos por WhatsApp
-          </a>{" "}
-          y te ayudamos a elegir antes de comprar.
-        </p>
+        <TallesGuideContent initialCategory={requestedCat} />
       </section>
     </>
   );

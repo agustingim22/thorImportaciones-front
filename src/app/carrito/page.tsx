@@ -274,6 +274,31 @@ export default function CarritoPage() {
           onSubmit={handleCheckout}
           className="h-fit rounded-2xl border border-thor-line bg-thor-paper p-6"
         >
+          {shipping.freeShippingThreshold != null &&
+            (total < shipping.freeShippingThreshold ? (
+              <div className="mb-4 rounded-lg bg-thor-cream-2 p-3">
+                <p className="text-xs text-thor-ink-soft">
+                  Te faltan{" "}
+                  <strong className="text-thor-gold">
+                    ${(shipping.freeShippingThreshold - total).toLocaleString("es-AR")}
+                  </strong>{" "}
+                  para envío gratis
+                </p>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-thor-line">
+                  <div
+                    className="h-full rounded-full bg-thor-gold transition-all"
+                    style={{
+                      width: `${Math.min(100, (total / shipping.freeShippingThreshold) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <p className="mb-4 rounded-lg bg-thor-land/10 px-3 py-2 text-xs font-bold text-thor-land">
+                ✓ ¡Envío gratis desbloqueado!
+              </p>
+            ))}
+
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between text-sm text-thor-ink-soft">
               <span>Subtotal</span>

@@ -18,6 +18,7 @@ import { pushEcommerceEvent } from "@/lib/dataLayer";
 import { notifyStockAvailable } from "@/lib/stockNotify";
 import { SITE } from "@/lib/site";
 import { FavoriteButton } from "./FavoriteButton";
+import { TallesGuideModal } from "./TallesGuideModal";
 
 export function ProductPurchase({ product }: { product: Product }) {
   const { add } = useCart();
@@ -31,6 +32,7 @@ export function ProductPurchase({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
   const [shared, setShared] = useState(false);
   const [lightbox, setLightbox] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notifyLoading, setNotifyLoading] = useState(false);
@@ -284,12 +286,13 @@ export function ProductPurchase({ product }: { product: Product }) {
         <div className="mt-5">
           <span className="mb-1 flex items-center justify-between font-mono text-[11px] uppercase tracking-wide text-thor-muted">
             Talle
-            <Link
-              href={`/talles?cat=${PRODUCT_TYPE_TALLES_CATEGORY[product.type]}`}
+            <button
+              type="button"
+              onClick={() => setSizeGuideOpen(true)}
               className="normal-case tracking-normal text-thor-gold underline"
             >
               Ver guía de talles
-            </Link>
+            </button>
           </span>
           <div className="flex flex-wrap gap-2">
             {product.sizes.map((s) => {
@@ -531,6 +534,13 @@ export function ProductPurchase({ product }: { product: Product }) {
             <Image src={currentImage} alt={product.team} fill sizes="100vw" className="object-contain" />
           </div>
         </div>
+      )}
+
+      {sizeGuideOpen && (
+        <TallesGuideModal
+          category={PRODUCT_TYPE_TALLES_CATEGORY[product.type]}
+          onClose={() => setSizeGuideOpen(false)}
+        />
       )}
     </div>
   );
