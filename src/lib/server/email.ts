@@ -365,3 +365,28 @@ export async function sendPasswordReset(email: string, resetUrl: string): Promis
   `;
   await send(email, "Restablecer tu contraseña", layout("Restablecer contraseña", body));
 }
+
+/** Cupón de bienvenida al suscribirse desde el pop-up de la home. */
+export async function sendNewsletterCoupon(to: {
+  email: string;
+  code: string;
+  discountLabel: string;
+}): Promise<void> {
+  const body = `
+    <p style="color:#5F6E68;font-size:14px;">¡Gracias por sumarte! Este es tu cupón para tu primera compra:</p>
+    <p style="text-align:center;margin:24px 0;">
+      <span style="display:inline-block;border:2px dashed #DE9A26;border-radius:12px;padding:14px 28px;font-family:monospace;font-size:20px;font-weight:800;color:#14323F;">
+        ${to.code}
+      </span>
+    </p>
+    <p style="text-align:center;color:#DE9A26;font-weight:800;font-size:16px;margin:0 0 20px;">
+      ${to.discountLabel}
+    </p>
+    <p style="text-align:center;">
+      <a href="${SITE_URL}/catalogo" style="background:#DE9A26;color:#14323F;font-weight:800;text-decoration:none;padding:12px 24px;border-radius:10px;display:inline-block;">
+        Ver catálogo →
+      </a>
+    </p>
+  `;
+  await send(to.email, `Tu cupón: ${to.discountLabel}`, layout("¡Bienvenido a Thor!", body));
+}

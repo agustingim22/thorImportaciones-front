@@ -9,6 +9,7 @@ import { HeroCarousel } from "@/components/HeroCarousel";
 import { getHeroImages } from "@/lib/heroImages";
 import type { HeroImage } from "@/lib/heroImages";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
+import { NewsletterPopup } from "@/components/NewsletterPopup";
 
 // No lee cookies/headers/searchParams: se puede servir cacheada y regenerar
 // en segundo plano en vez de golpear la base en cada visita.
@@ -32,6 +33,8 @@ export default async function Home() {
 
   return (
     <>
+      <NewsletterPopup />
+
       {/* ===== HERO ===== */}
       <section className="relative overflow-hidden border-b border-thor-line">
         <div

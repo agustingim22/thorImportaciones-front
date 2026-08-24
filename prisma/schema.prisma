@@ -224,6 +224,15 @@ model SavedCartItem {
   createdAt    DateTime @default(now()) // se recrea entera cada sync, sirve como "última vez tocado"
 }
 
+/// Configuración del pop-up de newsletter con cupón de bienvenida (fila única, id=1).
+model NewsletterPopupSettings {
+  id         Int     @id @default(1)
+  enabled    Boolean @default(false)
+  couponCode String? // código de un Coupon existente (se gestiona en la pestaña Cupones)
+  headline   String  @default("Sumate y conseguí un cupón de descuento")
+  subtext    String  @default("Enterate primero de nuevas camisetas, drops y promos exclusivas.")
+}
+
 /// Cupón de descuento que el comprador puede aplicar en el carrito.
 model Coupon {
   id            Int       @id @default(autoincrement())

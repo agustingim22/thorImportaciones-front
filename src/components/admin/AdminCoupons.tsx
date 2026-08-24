@@ -4,10 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import {
   adminCreateCoupon,
   adminDeleteCoupon,
+  adminGetNewsletterPopup,
   adminListCoupons,
   adminUpdateCoupon,
+  adminUpdateNewsletterPopup,
   type AdminCoupon,
   type CouponInput,
+  type NewsletterPopupSettings,
 } from "@/lib/admin";
 
 const EMPTY: CouponInput = {
@@ -35,6 +38,99 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function describeCoupon(c: AdminCoupon): string {
   return c.type === "percentage" ? `${c.value}%` : `$${c.value.toLocaleString("es-AR")}`;
+}
+
+function NewsletterPopupCard({ coupons }: { coupons: AdminCoupon[] }) {
+  const [settings, setSettings] = useState<NewsletterPopupSettings | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    adminGetNewsletterPopup().then(setSettings);
+  }, []);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!settings) return;
+    setError("");
+    setSaving(true);
+    setSaved(false);
+    try {
+      setSettings(await adminUpdateNewsletterPopup(settings));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!settings) return null;
+
+  return (
+    <form onSubmit={handleSave} className="mb-6 rounded-2xl border border-thor-line bg-thor-paper p-5">
+      <h3 className="font-mono text-xs font-bold uppercase tracking-wide text-thor-ink">
+        Pop-up de newsletter (home)
+      </h3>
+      <p className="mt-1 text-xs text-thor-muted">
+        Aparece una vez por visitante en la página principal, ofreciendo el cupón elegido a cambio del
+        email. El código nunca se muestra en pantalla, se lo mandamos por mail al suscribirse.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Field label="Cupón a ofrecer">
+          <select
+            value={settings.couponCode ?? ""}
+            onChange={(e) => setSettings({ ...settings, couponCode: e.target.value || null })}
+            className={inputCls}
+          >
+            <option value="">Elegir cupón…</option>
+            {coupons.map((c) => (
+              <option key={c.id} value={c.code}>
+                {c.code} ({describeCoupon(c)}){!c.active ? " — desactivado" : ""}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <label className="flex items-center gap-2 self-end pb-2 text-sm text-thor-ink">
+          <input
+            type="checkbox"
+            checked={settings.enabled}
+            onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
+          />
+          Activado
+        </label>
+      </div>
+      <div className="mt-3 grid gap-3">
+        <Field label="Título">
+          <input
+            value={settings.headline}
+            onChange={(e) => setSettings({ ...settings, headline: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Texto">
+          <input
+            value={settings.subtext}
+            onChange={(e) => setSettings({ ...settings, subtext: e.target.value })}
+            className={inputCls}
+          />
+        </Field>
+      </div>
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-lg bg-thor-gold px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink disabled:opacity-60"
+        >
+          {saving ? "Guardando…" : "Guardar"}
+        </button>
+        {saved && <span className="text-xs text-thor-land">✓ Guardado</span>}
+      </div>
+    </form>
+  );
 }
 
 export function AdminCoupons() {
@@ -119,6 +215,8 @@ export function AdminCoupons() {
 
   return (
     <div>
+      <NewsletterPopupCard coupons={coupons} />
+
       <div className="flex justify-end">
         <button
           onClick={openNew}

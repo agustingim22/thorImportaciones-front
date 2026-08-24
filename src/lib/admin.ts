@@ -313,6 +313,32 @@ export async function adminDeleteCoupon(id: number): Promise<void> {
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+// ---- Pop-up de newsletter con cupón ----
+export type NewsletterPopupSettings = {
+  enabled: boolean;
+  couponCode: string | null;
+  headline: string;
+  subtext: string;
+};
+
+export async function adminGetNewsletterPopup(): Promise<NewsletterPopupSettings> {
+  const res = await fetch(`/api/admin/newsletter-popup`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminUpdateNewsletterPopup(
+  input: NewsletterPopupSettings,
+): Promise<NewsletterPopupSettings> {
+  const res = await fetch(`/api/admin/newsletter-popup`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
 // ---- Carrusel de portada ----
 export type AdminHeroImage = {
   id: number;
