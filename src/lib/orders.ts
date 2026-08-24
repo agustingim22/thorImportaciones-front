@@ -25,12 +25,14 @@ export type CreateOrderPayload = ShippingAddress & {
   items: OrderItemInput[];
   isGift?: boolean;
   giftMessage?: string;
+  couponCode?: string;
 };
 
 export type CreateOrderResult = {
   orderId: string;
   total: number;
   shippingCost: number;
+  discountAmount: number;
   status: string;
   paymentMethod: "MercadoPago" | "Transfer";
   checkoutUrl: string | null;

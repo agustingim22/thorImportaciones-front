@@ -92,11 +92,20 @@ export async function sendOrderConfirmation(order: {
   customerName: string;
   total: number;
   items: OrderItemLine[];
+  couponCode?: string | null;
+  discountAmount?: number;
 }): Promise<void> {
+  const discountLine =
+    order.discountAmount && order.discountAmount > 0
+      ? `<p style="text-align:right;font-size:13px;color:#5F6E68;margin:0;">
+          Cupón ${order.couponCode}: -$${order.discountAmount.toLocaleString("es-AR")}
+        </p>`
+      : "";
   const body = `
     <p style="color:#5F6E68;font-size:14px;">Hola ${order.customerName}, recibimos tu pedido. Este es el resumen:</p>
     <p style="font-family:monospace;font-size:13px;color:#14323F;">Pedido #${order.publicId}</p>
     ${itemsTable(order.items)}
+    ${discountLine}
     <p style="text-align:right;font-size:16px;font-weight:800;color:#DE9A26;margin-top:14px;">
       Total: $${order.total.toLocaleString("es-AR")}
     </p>

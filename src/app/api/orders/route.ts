@@ -10,6 +10,7 @@ import { MERCADOPAGO_ENABLED } from "@/lib/site";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { rateLimit } from "@/lib/server/ratelimit";
 import { effectivePrice, typeAllowsCustomization, type ProductType } from "@/lib/api";
+import { CouponError, computeDiscount, findValidCoupon } from "@/lib/coupons";
 
 type Body = {
   customerName?: string;
@@ -23,6 +24,7 @@ type Body = {
   apartment?: string;
   deliveryNotes?: string;
   paymentMethod?: "MercadoPago" | "Transfer";
+  couponCode?: string;
   isGift?: boolean;
   giftMessage?: string;
   items?: {
@@ -141,12 +143,24 @@ export async function POST(req: Request) {
       }
 
       const subtotal = itemsData.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+
+      // El cupón se revalida acá adentro de la transacción (no se confía en lo que
+      // haya mostrado el carrito) y el usedCount se incrementa de forma atómica.
+      let couponCode: string | null = null;
+      let discountAmount = 0;
+      if (body.couponCode?.trim()) {
+        const coupon = await findValidCoupon(tx, body.couponCode, subtotal);
+        discountAmount = computeDiscount(coupon, subtotal);
+        couponCode = coupon.code;
+        await tx.coupon.update({ where: { id: coupon.id }, data: { usedCount: { increment: 1 } } });
+      }
+
       const shippingSettings = await tx.shippingSettings.findUnique({ where: { id: 1 } });
       const shippingCost = computeShippingCost(subtotal, {
         flatCost: shippingSettings?.flatCost ?? 0,
         freeShippingThreshold: shippingSettings?.freeShippingThreshold ?? null,
       });
-      const total = subtotal + shippingCost;
+      const total = Math.max(0, subtotal - discountAmount) + shippingCost;
       const publicId = crypto.randomBytes(6).toString("hex");
 
       return tx.order.create({
@@ -170,13 +184,17 @@ export async function POST(req: Request) {
           paymentMethod,
           total,
           shippingCost,
+          couponCode,
+          discountAmount,
           items: { create: itemsData },
         },
         include: { items: true },
       });
     });
   } catch (err) {
-    if (err instanceof OrderError) return NextResponse.json({ error: err.message }, { status: 400 });
+    if (err instanceof OrderError || err instanceof CouponError) {
+      return NextResponse.json({ error: err.message }, { status: 400 });
+    }
     throw err;
   }
 
@@ -191,6 +209,8 @@ export async function POST(req: Request) {
     customerName: order.customerName,
     total: order.total,
     items: order.items,
+    couponCode: order.couponCode,
+    discountAmount: order.discountAmount,
   }).catch(() => {}); // el pedido ya quedó registrado igual si el email falla
 
   await sendAdminOrderNotification({
@@ -240,6 +260,7 @@ export async function POST(req: Request) {
     orderId: order.publicId,
     shippingCost: order.shippingCost,
     total: order.total,
+    discountAmount: order.discountAmount,
     status: order.status,
     paymentMethod: order.paymentMethod,
     checkoutUrl,

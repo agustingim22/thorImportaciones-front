@@ -149,6 +149,8 @@ model Order {
   notes               String?
   total               Int
   shippingCost        Int          @default(0) // snapshot de lo cobrado por envío en este pedido
+  couponCode          String? // snapshot del código aplicado (si borran el cupón, el pedido conserva el dato)
+  discountAmount      Int          @default(0) // ARS descontados del subtotal por el cupón
   paymentMethod       String? // "MercadoPago" | "Transfer" (solo pedidos de stock)
   paymentId           String?
   receiptUrl          String? // comprobante de transferencia
@@ -220,6 +222,20 @@ model SavedCartItem {
   customNumber String?
   patchId      Int?
   createdAt    DateTime @default(now()) // se recrea entera cada sync, sirve como "última vez tocado"
+}
+
+/// Cupón de descuento que el comprador puede aplicar en el carrito.
+model Coupon {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique // siempre en MAYÚSCULAS
+  type          String // "percentage" | "fixed"
+  value         Int // porcentaje (1-100) o monto fijo en ARS, según `type`
+  active        Boolean   @default(true)
+  expiresAt     DateTime?
+  maxUses       Int? // null = sin límite
+  usedCount     Int       @default(0)
+  minOrderValue Int? // null = sin mínimo de compra
+  createdAt     DateTime  @default(now())
 }
 
 model OrderItem {

@@ -28,13 +28,48 @@ export default function CarritoPage() {
   const [shipping, setShipping] = useState<ShippingSettings>({ flatCost: 0, freeShippingThreshold: null });
   const [isGift, setIsGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountAmount: number } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
 
   useEffect(() => {
     getShippingSettings().then(setShipping);
   }, []);
 
+  // Si cambia el carrito después de aplicar un cupón, el descuento que teníamos
+  // calculado queda desactualizado (sobre todo si es un %) — se pide reaplicar.
+  useEffect(() => {
+    setAppliedCoupon(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total]);
+
+  async function handleApplyCoupon() {
+    if (!couponInput.trim()) return;
+    setCouponError("");
+    setCouponLoading(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput, subtotal: total }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setAppliedCoupon({ code: data.code, discountAmount: data.discountAmount });
+      } else {
+        setCouponError(data.error ?? "No se pudo aplicar el cupón.");
+      }
+    } catch {
+      setCouponError("No se pudo validar el cupón. Probá de nuevo.");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  const discountAmount = appliedCoupon?.discountAmount ?? 0;
   const shippingCost = computeShippingCost(total, shipping);
-  const grandTotal = total + shippingCost;
+  const grandTotal = Math.max(0, total - discountAmount) + shippingCost;
 
   // Si el comprador está logueado, prellenamos con sus datos guardados
   // (solo si el formulario todavía no fue tocado).
@@ -85,6 +120,7 @@ export default function CarritoPage() {
         paymentMethod,
         isGift,
         giftMessage,
+        couponCode: appliedCoupon?.code,
         items: items.map((i) => ({
           productId: i.productId,
           quantity: i.qty,
@@ -243,6 +279,12 @@ export default function CarritoPage() {
               <span>Subtotal</span>
               <span className="tabular-nums">${total.toLocaleString("es-AR")}</span>
             </div>
+            {appliedCoupon && (
+              <div className="flex items-center justify-between text-sm text-thor-land">
+                <span>Cupón {appliedCoupon.code}</span>
+                <span className="tabular-nums">-${discountAmount.toLocaleString("es-AR")}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between text-sm text-thor-ink-soft">
               <span>Envío</span>
               <span className="tabular-nums">
@@ -255,6 +297,41 @@ export default function CarritoPage() {
                 ${grandTotal.toLocaleString("es-AR")}
               </span>
             </div>
+          </div>
+
+          <div className="mt-4">
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between rounded-lg border border-thor-line bg-thor-cream-2 px-3 py-2 text-sm">
+                <span className="text-thor-ink">
+                  ✓ Cupón <strong>{appliedCoupon.code}</strong> aplicado
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAppliedCoupon(null)}
+                  className="font-mono text-xs text-thor-muted underline hover:text-red-600"
+                >
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value)}
+                  placeholder="Código de descuento"
+                  className={inputCls}
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading || !couponInput.trim()}
+                  className="shrink-0 rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold disabled:opacity-60"
+                >
+                  {couponLoading ? "..." : "Aplicar"}
+                </button>
+              </div>
+            )}
+            {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
           </div>
 
           <div className="mt-5 grid gap-3">

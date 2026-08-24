@@ -259,6 +259,60 @@ export async function adminDeleteTestimonial(id: number): Promise<void> {
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
+// ---- Cupones de descuento ----
+export type AdminCoupon = {
+  id: number;
+  code: string;
+  type: "percentage" | "fixed";
+  value: number;
+  active: boolean;
+  expiresAt: string | null;
+  maxUses: number | null;
+  usedCount: number;
+  minOrderValue: number | null;
+  createdAt: string;
+};
+export type CouponInput = {
+  code: string;
+  type: "percentage" | "fixed";
+  value: number;
+  active: boolean;
+  expiresAt: string | null;
+  maxUses: number | null;
+  minOrderValue: number | null;
+};
+
+export async function adminListCoupons(): Promise<AdminCoupon[]> {
+  const res = await fetch(`/api/admin/coupons`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export async function adminCreateCoupon(input: CouponInput): Promise<AdminCoupon> {
+  const res = await fetch(`/api/admin/coupons`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminUpdateCoupon(id: number, input: CouponInput): Promise<AdminCoupon> {
+  const res = await fetch(`/api/admin/coupons/${id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminDeleteCoupon(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
 // ---- Carrusel de portada ----
 export type AdminHeroImage = {
   id: number;

@@ -19,6 +19,7 @@ import {
 } from "@/lib/admin";
 import { AdminOrders } from "./AdminOrders";
 import { AdminTestimonials } from "./AdminTestimonials";
+import { AdminCoupons } from "./AdminCoupons";
 import { AdminHeroImages } from "./AdminHeroImages";
 import { AdminStats } from "./AdminStats";
 import { AdminReviews } from "./AdminReviews";
@@ -111,6 +112,7 @@ export function AdminDashboard() {
     | "questions"
     | "newsletter"
     | "shipping"
+    | "coupons"
   >("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -475,6 +477,7 @@ export function AdminDashboard() {
             ["reviews", "Reseñas"],
             ["questions", "Preguntas"],
             ["testimonials", "Testimonios"],
+            ["coupons", "Cupones"],
             ["newsletter", "Newsletter"],
             ["shipping", "Envío"],
             ["hero", "Inicio"],
@@ -713,6 +716,13 @@ export function AdminDashboard() {
       {tab === "testimonials" && (
         <div className="mt-6">
           <AdminTestimonials />
+        </div>
+      )}
+
+      {/* Cupones */}
+      {tab === "coupons" && (
+        <div className="mt-6">
+          <AdminCoupons />
         </div>
       )}
 
