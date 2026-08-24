@@ -5,6 +5,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import { MetaPixel } from "@/components/MetaPixel";
+import { GoogleTagManagerScript, GoogleTagManagerNoscript } from "@/components/GoogleTagManager";
 import { CartProvider } from "@/lib/cart";
 import { AuthProvider } from "@/lib/auth";
 import { FavoritesProvider } from "@/lib/favorites";
@@ -79,6 +80,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${anton.variable} ${manrope.variable} ${jetbrains.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-thor-cream text-thor-ink">
+        <GoogleTagManagerScript />
+        <GoogleTagManagerNoscript />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
