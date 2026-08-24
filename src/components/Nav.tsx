@@ -12,7 +12,7 @@ import type { Product } from "@/lib/api";
 
 const LINKS = [
   { href: "/", label: "Inicio" },
-  { href: "/camisetas", label: "Camisetas" },
+  { href: "/camisetas", label: "Catálogo" },
   { href: "/talles", label: "Guía de talles" },
   { href: "/preguntas-frecuentes", label: "Preguntas frecuentes" },
   { href: "/contacto", label: "Contacto" },

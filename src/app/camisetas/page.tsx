@@ -15,7 +15,7 @@ const SORTS: [ProductSort, string][] = [
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Camisetas",
+  title: "Catálogo",
   description:
     "Catálogo de camisetas de fútbol, NBA, rugby, remeras y conjuntos deportivos, importados y listos para enviar. Filtrá por tipo o buscá lo que necesitás.",
   alternates: { canonical: "/camisetas" },
@@ -69,8 +69,8 @@ export default async function CamisetasPage(props: PageProps<"/camisetas">) {
   return (
     <>
       <PageHeader
-        eyebrow="Catálogo"
-        title="Camisetas"
+        eyebrow="Camisetas, remeras y más"
+        title="Catálogo"
         subtitle="Importado y disponible para envío. Filtrá por categoría o buscá lo que necesitás."
       />
 

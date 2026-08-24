@@ -4,7 +4,7 @@ import { SITE } from "@/lib/site";
 import { NewsletterForm } from "./NewsletterForm";
 
 const LINKS = [
-  { href: "/camisetas", label: "Camisetas" },
+  { href: "/camisetas", label: "Catálogo" },
   { href: "/talles", label: "Guía de talles" },
   { href: "/preguntas-frecuentes", label: "Preguntas frecuentes" },
   { href: "/pedido", label: "Seguir mi pedido" },
