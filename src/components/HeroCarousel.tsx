@@ -53,17 +53,22 @@ export function HeroCarousel({ images }: { images: HeroImage[] }) {
       </div>
 
       {images.length > 1 && (
-        <div className="mt-4 flex gap-1.5">
+        <div className="mt-4 flex">
           {images.map((img, i) => (
             <button
               key={img.id}
               type="button"
               onClick={() => setActive(i)}
               aria-label={`Ver foto ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === active ? "w-5 bg-thor-gold" : "w-2 bg-thor-line"
-              }`}
-            />
+              className="grid h-6 w-6 place-items-center"
+            >
+              <span
+                aria-hidden
+                className={`block h-1.5 rounded-full transition-all ${
+                  i === active ? "w-5 bg-thor-gold" : "w-2 bg-thor-line"
+                }`}
+              />
+            </button>
           ))}
         </div>
       )}

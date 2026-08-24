@@ -9,6 +9,7 @@ export function LogoMark({ className = "" }: { className?: string }) {
       width={475}
       height={375}
       priority
+      sizes="36px"
       className={`${className} object-contain`}
     />
   );

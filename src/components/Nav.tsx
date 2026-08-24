@@ -64,7 +64,7 @@ export function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-thor-line bg-thor-cream/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3">
-        <Link href="/" aria-label="Thor Importaciones — inicio">
+        <Link href="/">
           <Logo />
         </Link>
 
@@ -115,7 +115,6 @@ export function Nav() {
           </Link>
           <Link
             href="/cuenta"
-            aria-label="Mi cuenta"
             className="hidden items-center gap-1.5 rounded-lg border border-thor-line px-3 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold sm:flex"
           >
             <span aria-hidden>👤</span>
