@@ -3,7 +3,12 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      // Fotos de productos y parches importados del proveedor (gmkitsd.com),
+      // enlazadas directamente en vez de resubidas a Cloudinary.
+      { protocol: "https", hostname: "ssl.images-ssl-mars.com" },
+    ],
   },
   async redirects() {
     return [

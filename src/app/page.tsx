@@ -21,14 +21,14 @@ export default async function Home() {
   // Las 4 consultas son independientes entre sí: se disparan en paralelo en vez
   // de una tras otra para no sumar round-trips a la base de forma innecesaria.
   const [featuredResult, testimonialsResult, heroImagesResult, instagramResult] = await Promise.allSettled([
-    getProducts(),
+    getProducts({ pageSize: 3 }),
     getPublishedTestimonials(),
     getHeroImages(),
     getInstagramPosts(),
   ]);
 
   const featured: Product[] =
-    featuredResult.status === "fulfilled" ? featuredResult.value.slice(0, 3) : [];
+    featuredResult.status === "fulfilled" ? featuredResult.value.products : [];
   const testimonials: Testimonial[] =
     testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [];
   const heroImages: HeroImage[] =

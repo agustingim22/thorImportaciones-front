@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getProducts } from "@/lib/products";
+import { getSitemapProducts } from "@/lib/products";
 import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   let products: MetadataRoute.Sitemap = [];
   try {
-    const rows = await getProducts();
+    const rows = await getSitemapProducts();
     products = rows.map((p) => ({
       url: `${SITE_URL}/producto/${p.slug}`,
       lastModified: p.createdAt,

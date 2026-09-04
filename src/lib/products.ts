@@ -52,17 +52,27 @@ export async function getBestSellerIds(limit = 6): Promise<Set<number>> {
 
 export type ProductSort = "newest" | "price-asc" | "price-desc";
 
+export const DEFAULT_PAGE_SIZE = 24;
+
+export type ProductsPage = { products: Product[]; total: number };
+
+/** Con el catálogo en miles de productos, siempre pagina (page 1-based) —
+ *  nunca trae todo de una, para no tumbar la página ni el payload. */
 export async function getProducts(
   params: {
+    ids?: number[];
     type?: ProductType;
     q?: string;
     minPrice?: number;
     maxPrice?: number;
     size?: string;
     sort?: ProductSort;
+    page?: number;
+    pageSize?: number;
   } = {},
-): Promise<Product[]> {
+): Promise<ProductsPage> {
   const where: Prisma.ProductWhereInput = {};
+  if (params.ids) where.id = { in: params.ids };
   if (params.type) where.type = params.type;
   if (params.q) {
     where.OR = [
@@ -84,11 +94,20 @@ export async function getProducts(
       : params.sort === "price-desc"
         ? { price: "desc" }
         : { createdAt: "desc" };
-  const [rows, bestSellerIds] = await Promise.all([
-    prisma.product.findMany({ where, orderBy, ...withPatches }),
+  const pageSize = params.pageSize ?? (params.ids ? Math.max(params.ids.length, 1) : DEFAULT_PAGE_SIZE);
+  const page = Math.max(1, params.page ?? 1);
+  const [rows, total, bestSellerIds] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      ...withPatches,
+    }),
+    prisma.product.count({ where }),
     getBestSellerIds(),
   ]);
-  return rows.map((r) => serializeProduct(r, bestSellerIds));
+  return { products: rows.map((r) => serializeProduct(r, bestSellerIds)), total };
 }
 
 /** Otras camisetas para mostrar como "también te puede interesar" en el detalle. */
@@ -115,10 +134,23 @@ export async function getRelatedProducts(
   return [...rows, ...fillerRows].map((r) => serializeProduct(r, bestSellerIds));
 }
 
-/** Slugs de todos los productos, para prerenderizar /producto/[slug] en el build (ISR). */
-export async function getAllProductSlugs(): Promise<string[]> {
-  const rows = await prisma.product.findMany({ select: { slug: true } });
+/** Slugs de los productos más recientes, para prerenderizar /producto/[slug] en el
+ *  build (ISR). Con miles de productos no tiene sentido (ni conviene) prerenderizar
+ *  todos: el resto se genera on-demand en la primera visita y queda cacheado igual. */
+export async function getAllProductSlugs(limit = 50): Promise<string[]> {
+  const rows = await prisma.product.findMany({
+    select: { slug: true },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
   return rows.map((r) => r.slug);
+}
+
+/** Slug + fecha de TODOS los productos, para el sitemap. A diferencia de
+ *  getProducts(), no trae parches/talles/más-vendidos: el sitemap solo necesita
+ *  la URL y la fecha de cada uno, así que evita esa consulta pesada por completo. */
+export async function getSitemapProducts(): Promise<{ slug: string; createdAt: Date }[]> {
+  return prisma.product.findMany({ select: { slug: true, createdAt: true } });
 }
 
 export async function getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getProducts, type ProductSort } from "@/lib/products";
+import { DEFAULT_PAGE_SIZE, getProducts, type ProductSort } from "@/lib/products";
 import type { Product, ProductType } from "@/lib/api";
 import { ALL_SIZES, PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
@@ -43,24 +43,36 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   const sizeRaw = Array.isArray(sp.size) ? sp.size[0] : sp.size;
   const size = (ALL_SIZES as readonly string[]).includes(sizeRaw ?? "") ? sizeRaw : undefined;
 
+  const pageRaw = Number(Array.isArray(sp.page) ? sp.page[0] : sp.page);
+  const page = Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1;
+
   let products: Product[] = [];
+  let total = 0;
   try {
-    products = await getProducts({ type, q, minPrice, maxPrice, size, sort });
+    const result = await getProducts({ type, q, minPrice, maxPrice, size, sort, page });
+    products = result.products;
+    total = result.total;
   } catch {
     products = [];
+    total = 0;
   }
+  const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE));
 
-  const tabHref = (key?: string) => {
+  const buildHref = (overrides: { type?: string; page?: number } = {}) => {
     const params = new URLSearchParams();
-    if (key) params.set("type", key);
+    const nextType = "type" in overrides ? overrides.type : type;
+    if (nextType) params.set("type", nextType);
     if (q) params.set("q", q);
     if (minPrice !== undefined) params.set("minPrice", String(minPrice));
     if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
     if (size) params.set("size", size);
     if (sort !== "newest") params.set("sort", sort);
+    const nextPage = overrides.page ?? 1;
+    if (nextPage > 1) params.set("page", String(nextPage));
     const qs = params.toString();
     return qs ? `/catalogo?${qs}` : "/catalogo";
   };
+  const tabHref = (key?: string) => buildHref({ type: key, page: 1 });
 
   const hasExtraFilters =
     !!q || minPrice !== undefined || maxPrice !== undefined || !!size || sort !== "newest";
@@ -163,10 +175,10 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
           <p className="mb-5 text-sm text-thor-muted">
             {q ? (
               <>
-                Resultados para <strong className="text-thor-ink">“{q}”</strong> ({products.length}).{" "}
+                Resultados para <strong className="text-thor-ink">“{q}”</strong> ({total}).{" "}
               </>
             ) : (
-              <>{products.length} resultado{products.length === 1 ? "" : "s"} con estos filtros. </>
+              <>{total} resultado{total === 1 ? "" : "s"} con estos filtros. </>
             )}
             <Link href={clearHref} className="text-thor-gold underline">
               Limpiar filtros
@@ -175,11 +187,37 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
         )}
 
         {products.length > 0 ? (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {products.map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <nav className="mt-10 flex items-center justify-center gap-2">
+                {page > 1 && (
+                  <Link
+                    href={buildHref({ page: page - 1 })}
+                    className="rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold"
+                  >
+                    ← Anterior
+                  </Link>
+                )}
+                <span className="px-3 font-mono text-xs text-thor-muted">
+                  Página {page} de {totalPages}
+                </span>
+                {page < totalPages && (
+                  <Link
+                    href={buildHref({ page: page + 1 })}
+                    className="rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold"
+                  >
+                    Siguiente →
+                  </Link>
+                )}
+              </nav>
+            )}
+          </>
         ) : (
           <div className="rounded-2xl border border-dashed border-thor-line bg-thor-paper p-10 text-center">
             <p className="text-sm text-thor-muted">

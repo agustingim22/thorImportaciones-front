@@ -102,20 +102,27 @@ function FavoriteWatchBanner({ productIds }: { productIds: number[] }) {
 
 export function FavoritosGrid() {
   const { ids } = useFavorites();
-  const [products, setProducts] = useState<Product[] | null>(null);
+  const [favorites, setFavorites] = useState<Product[] | null>(null);
+  const idsKey = ids.join(",");
 
   useEffect(() => {
-    fetch("/api/products")
+    if (ids.length === 0) {
+      setFavorites([]);
+      return;
+    }
+    // Traemos solo los productos favoritos por id, nunca el catálogo entero
+    // (que hoy tiene miles de productos del proveedor).
+    fetch(`/api/products?ids=${idsKey}`)
       .then((res) => res.json())
-      .then((all: Product[]) => setProducts(all))
-      .catch(() => setProducts([]));
-  }, []);
+      .then((matched: Product[]) => setFavorites(matched))
+      .catch(() => setFavorites([]));
+    // idsKey representa el mismo contenido que ids de forma estable entre renders
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey]);
 
-  if (products === null) {
+  if (favorites === null) {
     return <p className="px-5 py-16 text-center text-thor-muted">Cargando…</p>;
   }
-
-  const favorites = products.filter((p) => ids.includes(p.id));
 
   if (favorites.length === 0) {
     return (

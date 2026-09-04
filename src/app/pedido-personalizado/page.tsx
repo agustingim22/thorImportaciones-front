@@ -19,7 +19,9 @@ const PASOS = [
 export default async function PedidoPersonalizadoPage() {
   let products: Product[] = [];
   try {
-    products = await getProducts();
+    // El desplegable "elegí del catálogo" no necesita las miles de variantes del
+    // proveedor completas, alcanza con un lote razonable para no cargar de más.
+    products = (await getProducts({ pageSize: 100 })).products;
   } catch {
     products = [];
   }
