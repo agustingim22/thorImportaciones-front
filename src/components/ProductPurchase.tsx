@@ -436,7 +436,7 @@ export function ProductPurchase({ product }: { product: Product }) {
 
         {product.inStock && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-thor-muted">
-            <span aria-hidden>📦</span> {SITE.delivery.stock}
+            <span aria-hidden>🌍</span> {SITE.delivery.stock}
           </p>
         )}
 

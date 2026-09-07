@@ -18,10 +18,10 @@ export const SITE = {
     alias: "AGUSTINGIM22.LEMON",
     holder: "Agustín Alejandro Gimenez",
   },
-  // Tiempos estimados que se muestran al comprador (ya está todo importado y en stock
-  // para el catálogo; lo personalizado sí implica importar).
+  // Tiempos estimados que se muestran al comprador. Hoy todo el catálogo se importa
+  // (no hay stock físico inmediato), así que ambos mensajes son el mismo por ahora.
   delivery: {
-    stock: "Envío en 24-48hs hábiles",
+    stock: "Es un pedido a medida: se importa, 3 a 4 semanas aproximadamente",
     custom: "Es un pedido a medida: se importa, 3 a 4 semanas aproximadamente",
   },
 } as const;
