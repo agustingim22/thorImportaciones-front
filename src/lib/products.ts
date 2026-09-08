@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { Product, ProductType } from "./api";
@@ -56,21 +57,21 @@ export const DEFAULT_PAGE_SIZE = 24;
 
 export type ProductsPage = { products: Product[]; total: number };
 
+type GetProductsParams = {
+  ids?: number[];
+  type?: ProductType;
+  q?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  size?: string;
+  sort?: ProductSort;
+  page?: number;
+  pageSize?: number;
+};
+
 /** Con el catálogo en miles de productos, siempre pagina (page 1-based) —
  *  nunca trae todo de una, para no tumbar la página ni el payload. */
-export async function getProducts(
-  params: {
-    ids?: number[];
-    type?: ProductType;
-    q?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    size?: string;
-    sort?: ProductSort;
-    page?: number;
-    pageSize?: number;
-  } = {},
-): Promise<ProductsPage> {
+async function fetchProducts(params: GetProductsParams = {}): Promise<ProductsPage> {
   const where: Prisma.ProductWhereInput = {};
   if (params.ids) where.id = { in: params.ids };
   if (params.type) where.type = params.type;
@@ -109,6 +110,18 @@ export async function getProducts(
   ]);
   return { products: rows.map((r) => serializeProduct(r, bestSellerIds)), total };
 }
+
+/** El catálogo lee `searchParams`, así que Next siempre renderiza /catalogo por
+ *  request sin importar ningún `revalidate` de la página — pero la consulta en
+ *  sí (la parte cara: findMany + count + agregado de más-vendidos sobre miles
+ *  de filas) se puede cachear igual acá, por combinación de filtros, y así no
+ *  pegarle a la base en cada clic dentro del catálogo. El admin no pasa por
+ *  acá (tiene su propia consulta directa), así que una edición de precio/stock
+ *  se ve al instante ahí; en el resto del sitio tarda hasta 60s en reflejarse,
+ *  igual que ya pasa con la ficha de producto. */
+export const getProducts = unstable_cache(fetchProducts, ["products-list"], {
+  revalidate: 60,
+});
 
 /** Otras camisetas para mostrar como "también te puede interesar" en el detalle. */
 export async function getRelatedProducts(

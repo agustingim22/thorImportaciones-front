@@ -12,10 +12,10 @@ const SORTS: [ProductSort, string][] = [
   ["price-desc", "Precio: mayor a menor"],
 ];
 
-// Cachea cada combinación de filtros/página hasta por 60s (igual que la home y
-// la ficha de producto) — evita pegarle a la base en cada clic dentro del
-// catálogo; el stock/precio real siempre se valida de nuevo en el checkout.
-export const revalidate = 60;
+// Lee searchParams, así que Next igual la renderiza dinámica en cada visita
+// sin importar esto — pero la consulta cara de por sí sí queda cacheada 60s
+// (ver getProducts en @/lib/products), que es lo que realmente pesa acá.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Catálogo",
