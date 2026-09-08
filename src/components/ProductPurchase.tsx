@@ -17,7 +17,7 @@ import { trackPixelEvent } from "@/lib/metaPixel";
 import { pushEcommerceEvent } from "@/lib/dataLayer";
 import { notifyStockAvailable } from "@/lib/stockNotify";
 import { SITE } from "@/lib/site";
-import { isUnoptimizedImage } from "@/lib/image";
+import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 import { FavoriteButton } from "./FavoriteButton";
 import { TallesGuideModal } from "./TallesGuideModal";
 
@@ -172,7 +172,7 @@ export function ProductPurchase({ product }: { product: Product }) {
               className="relative h-[420px] w-full cursor-zoom-in sm:h-[560px]"
             >
               <Image
-                src={currentImage}
+                src={resizeSupplierImage(currentImage, 900)}
                 alt={product.team}
                 fill
                 sizes="(max-width: 768px) 100vw, 55vw"
@@ -238,7 +238,7 @@ export function ProductPurchase({ product }: { product: Product }) {
                 aria-label={`Ver foto ${i + 1}`}
               >
                 <Image
-                  src={url}
+                  src={resizeSupplierImage(url, 150)}
                   alt=""
                   fill
                   sizes="64px"
@@ -403,7 +403,7 @@ export function ProductPurchase({ product }: { product: Product }) {
                   }`}
                 >
                   <Image
-                    src={patch.imageUrl}
+                    src={resizeSupplierImage(patch.imageUrl, 100)}
                     alt=""
                     width={28}
                     height={28}

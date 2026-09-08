@@ -9,7 +9,7 @@ import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useFavorites } from "@/lib/favorites";
 import type { Product } from "@/lib/api";
-import { isUnoptimizedImage } from "@/lib/image";
+import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 
 const LINKS = [
   { href: "/", label: "Inicio" },
@@ -178,7 +178,7 @@ export function Nav() {
                     <span className="relative h-9 w-9 shrink-0 overflow-hidden rounded-md bg-thor-cream-2">
                       {p.imageUrl && (
                         <Image
-                          src={p.imageUrl}
+                          src={resizeSupplierImage(p.imageUrl, 100)}
                           alt=""
                           fill
                           sizes="36px"

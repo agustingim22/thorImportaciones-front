@@ -12,7 +12,10 @@ const SORTS: [ProductSort, string][] = [
   ["price-desc", "Precio: mayor a menor"],
 ];
 
-export const dynamic = "force-dynamic";
+// Cachea cada combinación de filtros/página hasta por 60s (igual que la home y
+// la ficha de producto) — evita pegarle a la base en cada clic dentro del
+// catálogo; el stock/precio real siempre se valida de nuevo en el checkout.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Catálogo",

@@ -11,7 +11,7 @@ import {
   PRODUCT_TYPE_LABELS,
   typeAllowsCustomization,
 } from "@/lib/api";
-import { isUnoptimizedImage } from "@/lib/image";
+import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 import { FavoriteButton } from "./FavoriteButton";
 import { QuickViewModal } from "./QuickViewModal";
 
@@ -58,7 +58,7 @@ export function ProductCard({ product }: { product: Product }) {
         >
           {product.imageUrl ? (
             <Image
-              src={product.imageUrl}
+              src={resizeSupplierImage(product.imageUrl, 500)}
               alt={product.team}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"

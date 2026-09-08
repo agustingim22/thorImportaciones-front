@@ -8,7 +8,7 @@ import { effectivePrice, typeAllowsCustomization } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { trackPixelEvent } from "@/lib/metaPixel";
 import { pushEcommerceEvent } from "@/lib/dataLayer";
-import { isUnoptimizedImage } from "@/lib/image";
+import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 
 export function QuickViewModal({ product, onClose }: { product: Product; onClose: () => void }) {
   const { add } = useCart();
@@ -83,7 +83,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
           <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-thor-cream-2">
             {product.imageUrl ? (
               <Image
-                src={product.imageUrl}
+                src={resizeSupplierImage(product.imageUrl, 400)}
                 alt={product.team}
                 fill
                 sizes="240px"

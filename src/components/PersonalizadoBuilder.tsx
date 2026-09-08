@@ -10,7 +10,7 @@ import { AddressFields, Field, emptyAddress, inputCls } from "@/components/Addre
 import { OrderNextSteps } from "@/components/OrderNextSteps";
 import { trackPixelEvent } from "@/lib/metaPixel";
 import type { Product, ProductType } from "@/lib/api";
-import { isUnoptimizedImage } from "@/lib/image";
+import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 
 type Item = CustomItemInput & {
   id: number;
@@ -423,7 +423,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
                       >
                         {pt.imageUrl && (
                           <Image
-                            src={pt.imageUrl}
+                            src={resizeSupplierImage(pt.imageUrl, 100)}
                             alt=""
                             width={28}
                             height={28}
