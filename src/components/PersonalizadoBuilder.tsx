@@ -10,6 +10,7 @@ import { AddressFields, Field, emptyAddress, inputCls } from "@/components/Addre
 import { OrderNextSteps } from "@/components/OrderNextSteps";
 import { trackPixelEvent } from "@/lib/metaPixel";
 import type { Product, ProductType } from "@/lib/api";
+import { isUnoptimizedImage } from "@/lib/image";
 
 type Item = CustomItemInput & {
   id: number;
@@ -427,6 +428,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
                             width={28}
                             height={28}
                             className="h-7 w-7 shrink-0 rounded-md object-contain"
+                            unoptimized={isUnoptimizedImage(pt.imageUrl)}
                           />
                         )}
                         <span className="truncate">

@@ -8,6 +8,7 @@ import { effectivePrice, typeAllowsCustomization } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { trackPixelEvent } from "@/lib/metaPixel";
 import { pushEcommerceEvent } from "@/lib/dataLayer";
+import { isUnoptimizedImage } from "@/lib/image";
 
 export function QuickViewModal({ product, onClose }: { product: Product; onClose: () => void }) {
   const { add } = useCart();
@@ -87,6 +88,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
                 fill
                 sizes="240px"
                 className="object-cover"
+                unoptimized={isUnoptimizedImage(product.imageUrl)}
               />
             ) : (
               <div

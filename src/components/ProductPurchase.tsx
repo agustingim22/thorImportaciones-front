@@ -17,6 +17,7 @@ import { trackPixelEvent } from "@/lib/metaPixel";
 import { pushEcommerceEvent } from "@/lib/dataLayer";
 import { notifyStockAvailable } from "@/lib/stockNotify";
 import { SITE } from "@/lib/site";
+import { isUnoptimizedImage } from "@/lib/image";
 import { FavoriteButton } from "./FavoriteButton";
 import { TallesGuideModal } from "./TallesGuideModal";
 
@@ -177,6 +178,7 @@ export function ProductPurchase({ product }: { product: Product }) {
                 sizes="(max-width: 768px) 100vw, 55vw"
                 className="rounded-xl object-contain"
                 priority
+                unoptimized={isUnoptimizedImage(currentImage)}
               />
               <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-thor-ink/70 text-thor-cream">
                 <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -235,7 +237,14 @@ export function ProductPurchase({ product }: { product: Product }) {
                 }`}
                 aria-label={`Ver foto ${i + 1}`}
               >
-                <Image src={url} alt="" fill sizes="64px" className="object-cover" />
+                <Image
+                  src={url}
+                  alt=""
+                  fill
+                  sizes="64px"
+                  className="object-cover"
+                  unoptimized={isUnoptimizedImage(url)}
+                />
               </button>
             ))}
           </div>
@@ -399,6 +408,7 @@ export function ProductPurchase({ product }: { product: Product }) {
                     width={28}
                     height={28}
                     className="rounded object-cover"
+                    unoptimized={isUnoptimizedImage(patch.imageUrl)}
                   />
                   <span>
                     {patch.label}
@@ -531,7 +541,14 @@ export function ProductPurchase({ product }: { product: Product }) {
             onTouchStart={imageCount > 1 ? handleTouchStart : undefined}
             onTouchEnd={imageCount > 1 ? handleTouchEnd : undefined}
           >
-            <Image src={currentImage} alt={product.team} fill sizes="100vw" className="object-contain" />
+            <Image
+              src={currentImage}
+              alt={product.team}
+              fill
+              sizes="100vw"
+              className="object-contain"
+              unoptimized={isUnoptimizedImage(currentImage)}
+            />
           </div>
         </div>
       )}
