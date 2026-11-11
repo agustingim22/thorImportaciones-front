@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { PRODUCT_TYPES, typeAllowsCustomization, type ProductType } from "@/lib/api";
+import { detectClub } from "@/lib/clubs";
 
 const VALID_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
 
@@ -72,6 +73,8 @@ export function toProductData(input: ProductInput, slug: string): Prisma.Product
   return {
     slug,
     team: input.team.trim(),
+    // Se deduce del nombre cada vez que se crea o edita, para que entre solo al filtro por club.
+    club: detectClub(input.team)?.slug ?? null,
     type: input.type,
     price: input.price,
     salePrice: input.salePrice != null && input.salePrice < input.price ? input.salePrice : null,

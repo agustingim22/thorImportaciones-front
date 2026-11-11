@@ -3,8 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Logo } from "./Logo";
+import { ClubsMenu } from "./ClubsMenu";
+import { CLUB_GROUPS, FEATURED_CLUBS } from "@/lib/clubs";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useFavorites } from "@/lib/favorites";
@@ -70,19 +72,21 @@ export function Nav() {
         </Link>
 
         {/* Links desktop */}
-        <nav className="hidden items-center gap-7 lg:flex">
+        <nav className="hidden items-center gap-5 lg:flex">
           {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`font-mono text-xs font-semibold uppercase tracking-wider transition-colors ${
-                isActive(l.href)
-                  ? "text-thor-gold"
-                  : "text-thor-muted hover:text-thor-ink"
-              }`}
-            >
-              {l.label}
-            </Link>
+            <Fragment key={l.href}>
+              <Link
+                href={l.href}
+                className={`font-mono text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  isActive(l.href)
+                    ? "text-thor-gold"
+                    : "text-thor-muted hover:text-thor-ink"
+                }`}
+              >
+                {l.label}
+              </Link>
+              {l.href === "/catalogo" && <ClubsMenu />}
+            </Fragment>
           ))}
         </nav>
 
@@ -220,6 +224,33 @@ export function Nav() {
                 </Link>
               </li>
             ))}
+            <li>
+              <details>
+                <summary className="block cursor-pointer list-none rounded-lg px-3 py-2.5 font-mono text-sm font-semibold uppercase tracking-wider text-thor-ink hover:bg-thor-cream-2">
+                  Equipos <span aria-hidden>▾</span>
+                </summary>
+                {CLUB_GROUPS.map((g) => (
+                  <div key={g.key} className="px-2 pb-2">
+                    <p className="px-3 pb-1 pt-2 font-mono text-[10px] font-bold uppercase tracking-widest text-thor-muted">
+                      {g.label}
+                    </p>
+                    <ul className="grid grid-cols-2 gap-1">
+                      {FEATURED_CLUBS.filter((c) => c.group === g.key).map((c) => (
+                        <li key={c.slug}>
+                          <Link
+                            href={`/catalogo?club=${c.slug}`}
+                            onClick={() => setOpen(false)}
+                            className="block rounded-lg px-3 py-2 text-sm text-thor-ink hover:bg-thor-cream-2"
+                          >
+                            {c.name}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </details>
+            </li>
             <li>
               <Link
                 href="/cuenta"

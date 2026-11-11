@@ -60,6 +60,7 @@ export type ProductsPage = { products: Product[]; total: number };
 type GetProductsParams = {
   ids?: number[];
   type?: ProductType;
+  club?: string; // slug de un club destacado (ver lib/clubs.ts)
   q?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -75,6 +76,7 @@ async function fetchProducts(params: GetProductsParams = {}): Promise<ProductsPa
   const where: Prisma.ProductWhereInput = {};
   if (params.ids) where.id = { in: params.ids };
   if (params.type) where.type = params.type;
+  if (params.club) where.club = params.club;
   if (params.q) {
     where.OR = [
       { team: { contains: params.q, mode: "insensitive" } },
@@ -122,6 +124,23 @@ async function fetchProducts(params: GetProductsParams = {}): Promise<ProductsPa
 export const getProducts = unstable_cache(fetchProducts, ["products-list"], {
   revalidate: 60,
 });
+
+/** Cuántos productos tiene cada equipo destacado (slug → cantidad), para mostrar solo los
+ *  que tienen stock en el filtro del catálogo. Es una agrupación sobre una columna
+ *  indexada; se cachea 60s, igual que getProducts, para que después de reclasificar
+ *  (o cargar productos) los números no queden desfasados de la grilla. */
+export const getClubCounts = unstable_cache(
+  async (): Promise<Record<string, number>> => {
+    const rows = await prisma.product.groupBy({
+      by: ["club"],
+      where: { club: { not: null } },
+      _count: { _all: true },
+    });
+    return Object.fromEntries(rows.map((r) => [r.club as string, r._count._all]));
+  },
+  ["club-counts"],
+  { revalidate: 60 },
+);
 
 /** Otras camisetas para mostrar como "también te puede interesar" en el detalle. */
 export async function getRelatedProducts(

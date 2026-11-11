@@ -23,6 +23,7 @@ model Product {
   presetName         String? // nombre ya definido por el admin (si está, el comprador no elige)
   presetNumber       String? // número ya definido por el admin (si está, el comprador no elige)
   sizes              String[]            @default(["S", "M", "L", "XL", "XXL"]) // talles disponibles para esta camiseta
+  club               String? // slug del club destacado (ver src/lib/clubs.ts); se deduce de `team`
   createdAt          DateTime            @default(now())
   patches            Patch[]
   sizeStocks         ProductSize[]
@@ -30,6 +31,8 @@ model Product {
   stockNotifications StockNotification[]
   questions          ProductQuestion[]
   favoriteWatches    FavoriteWatch[]
+
+  @@index([club])
 }
 
 /// Pregunta pública de un visitante sobre un producto puntual. Queda oculta hasta que

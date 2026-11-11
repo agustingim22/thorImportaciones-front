@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { DEFAULT_PAGE_SIZE, getProducts, type ProductSort } from "@/lib/products";
+import { DEFAULT_PAGE_SIZE, getClubCounts, getProducts, type ProductSort } from "@/lib/products";
 import type { Product, ProductType } from "@/lib/api";
 import { ALL_SIZES, PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { CLUB_GROUPS, FEATURED_CLUBS, clubHeading, getClubBySlug } from "@/lib/clubs";
 import { ProductCard } from "@/components/ProductCard";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -17,12 +18,25 @@ const SORTS: [ProductSort, string][] = [
 // (ver getProducts en @/lib/products), que es lo que realmente pesa acá.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Catálogo",
-  description:
-    "Catálogo de camisetas de fútbol, NBA, rugby, remeras y conjuntos deportivos, importados y listos para enviar. Filtrá por tipo o buscá lo que necesitás.",
-  alternates: { canonical: "/catalogo" },
-};
+/** Cada club tiene su propio título y canonical, para que /catalogo?club=… se indexe como página propia. */
+export async function generateMetadata(props: PageProps<"/catalogo">): Promise<Metadata> {
+  const sp = await props.searchParams;
+  const club = getClubBySlug(Array.isArray(sp.club) ? sp.club[0] : sp.club);
+  if (club) {
+    const heading = clubHeading(club);
+    return {
+      title: `Camisetas de ${heading}`,
+      description: `Camisetas de ${heading} importadas. Mirá los modelos, versiones y talles disponibles.`,
+      alternates: { canonical: `/catalogo?club=${club.slug}` },
+    };
+  }
+  return {
+    title: "Catálogo",
+    description:
+      "Catálogo de camisetas de fútbol, NBA, rugby, remeras y conjuntos deportivos, importados y listos para enviar. Filtrá por tipo o buscá lo que necesitás.",
+    alternates: { canonical: "/catalogo" },
+  };
+}
 
 const TABS = [
   { key: undefined, label: "Todas" },
@@ -34,6 +48,8 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   const rawType = Array.isArray(sp.type) ? sp.type[0] : sp.type;
   const type = PRODUCT_TYPES.includes(rawType as ProductType) ? (rawType as ProductType) : undefined;
   const q = (Array.isArray(sp.q) ? sp.q[0] : sp.q)?.trim() || undefined;
+  const clubInfo = getClubBySlug(Array.isArray(sp.club) ? sp.club[0] : sp.club);
+  const club = clubInfo?.slug;
 
   const minPriceRaw = Number(Array.isArray(sp.minPrice) ? sp.minPrice[0] : sp.minPrice);
   const maxPriceRaw = Number(Array.isArray(sp.maxPrice) ? sp.maxPrice[0] : sp.maxPrice);
@@ -51,20 +67,36 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
 
   let products: Product[] = [];
   let total = 0;
+  let clubCounts: Record<string, number> = {};
   try {
-    const result = await getProducts({ type, q, minPrice, maxPrice, size, sort, page });
+    const [result, counts] = await Promise.all([
+      getProducts({ type, club, q, minPrice, maxPrice, size, sort, page }),
+      getClubCounts(),
+    ]);
     products = result.products;
     total = result.total;
+    clubCounts = counts;
   } catch {
     products = [];
     total = 0;
   }
   const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE));
 
-  const buildHref = (overrides: { type?: string; page?: number } = {}) => {
+  // Solo se ofrecen los equipos que tienen productos (más el elegido, aunque quede en 0),
+  // agrupados en clubes y selecciones.
+  const visibleGroups = CLUB_GROUPS.map((g) => ({
+    ...g,
+    items: FEATURED_CLUBS.filter(
+      (c) => c.group === g.key && ((clubCounts[c.slug] ?? 0) > 0 || c.slug === club),
+    ),
+  })).filter((g) => g.items.length > 0);
+
+  const buildHref = (overrides: { type?: string; club?: string; page?: number } = {}) => {
     const params = new URLSearchParams();
     const nextType = "type" in overrides ? overrides.type : type;
     if (nextType) params.set("type", nextType);
+    const nextClub = "club" in overrides ? overrides.club : club;
+    if (nextClub) params.set("club", nextClub);
     if (q) params.set("q", q);
     if (minPrice !== undefined) params.set("minPrice", String(minPrice));
     if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
@@ -76,17 +108,26 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
     return qs ? `/catalogo?${qs}` : "/catalogo";
   };
   const tabHref = (key?: string) => buildHref({ type: key, page: 1 });
+  const clubHref = (slug?: string) => buildHref({ club: slug, page: 1 });
 
   const hasExtraFilters =
     !!q || minPrice !== undefined || maxPrice !== undefined || !!size || sort !== "newest";
-  const clearHref = type ? `/catalogo?type=${type}` : "/catalogo";
+  // "Limpiar filtros" quita búsqueda, precio, talle y orden, pero conserva tipo y club.
+  const clearParams = new URLSearchParams();
+  if (type) clearParams.set("type", type);
+  if (club) clearParams.set("club", club);
+  const clearHref = clearParams.size > 0 ? `/catalogo?${clearParams}` : "/catalogo";
 
   return (
     <>
       <PageHeader
-        eyebrow="Camisetas, remeras y más"
-        title="Catálogo"
-        subtitle="Importado y disponible para envío. Filtrá por categoría o buscá lo que necesitás."
+        eyebrow={clubInfo ? "Catálogo" : "Camisetas, remeras y más"}
+        title={clubInfo ? `Camisetas de ${clubHeading(clubInfo)}` : "Catálogo"}
+        subtitle={
+          clubInfo
+            ? `Modelos de ${clubHeading(clubInfo)} disponibles. Filtrá por versión, talle o precio.`
+            : "Importado y disponible para envío. Filtrá por categoría o buscá lo que necesitás."
+        }
       />
 
       <section className="mx-auto max-w-6xl px-5 py-12">
@@ -112,6 +153,47 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
             </div>
           </div>
 
+          {/* Filtro por equipo: una tira por grupo (clubes / selecciones), con scroll en
+              mobile y varias filas desde sm. "Todos" va solo en la primera tira. */}
+          {visibleGroups.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {visibleGroups.map((g, gi) => (
+                <nav
+                  key={g.key}
+                  aria-label={`Filtrar por ${g.label.toLowerCase()}`}
+                  className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0"
+                >
+                  <div className="flex w-max items-center gap-2 sm:w-auto sm:flex-wrap">
+                    <span className="w-24 shrink-0 font-mono text-[10px] font-bold uppercase tracking-widest text-thor-muted">
+                      {g.label}
+                    </span>
+                    {[...(gi === 0 ? [{ slug: undefined, name: "Todos" }] : []), ...g.items].map((c) => {
+                      const active = c.slug === club;
+                      const count = c.slug ? clubCounts[c.slug] : undefined;
+                      return (
+                        <Link
+                          key={c.slug ?? "all"}
+                          href={clubHref(c.slug)}
+                          aria-current={active ? "page" : undefined}
+                          className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-colors ${
+                            active
+                              ? "border-thor-gold bg-thor-gold/15 font-semibold text-thor-ink"
+                              : "border-thor-line text-thor-muted hover:border-thor-gold hover:text-thor-ink"
+                          }`}
+                        >
+                          {c.name}
+                          {count !== undefined && (
+                            <span className="ml-1.5 font-mono text-xs tabular-nums opacity-60">{count}</span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </nav>
+              ))}
+            </div>
+          )}
+
           {/* Buscador + filtros: grilla de 2 columnas en mobile, una sola fila desde sm */}
           <form
             method="get"
@@ -119,6 +201,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
             className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center"
           >
             {type && <input type="hidden" name="type" value={type} />}
+            {club && <input type="hidden" name="club" value={club} />}
             <input
               type="search"
               name="q"
