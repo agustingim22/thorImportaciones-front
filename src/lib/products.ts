@@ -5,6 +5,7 @@ import { prisma } from "./prisma";
 import type { Product, ProductType } from "./api";
 import { HOME_TEAM_SLUGS, getClubBySlug, matchClubsForSearch } from "./clubs";
 import { displayName, searchEquivalents } from "./displayName";
+import { GROUP_SIZE } from "./ranking";
 
 export const withPatches = Prisma.validator<Prisma.ProductDefaultArgs>()({
   include: { patches: { orderBy: { id: "asc" } }, sizeStocks: true },
@@ -173,7 +174,7 @@ export const getTeamShowcase = unstable_cache(
         if (!club || !(counts[slug] > 0)) return null;
         const row = await prisma.product.findFirst({
           where: { club: slug, type: { in: ["fan", "player", "retro"] }, stock: { gt: 0 }, images: { isEmpty: false } },
-          orderBy: { createdAt: "desc" },
+          orderBy: [{ rank: "asc" }, { createdAt: "desc" }], // la foto de la mejor camiseta del equipo
           select: { images: true },
         });
         const imageUrl = row?.images[0];
@@ -230,8 +231,14 @@ async function fetchFeaturedProducts(limit: number): Promise<FeaturedProducts> {
   for (const slug of HOME_TEAM_SLUGS) {
     if (picked.length >= limit) break;
     const row = await prisma.product.findFirst({
-      where: { club: slug, rank: 0, stock: { gt: 0 }, images: { isEmpty: false }, id: { notIn: picked.map((r) => r.id) } },
-      orderBy: { createdAt: "desc" },
+      where: {
+        club: slug,
+        rank: { lt: GROUP_SIZE }, // grupo 0: camisetas de equipos destacados
+        stock: { gt: 0 },
+        images: { isEmpty: false },
+        id: { notIn: picked.map((r) => r.id) },
+      },
+      orderBy: [{ rank: "asc" }, { createdAt: "desc" }], // la mejor camiseta del equipo (temporada nueva, Local)
       ...withPatches,
     });
     if (row) picked.push(row);

@@ -39,8 +39,10 @@ export function AdminClubs() {
       </p>
       <p className="mt-2 text-xs text-thor-muted">
         Los productos que cargás desde este panel (a mano o por CSV) se clasifican solos. Usá esto
-        para los que ya estaban cargados, o para los que hayas importado por otra vía. Primero mirá
-        el simulacro y, si se ve bien, aplicá.
+        para los que ya estaban cargados, o para los que hayas importado por otra vía. Además
+        ordena el catálogo (“Destacados”): camisetas de juego primero y un equipo distinto cada
+        vez, así que la primera vez “A cambiar” puede ser casi todo el catálogo. Primero mirá el
+        simulacro y, si se ve bien, aplicá.
       </p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">

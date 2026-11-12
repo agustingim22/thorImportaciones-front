@@ -88,7 +88,8 @@ export function toProductData(input: ProductInput, slug: string): Prisma.Product
     // Equipo: automático (se deduce del nombre cada vez que se crea o edita) o fijado a mano.
     club,
     clubManual: !!input.club,
-    rank: productRank(input.type, club), // posición en el orden "Destacados" del catálogo
+    // Posición provisoria en el orden "Destacados" (la definitiva la calcula la clasificación; ver lib/ranking.ts).
+    rank: productRank(input.team, input.type, club),
     type: input.type,
     price: input.price,
     salePrice: input.salePrice != null && input.salePrice < input.price ? input.salePrice : null,
