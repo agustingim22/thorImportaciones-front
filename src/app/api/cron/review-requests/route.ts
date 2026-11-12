@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendReviewRequest } from "@/lib/server/email";
+import { classifyClubs } from "@/lib/server/clubs";
+import { displayName } from "@/lib/displayName";
 
 /** Días de margen desde la entrega antes de pedir la reseña. */
 const REVIEW_REQUEST_DELAY_DAYS = 4;
@@ -28,13 +30,14 @@ export async function GET(req: Request) {
     const productIds = Array.from(new Set(order.items.map((i) => i.productId)));
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { team: true, slug: true },
+      select: { team: true, type: true, slug: true },
     });
     if (order.customerEmail && products.length > 0) {
       await sendReviewRequest({
         email: order.customerEmail,
         customerName: order.customerName,
-        products,
+        // el cliente lee estos nombres en el mail: se muestran como en la tienda
+        products: products.map((p) => ({ team: displayName(p.team, p.type), slug: p.slug })),
       }).catch(() => {});
       sent++;
     }
@@ -43,5 +46,10 @@ export async function GET(req: Request) {
     await prisma.order.update({ where: { id: order.id }, data: { reviewRequestSentAt: new Date() } });
   }
 
-  return NextResponse.json({ ok: true, checked: orders.length, sent });
+  // Aprovecha esta corrida diaria para clasificar por equipo los productos nuevos. No tiene su propia
+  // entrada en vercel.json: el plan gratuito de Vercel limita la cantidad de crons y un tercero
+  // podría hacer fallar el deploy. Si falla, no afecta al resto de lo que hace este cron.
+  const clubs = await classifyClubs(true).catch(() => null);
+
+  return NextResponse.json({ ok: true, checked: orders.length, sent, clubsUpdated: clubs?.updated ?? null });
 }

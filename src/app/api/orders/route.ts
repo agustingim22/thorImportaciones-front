@@ -12,6 +12,7 @@ import { rateLimit } from "@/lib/server/ratelimit";
 import { effectivePrice, typeAllowsCustomization, type ProductType } from "@/lib/api";
 import { CouponError, computeDiscount, findValidCoupon } from "@/lib/coupons";
 import { checkFavoriteStockCrossing } from "@/lib/favoriteWatch";
+import { displayName } from "@/lib/displayName";
 
 type Body = {
   customerName?: string;
@@ -97,10 +98,12 @@ export async function POST(req: Request) {
           include: { patches: true },
         });
         if (!product) throw new OrderError(`Producto no disponible (id ${line.productId}).`);
+        // El nombre que lee el cliente (en mensajes, mails y en el pedido guardado) es el de la tienda.
+        const shownName = displayName(product.team, product.type);
 
         const size = line.size?.trim() ?? "";
         if (!product.sizes.includes(size)) {
-          throw new OrderError(`Elegí un talle válido para "${product.team}".`);
+          throw new OrderError(`Elegí un talle válido para "${shownName}".`);
         }
 
         const canCustomize = typeAllowsCustomization(product.type as ProductType);
@@ -122,19 +125,19 @@ export async function POST(req: Request) {
             where: { productId_size: { productId: product.id, size } },
           });
           throw new OrderError(
-            `No hay stock suficiente de "${product.team}" en talle ${size} (quedan ${current?.stock ?? 0}).`,
+            `No hay stock suficiente de "${shownName}" en talle ${size} (quedan ${current?.stock ?? 0}).`,
           );
         }
         await tx.product.update({ where: { id: product.id }, data: { stock: { decrement: qty } } });
         touchedSlugs.add(product.slug);
         stockCrossings.push({ productId: product.id, previousStock: product.stock, newStock: product.stock - qty });
         if (product.stock - qty === 0) {
-          justSoldOut.push({ team: product.team, slug: product.slug });
+          justSoldOut.push({ team: shownName, slug: product.slug });
         }
 
         itemsData.push({
           productId: product.id,
-          productName: product.team,
+          productName: shownName,
           unitPrice: effectivePrice(product) + (patch?.extraPrice ?? 0),
           quantity: qty,
           size,

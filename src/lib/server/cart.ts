@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import type { SavedCartItem } from "@prisma/client";
 import { effectivePrice } from "@/lib/api";
+import { displayName } from "@/lib/displayName";
 
 export type ResolvedCartItem = {
   productId: number;
@@ -37,7 +38,7 @@ export async function resolveCartItems(rows: SavedCartItem[]): Promise<ResolvedC
       const patch = r.patchId != null ? product.patches.find((p) => p.id === r.patchId) : undefined;
       return {
         productId: product.id,
-        team: product.team,
+        team: displayName(product.team, product.type),
         slug: product.slug,
         price: effectivePrice(product),
         qty: r.qty,

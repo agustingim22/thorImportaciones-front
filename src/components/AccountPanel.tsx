@@ -301,7 +301,7 @@ function OrderHistory() {
           add(
             {
               productId: product.id,
-              team: product.team,
+              team: product.name,
               price: effectivePrice(product),
               imageUrl: product.imageUrl,
               colorCss: product.colorCss,

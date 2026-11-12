@@ -12,6 +12,7 @@ import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { Testimonials } from "@/components/Testimonials";
 import { getPublishedTestimonials } from "@/lib/testimonials";
 import { PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { clubHeading, getClubBySlug } from "@/lib/clubs";
 import { SITE_URL } from "@/lib/site";
 
 // No lee cookies/headers: se sirve cacheada y se regenera en segundo plano
@@ -38,12 +39,12 @@ export async function generateMetadata(props: {
   const p = await getProductByIdOrSlug(slug);
   if (!p) return { title: "Producto no encontrado" };
   return {
-    title: p.team,
+    title: p.name,
     description: p.description,
-    keywords: [p.team, PRODUCT_TYPE_LABELS[p.type]].filter(Boolean),
+    keywords: [p.name, PRODUCT_TYPE_LABELS[p.type]].filter(Boolean),
     alternates: { canonical: `/producto/${p.slug}` },
     openGraph: {
-      title: p.team,
+      title: p.name,
       description: p.description,
       url: `/producto/${p.slug}`,
       images: p.images.length > 0 ? p.images : undefined,
@@ -67,6 +68,9 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     ]);
 
   const related = relatedResult.status === "fulfilled" ? relatedResult.value : [];
+  // Si hay camisetas del mismo equipo entre las sugeridas, el título lo dice ("Más camisetas de River Plate").
+  const clubInfo = getClubBySlug(product.club);
+  const relatedClub = clubInfo && related.some((p) => p.club === clubInfo.slug) ? clubInfo : null;
   const testimonials = testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [];
   const reviews = reviewsResult.status === "fulfilled" ? reviewsResult.value : [];
   const questions = questionsResult.status === "fulfilled" ? questionsResult.value : [];
@@ -77,7 +81,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: product.team,
+    name: product.name,
     description: product.description,
     image: product.images,
     url: `${SITE_URL}/producto/${product.slug}`,
@@ -104,7 +108,15 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
       { "@type": "ListItem", position: 2, name: "Catálogo", item: `${SITE_URL}/catalogo` },
-      { "@type": "ListItem", position: 3, name: product.team, item: `${SITE_URL}/producto/${product.slug}` },
+      ...(clubInfo
+        ? [{ "@type": "ListItem", position: 3, name: clubInfo.name, item: `${SITE_URL}/catalogo?club=${clubInfo.slug}` }]
+        : []),
+      {
+        "@type": "ListItem",
+        position: clubInfo ? 4 : 3,
+        name: product.name,
+        item: `${SITE_URL}/producto/${product.slug}`,
+      },
     ],
   };
 
@@ -124,16 +136,34 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
           <Link href="/catalogo" className="hover:text-thor-gold">
             Catálogo
           </Link>{" "}
-          / <span className="text-thor-ink">{product.team}</span>
+          {clubInfo && (
+            <>
+              /{" "}
+              <Link href={`/catalogo?club=${clubInfo.slug}`} className="hover:text-thor-gold">
+                {clubInfo.name}
+              </Link>{" "}
+            </>
+          )}
+          / <span className="text-thor-ink">{product.name}</span>
         </nav>
 
         <ProductPurchase product={product} />
 
         {related.length > 0 && (
           <section className="mt-16 border-t border-thor-line pt-10">
-            <h2 className="font-display text-2xl tracking-wide text-thor-ink">
-              También te puede interesar
-            </h2>
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <h2 className="font-display text-2xl tracking-wide text-thor-ink">
+                {relatedClub ? `Más camisetas de ${clubHeading(relatedClub)}` : "También te puede interesar"}
+              </h2>
+              {relatedClub && (
+                <Link
+                  href={`/catalogo?club=${relatedClub.slug}`}
+                  className="font-mono text-xs font-bold uppercase tracking-wider text-thor-gold hover:underline"
+                >
+                  Ver todo →
+                </Link>
+              )}
+            </div>
             <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {related.map((p) => (
                 <ProductCard key={p.id} product={p} />

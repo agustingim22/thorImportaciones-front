@@ -6,6 +6,7 @@ import { uniqueSlug } from "@/lib/server/slug";
 import { serializeProduct, withPatches } from "@/lib/products";
 import { sendStockBackNotification } from "@/lib/server/email";
 import { checkFavoriteStockCrossing } from "@/lib/favoriteWatch";
+import { displayName } from "@/lib/displayName";
 import {
   toProductData,
   toSizeStockRows,
@@ -62,7 +63,11 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (pending.length > 0) {
       await Promise.all(
         pending.map((n) =>
-          sendStockBackNotification({ email: n.email, team: product.team, slug: product.slug }).catch(
+          sendStockBackNotification({
+            email: n.email,
+            team: displayName(product.team, product.type),
+            slug: product.slug,
+          }).catch(
             () => {},
           ),
         ),

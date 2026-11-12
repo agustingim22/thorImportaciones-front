@@ -23,7 +23,10 @@ export type Patch = {
 export type Product = {
   id: number;
   slug: string;
-  team: string;
+  team: string; // nombre original (del proveedor o cargado a mano); es el que usa el admin
+  name: string; // nombre para el cliente en la tienda (ver lib/displayName)
+  club: string | null; // slug del equipo destacado (ver lib/clubs)
+  clubManual: boolean; // true si el admin lo eligió a mano (la clasificación automática no lo toca)
   type: ProductType;
   price: number; // precio de lista
   salePrice: number | null; // si está seteado y es menor a price, es el precio de oferta

@@ -31,7 +31,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
     if (!size) return;
     add({
       productId: product.id,
-      team: product.team,
+      team: product.name,
       price: effectivePrice(product),
       imageUrl: product.imageUrl,
       colorCss: product.colorCss,
@@ -45,7 +45,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
     });
     trackPixelEvent("AddToCart", {
       content_ids: [String(product.id)],
-      content_name: product.team,
+      content_name: product.name,
       content_type: "product",
       value: effectivePrice(product),
       currency: "ARS",
@@ -54,7 +54,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
       currency: "ARS",
       value: effectivePrice(product),
       items: [
-        { item_id: String(product.id), item_name: product.team, price: effectivePrice(product), quantity: 1 },
+        { item_id: String(product.id), item_name: product.name, price: effectivePrice(product), quantity: 1 },
       ],
     });
     setAdded(true);
@@ -84,7 +84,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
             {product.imageUrl ? (
               <Image
                 src={resizeSupplierImage(product.imageUrl, 400)}
-                alt={product.team}
+                alt={product.name}
                 fill
                 sizes="240px"
                 className="object-cover"
@@ -105,7 +105,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
           </div>
 
           <div className="flex flex-col">
-            <h2 className="font-display text-xl tracking-wide text-thor-ink">{product.team}</h2>
+            <h2 className="font-display text-xl tracking-wide text-thor-ink">{product.name}</h2>
             <p className="mt-1 flex items-baseline gap-2">
               {onSale && (
                 <span className="font-mono text-sm text-thor-muted line-through">

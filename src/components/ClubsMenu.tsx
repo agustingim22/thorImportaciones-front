@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { CLUB_GROUPS, FEATURED_CLUBS } from "@/lib/clubs";
+import { CLUB_GROUPS, MENU_CLUBS } from "@/lib/clubs";
 
 /** Menú desplegable de equipos (clubes y selecciones) para el Nav de escritorio. Se abre con
  *  clic (sirve también en touch), se cierra con clic afuera, Escape o al elegir un equipo. */
@@ -48,7 +48,7 @@ export function ClubsMenu() {
                 {g.label}
               </p>
               <ul className="grid grid-cols-3 gap-x-4 gap-y-0.5">
-                {FEATURED_CLUBS.filter((c) => c.group === g.key).map((c) => (
+                {MENU_CLUBS.filter((c) => c.group === g.key).map((c) => (
                   <li key={c.slug}>
                     <Link
                       href={`/catalogo?club=${c.slug}`}
@@ -62,6 +62,13 @@ export function ClubsMenu() {
               </ul>
             </div>
           ))}
+          <Link
+            href="/equipos"
+            onClick={() => setOpen(false)}
+            className="mt-3 block border-t border-thor-line pt-3 font-mono text-xs font-bold uppercase tracking-wider text-thor-gold hover:underline"
+          >
+            Ver todos los equipos →
+          </Link>
         </div>
       )}
     </div>

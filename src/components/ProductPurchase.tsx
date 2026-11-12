@@ -71,7 +71,7 @@ export function ProductPurchase({ product }: { product: Product }) {
     addView(product.id);
     trackPixelEvent("ViewContent", {
       content_ids: [String(product.id)],
-      content_name: product.team,
+      content_name: product.name,
       content_type: "product",
       value: effectivePrice(product),
       currency: "ARS",
@@ -79,7 +79,7 @@ export function ProductPurchase({ product }: { product: Product }) {
     pushEcommerceEvent("view_item", {
       currency: "ARS",
       value: effectivePrice(product),
-      items: [{ item_id: String(product.id), item_name: product.team, price: effectivePrice(product) }],
+      items: [{ item_id: String(product.id), item_name: product.name, price: effectivePrice(product) }],
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
@@ -88,7 +88,7 @@ export function ProductPurchase({ product }: { product: Product }) {
     const url = window.location.href;
     if (navigator.share) {
       try {
-        await navigator.share({ title: product.team, url });
+        await navigator.share({ title: product.name, url });
       } catch {
         /* el usuario canceló el diálogo de compartir */
       }
@@ -112,7 +112,7 @@ export function ProductPurchase({ product }: { product: Product }) {
     if (!size) return;
     add({
       productId: product.id,
-      team: product.team,
+      team: product.name,
       price: effectivePrice(product),
       imageUrl: product.imageUrl,
       colorCss: product.colorCss,
@@ -126,7 +126,7 @@ export function ProductPurchase({ product }: { product: Product }) {
     });
     trackPixelEvent("AddToCart", {
       content_ids: [String(product.id)],
-      content_name: product.team,
+      content_name: product.name,
       content_type: "product",
       value: finalPrice,
       currency: "ARS",
@@ -134,7 +134,7 @@ export function ProductPurchase({ product }: { product: Product }) {
     pushEcommerceEvent("add_to_cart", {
       currency: "ARS",
       value: finalPrice,
-      items: [{ item_id: String(product.id), item_name: product.team, price: finalPrice, quantity: 1 }],
+      items: [{ item_id: String(product.id), item_name: product.name, price: finalPrice, quantity: 1 }],
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
@@ -173,7 +173,7 @@ export function ProductPurchase({ product }: { product: Product }) {
             >
               <Image
                 src={resizeSupplierImage(currentImage, 900)}
-                alt={product.team}
+                alt={product.name}
                 fill
                 sizes="(max-width: 768px) 100vw, 55vw"
                 className="rounded-xl object-contain"
@@ -261,7 +261,7 @@ export function ProductPurchase({ product }: { product: Product }) {
         </div>
 
         <h1 className="mt-3 font-display text-3xl leading-tight tracking-wide text-thor-ink sm:text-4xl">
-          {product.team}
+          {product.name}
         </h1>
 
         <div className="mt-2 flex flex-wrap gap-2">
@@ -543,7 +543,7 @@ export function ProductPurchase({ product }: { product: Product }) {
           >
             <Image
               src={currentImage}
-              alt={product.team}
+              alt={product.name}
               fill
               sizes="100vw"
               className="object-contain"

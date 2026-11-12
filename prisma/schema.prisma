@@ -23,7 +23,8 @@ model Product {
   presetName         String? // nombre ya definido por el admin (si está, el comprador no elige)
   presetNumber       String? // número ya definido por el admin (si está, el comprador no elige)
   sizes              String[]            @default(["S", "M", "L", "XL", "XXL"]) // talles disponibles para esta camiseta
-  club               String? // slug del club destacado (ver src/lib/clubs.ts); se deduce de `team`
+  club               String? // slug del equipo destacado (ver src/lib/clubs.ts); se deduce de `team`
+  clubManual         Boolean             @default(false) // true = el admin eligió el equipo a mano: la clasificación automática no lo toca
   createdAt          DateTime            @default(now())
   patches            Patch[]
   sizeStocks         ProductSize[]

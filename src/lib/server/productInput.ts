@@ -1,7 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { PRODUCT_TYPES, typeAllowsCustomization, type ProductType } from "@/lib/api";
-import { detectClub } from "@/lib/clubs";
+import { FEATURED_CLUBS, detectClubForProduct } from "@/lib/clubs";
 
 const VALID_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
 
@@ -25,12 +25,18 @@ export type ProductInput = {
   sizes: string[]; // talles disponibles
   sizeStock: Record<string, number>; // unidades disponibles por talle
   slug?: string | null;
+  /** Equipo para el filtro del catálogo: vacío/ausente = automático (se deduce del nombre);
+   *  "none" = sin equipo, fijado a mano; o el slug de un equipo, fijado a mano. */
+  club?: string | null;
 };
 
 export function validateProduct(input: ProductInput): Record<string, string[]> | null {
   const e: Record<string, string[]> = {};
   if (!input?.team?.trim()) e.team = ["El nombre de la camiseta es obligatorio."];
   if (!PRODUCT_TYPES.includes(input?.type)) e.type = ["Elegí un tipo de producto válido."];
+  if (input?.club && input.club !== "none" && !FEATURED_CLUBS.some((c) => c.slug === input.club)) {
+    e.club = ["Elegí un equipo válido."];
+  }
   if (typeof input?.price !== "number" || input.price < 0) e.price = ["El precio no puede ser negativo."];
   if (input?.salePrice != null) {
     if (typeof input.salePrice !== "number" || input.salePrice < 0) {
@@ -73,8 +79,13 @@ export function toProductData(input: ProductInput, slug: string): Prisma.Product
   return {
     slug,
     team: input.team.trim(),
-    // Se deduce del nombre cada vez que se crea o edita, para que entre solo al filtro por club.
-    club: detectClub(input.team)?.slug ?? null,
+    // Equipo: automático (se deduce del nombre cada vez que se crea o edita) o fijado a mano.
+    club: input.club
+      ? input.club === "none"
+        ? null
+        : input.club
+      : (detectClubForProduct(input.team, input.type)?.slug ?? null),
+    clubManual: !!input.club,
     type: input.type,
     price: input.price,
     salePrice: input.salePrice != null && input.salePrice < input.price ? input.salePrice : null,

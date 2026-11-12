@@ -124,7 +124,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
           ? {
               ...it,
               productId,
-              reference: `${product.team} (del catálogo) — ${SITE_URL}/producto/${product.slug}`,
+              reference: `${product.name} (del catálogo) — ${SITE_URL}/producto/${product.slug}`,
               fabric: TYPE_TO_TELA[product.type],
               patch: "",
               number: product.presetNumber ?? "",
@@ -300,7 +300,7 @@ export function PersonalizadoBuilder({ products }: { products: Product[] }) {
                     </option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.team} — ${p.price.toLocaleString("es-AR")}
+                        {p.name} — ${p.price.toLocaleString("es-AR")}
                       </option>
                     ))}
                   </select>

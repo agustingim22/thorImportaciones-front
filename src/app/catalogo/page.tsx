@@ -86,8 +86,10 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   // agrupados en clubes y selecciones.
   const visibleGroups = CLUB_GROUPS.map((g) => ({
     ...g,
+    // Los equipos secundarios (`more`) no tienen chip: se llega a ellos desde /equipos o la búsqueda.
+    // Si uno está elegido, igual se muestra para saber dónde estás parado.
     items: FEATURED_CLUBS.filter(
-      (c) => c.group === g.key && ((clubCounts[c.slug] ?? 0) > 0 || c.slug === club),
+      (c) => c.group === g.key && ((!c.more && (clubCounts[c.slug] ?? 0) > 0) || c.slug === club),
     ),
   })).filter((g) => g.items.length > 0);
 
@@ -191,6 +193,12 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
                   </div>
                 </nav>
               ))}
+              <Link
+                href="/equipos"
+                className="self-start font-mono text-[11px] font-bold uppercase tracking-wider text-thor-gold hover:underline"
+              >
+                Ver todos los equipos →
+              </Link>
             </div>
           )}
 

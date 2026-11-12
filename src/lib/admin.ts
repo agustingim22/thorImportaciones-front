@@ -25,6 +25,8 @@ export type ProductInput = {
   sizes: string[];
   sizeStock: Record<string, number>; // unidades disponibles por talle
   slug: string | null;
+  /** "" o ausente = equipo automático; "none" = sin equipo; o el slug de un equipo (fijado a mano). */
+  club?: string | null;
 };
 
 export function getToken(): string | null {
@@ -346,6 +348,7 @@ export type ClubClassifySummary = {
   matched: number; // productos que tienen (o tendrían) un equipo
   unmatched: number; // sin equipo destacado (otros equipos, NBA, rugby, etc.)
   pendingChanges: number; // productos que cambiarían al aplicar
+  manual: number; // con equipo elegido a mano: la clasificación nunca los toca
   byClub: Record<string, number>; // slug del equipo → cantidad de productos
   unmatchedSample: string[]; // muestra de nombres que quedaron sin equipo
   updated?: number; // solo al aplicar

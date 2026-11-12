@@ -59,7 +59,7 @@ export function ProductCard({ product }: { product: Product }) {
           {product.imageUrl ? (
             <Image
               src={resizeSupplierImage(product.imageUrl, 500)}
-              alt={product.team}
+              alt={product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover"
@@ -102,7 +102,7 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="p-3.5">
         <Link href={`/producto/${product.slug}`} className="block">
           <h3 className="font-body text-sm font-extrabold text-thor-ink transition-colors hover:text-thor-gold">
-            {product.team}
+            {product.name}
           </h3>
         </Link>
         {(product.presetName || product.presetNumber) && (

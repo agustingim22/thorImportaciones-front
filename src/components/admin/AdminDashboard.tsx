@@ -28,6 +28,7 @@ import { AdminNewsletter } from "./AdminNewsletter";
 import { AdminShipping } from "./AdminShipping";
 import { AdminQuestions } from "./AdminQuestions";
 import { AdminClubs } from "./AdminClubs";
+import { CLUB_GROUPS, FEATURED_CLUBS } from "@/lib/clubs";
 
 import { parseCsv } from "@/lib/csv";
 
@@ -100,6 +101,7 @@ const EMPTY: ProductInput = {
   sizes: DEFAULT_SIZES,
   sizeStock: {},
   slug: null,
+  club: "",
 };
 
 export function AdminDashboard() {
@@ -203,6 +205,8 @@ export function AdminDashboard() {
       sizes: p.sizes,
       sizeStock: { ...p.sizeStock },
       slug: p.slug,
+      // Si el equipo lo eligió alguien a mano se conserva; si no, queda en automático.
+      club: p.clubManual ? (p.club ?? "none") : "",
     });
     setFormError("");
     setShowForm(true);
@@ -224,6 +228,7 @@ export function AdminDashboard() {
       sizes: p.sizes,
       sizeStock: {}, // arranca en 0, hay que cargar el stock a mano para la copia
       slug: null,
+      club: "",
     });
     setFormError("");
     setShowForm(true);
@@ -786,6 +791,30 @@ export function AdminDashboard() {
                   onChange={(e) => setForm({ ...form, team: e.target.value })}
                   className={inputCls}
                 />
+              </Field>
+
+              <Field label="Equipo (para el menú y el filtro del catálogo)">
+                <select
+                  value={form.club ?? ""}
+                  onChange={(e) => setForm({ ...form, club: e.target.value })}
+                  className={inputCls}
+                >
+                  <option value="">Automático (según el nombre)</option>
+                  <option value="none">Sin equipo</option>
+                  {CLUB_GROUPS.map((g) => (
+                    <optgroup key={g.key} label={g.label}>
+                      {FEATURED_CLUBS.filter((c) => c.group === g.key).map((c) => (
+                        <option key={c.slug} value={c.slug}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-thor-muted">
+                  En “Automático” se detecta solo a partir del nombre. Elegí uno para corregirlo a mano: la
+                  clasificación automática ya no lo toca.
+                </p>
               </Field>
 
               <div className="grid grid-cols-2 gap-3">

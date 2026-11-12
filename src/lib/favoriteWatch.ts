@@ -2,6 +2,7 @@ import "server-only";
 import { prisma } from "./prisma";
 import { sendLowStockAlert } from "./server/email";
 import { LOW_STOCK_THRESHOLD } from "./api";
+import { displayName } from "./displayName";
 
 /** Registra (o confirma) que un email quiere que le avisen si estos productos se
  *  quedan sin stock / con pocas unidades. Idempotente: repetir no duplica ni molesta.
@@ -51,7 +52,7 @@ export async function checkFavoriteStockCrossing(
       watches.map((w) =>
         sendLowStockAlert({
           email: w.email,
-          team: w.product.team,
+          team: displayName(w.product.team, w.product.type),
           slug: w.product.slug,
           stock: newStock,
         }).catch(() => {}),

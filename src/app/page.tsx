@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getProducts } from "@/lib/products";
+import { getProducts, getTeamShowcase, type TeamShowcaseItem } from "@/lib/products";
+import { TeamShowcase } from "@/components/TeamShowcase";
 import type { Product } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { Testimonials } from "@/components/Testimonials";
@@ -20,12 +21,14 @@ export const revalidate = 60;
 export default async function Home() {
   // Las 4 consultas son independientes entre sí: se disparan en paralelo en vez
   // de una tras otra para no sumar round-trips a la base de forma innecesaria.
-  const [featuredResult, testimonialsResult, heroImagesResult, instagramResult] = await Promise.allSettled([
+  const [featuredResult, testimonialsResult, heroImagesResult, instagramResult, teamsResult] = await Promise.allSettled([
     getProducts({ pageSize: 3 }),
     getPublishedTestimonials(),
     getHeroImages(),
     getInstagramPosts(),
+    getTeamShowcase(),
   ]);
+  const teams: TeamShowcaseItem[] = teamsResult.status === "fulfilled" ? teamsResult.value : [];
 
   const featured: Product[] =
     featuredResult.status === "fulfilled" ? featuredResult.value.products : [];
@@ -96,6 +99,9 @@ export default async function Home() {
           <HeroCarousel images={heroImages} />
         </div>
       </section>
+
+      {/* ===== COMPRÁ POR EQUIPO ===== */}
+      <TeamShowcase items={teams} />
 
       {/* ===== DESTACADOS ===== */}
       <section className="mx-auto max-w-6xl px-5 py-16">

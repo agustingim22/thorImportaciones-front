@@ -3,10 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Logo } from "./Logo";
 import { ClubsMenu } from "./ClubsMenu";
-import { CLUB_GROUPS, FEATURED_CLUBS } from "@/lib/clubs";
+import { CLUB_GROUPS, MENU_CLUBS, matchClubsForSearch } from "@/lib/clubs";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useFavorites } from "@/lib/favorites";
@@ -28,6 +28,8 @@ export function Nav() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [q, setQ] = useState("");
   const [suggestions, setSuggestions] = useState<Product[]>([]);
+  // Si lo que escribe coincide con un equipo ("real madrid", "rma", "brasil"), se sugiere ir directo a él.
+  const teamSuggestions = useMemo(() => matchClubsForSearch(q.trim()).slice(0, 3), [q]);
   const { count } = useCart();
   const { user } = useAuth();
   const { ids: favoriteIds } = useFavorites();
@@ -170,8 +172,26 @@ export function Nav() {
               </button>
             </form>
 
-            {suggestions.length > 0 && (
+            {(teamSuggestions.length > 0 || suggestions.length > 0) && (
               <div className="absolute left-0 right-0 top-full z-10 mt-2 overflow-hidden rounded-xl border border-thor-line bg-thor-paper shadow-lg">
+                {teamSuggestions.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/catalogo?club=${c.slug}`}
+                    onClick={closeSearch}
+                    className="flex items-center gap-3 border-b border-thor-line bg-thor-gold/5 px-3 py-2.5 text-sm text-thor-ink transition-colors hover:bg-thor-gold/10"
+                  >
+                    <span aria-hidden className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-thor-gold/20 text-base">
+                      ⚽
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      Ver todas las camisetas de <strong>{c.name}</strong>
+                    </span>
+                    <span aria-hidden className="text-thor-gold">
+                      →
+                    </span>
+                  </Link>
+                ))}
                 {suggestions.map((p) => (
                   <Link
                     key={p.id}
@@ -192,7 +212,7 @@ export function Nav() {
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm text-thor-ink">{p.team}</span>
+                      <span className="block truncate text-sm text-thor-ink">{p.name}</span>
                     </span>
                     <span className="shrink-0 font-mono text-xs text-thor-gold tabular-nums">
                       ${p.price.toLocaleString("es-AR")}
@@ -235,7 +255,7 @@ export function Nav() {
                       {g.label}
                     </p>
                     <ul className="grid grid-cols-2 gap-1">
-                      {FEATURED_CLUBS.filter((c) => c.group === g.key).map((c) => (
+                      {MENU_CLUBS.filter((c) => c.group === g.key).map((c) => (
                         <li key={c.slug}>
                           <Link
                             href={`/catalogo?club=${c.slug}`}
@@ -249,6 +269,13 @@ export function Nav() {
                     </ul>
                   </div>
                 ))}
+                <Link
+                  href="/equipos"
+                  onClick={() => setOpen(false)}
+                  className="block px-5 pb-3 pt-1 font-mono text-xs font-bold uppercase tracking-wider text-thor-gold"
+                >
+                  Ver todos los equipos →
+                </Link>
               </details>
             </li>
             <li>

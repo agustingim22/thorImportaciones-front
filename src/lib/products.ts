@@ -3,6 +3,8 @@ import { unstable_cache } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { Product, ProductType } from "./api";
+import { HOME_TEAM_SLUGS, getClubBySlug, matchClubsForSearch } from "./clubs";
+import { displayName, searchEquivalents } from "./displayName";
 
 export const withPatches = Prisma.validator<Prisma.ProductDefaultArgs>()({
   include: { patches: { orderBy: { id: "asc" } }, sizeStocks: true },
@@ -15,6 +17,9 @@ export function serializeProduct(p: ProductRow, bestSellerIds: Set<number> = new
     id: p.id,
     slug: p.slug,
     team: p.team,
+    name: displayName(p.team, p.type),
+    club: p.club,
+    clubManual: p.clubManual,
     type: p.type as ProductType,
     price: p.price,
     salePrice: p.salePrice,
@@ -78,9 +83,15 @@ async function fetchProducts(params: GetProductsParams = {}): Promise<ProductsPa
   if (params.type) where.type = params.type;
   if (params.club) where.club = params.club;
   if (params.q) {
+    // La búsqueda entiende equipos: "real madrid", "rma" o "brasil" traen también los productos
+    // del equipo aunque el título del proveedor use otra sigla o esté en inglés ("Brazil").
+    // Y los países en español ("noruega") buscan también su nombre en inglés ("norway").
+    const clubSlugs = matchClubsForSearch(params.q).map((c) => c.slug);
+    const terms = [params.q, ...searchEquivalents(params.q)];
     where.OR = [
-      { team: { contains: params.q, mode: "insensitive" } },
-      { description: { contains: params.q, mode: "insensitive" } },
+      ...terms.map((t) => ({ team: { contains: t, mode: "insensitive" as const } })),
+      { description: { contains: params.q, mode: "insensitive" as const } },
+      ...(clubSlugs.length > 0 ? [{ club: { in: clubSlugs } }] : []),
     ];
   }
   if (params.minPrice !== undefined || params.maxPrice !== undefined) {
@@ -129,41 +140,65 @@ export const getProducts = unstable_cache(fetchProducts, ["products-list"], {
  *  que tienen stock en el filtro del catálogo. Es una agrupación sobre una columna
  *  indexada; se cachea 60s, igual que getProducts, para que después de reclasificar
  *  (o cargar productos) los números no queden desfasados de la grilla. */
-export const getClubCounts = unstable_cache(
-  async (): Promise<Record<string, number>> => {
-    const rows = await prisma.product.groupBy({
-      by: ["club"],
-      where: { club: { not: null } },
-      _count: { _all: true },
-    });
-    return Object.fromEntries(rows.map((r) => [r.club as string, r._count._all]));
+async function fetchClubCounts(): Promise<Record<string, number>> {
+  const rows = await prisma.product.groupBy({
+    by: ["club"],
+    where: { club: { not: null } },
+    _count: { _all: true },
+  });
+  return Object.fromEntries(rows.map((r) => [r.club as string, r._count._all]));
+}
+export const getClubCounts = unstable_cache(fetchClubCounts, ["club-counts"], { revalidate: 60 });
+
+export type TeamShowcaseItem = { slug: string; name: string; imageUrl: string; count: number };
+
+/** Para el bloque "Comprá por equipo" de la portada: por cada equipo, la foto de su camiseta más
+ *  nueva con stock (solo camisetas, no shorts) y cuántos productos tiene. Cacheado 5 min. */
+export const getTeamShowcase = unstable_cache(
+  async (): Promise<TeamShowcaseItem[]> => {
+    const counts = await fetchClubCounts();
+    const items = await Promise.all(
+      HOME_TEAM_SLUGS.map(async (slug): Promise<TeamShowcaseItem | null> => {
+        const club = getClubBySlug(slug);
+        if (!club || !(counts[slug] > 0)) return null;
+        const row = await prisma.product.findFirst({
+          where: { club: slug, type: { in: ["fan", "player", "retro"] }, stock: { gt: 0 }, images: { isEmpty: false } },
+          orderBy: { createdAt: "desc" },
+          select: { images: true },
+        });
+        const imageUrl = row?.images[0];
+        return imageUrl ? { slug, name: club.name, imageUrl, count: counts[slug] } : null;
+      }),
+    );
+    return items.filter((x): x is TeamShowcaseItem => x !== null);
   },
-  ["club-counts"],
-  { revalidate: 60 },
+  ["team-showcase"],
+  { revalidate: 300 },
 );
 
-/** Otras camisetas para mostrar como "también te puede interesar" en el detalle. */
+/** Otras camisetas para mostrar en el detalle: primero más del mismo equipo, después del mismo
+ *  tipo, y si todavía faltan, las más nuevas. */
 export async function getRelatedProducts(
-  product: Pick<Product, "id" | "type">,
+  product: Pick<Product, "id" | "type" | "club">,
   limit = 4,
 ): Promise<Product[]> {
   const bestSellerIds = await getBestSellerIds();
-  const rows = await prisma.product.findMany({
-    where: { id: { not: product.id }, type: product.type },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    ...withPatches,
-  });
-  if (rows.length >= limit) return rows.map((r) => serializeProduct(r, bestSellerIds));
-
-  // Si no hay suficientes del mismo tipo, completamos con otras camisetas.
-  const fillerRows = await prisma.product.findMany({
-    where: { id: { notIn: [product.id, ...rows.map((r) => r.id)] } },
-    orderBy: { createdAt: "desc" },
-    take: limit - rows.length,
-    ...withPatches,
-  });
-  return [...rows, ...fillerRows].map((r) => serializeProduct(r, bestSellerIds));
+  const picked: ProductRow[] = [];
+  const pull = async (where: Prisma.ProductWhereInput) => {
+    const need = limit - picked.length;
+    if (need <= 0) return;
+    const rows = await prisma.product.findMany({
+      where: { AND: [where, { id: { notIn: [product.id, ...picked.map((r) => r.id)] } }] },
+      orderBy: { createdAt: "desc" },
+      take: need,
+      ...withPatches,
+    });
+    picked.push(...rows);
+  };
+  if (product.club) await pull({ club: product.club });
+  await pull({ type: product.type });
+  await pull({});
+  return picked.map((r) => serializeProduct(r, bestSellerIds));
 }
 
 /** Slugs de los productos más recientes, para prerenderizar /producto/[slug] en el

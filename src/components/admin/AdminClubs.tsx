@@ -80,6 +80,12 @@ export function AdminClubs() {
             “Sin equipo” son camisetas de otros equipos y otros productos (NBA, rugby, remeras…):
             quedan como están.
           </p>
+          {summary.manual > 0 && (
+            <p className="mt-1 text-xs text-thor-muted">
+              {summary.manual} producto{summary.manual === 1 ? " tiene" : "s tienen"} el equipo fijado a mano
+              desde su ficha: la clasificación no los toca.
+            </p>
+          )}
 
           {CLUB_GROUPS.map((g) => (
             <div key={g.key} className="mt-5">
