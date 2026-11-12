@@ -27,6 +27,7 @@ import { AdminReviews } from "./AdminReviews";
 import { AdminNewsletter } from "./AdminNewsletter";
 import { AdminShipping } from "./AdminShipping";
 import { AdminQuestions } from "./AdminQuestions";
+import { AdminClubs } from "./AdminClubs";
 
 import { parseCsv } from "@/lib/csv";
 
@@ -115,6 +116,7 @@ export function AdminDashboard() {
     | "shipping"
     | "coupons"
     | "instagram"
+    | "clubs"
   >("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -470,10 +472,11 @@ export function AdminDashboard() {
       </div>
 
       {/* Pestañas */}
-      <div className="mt-5 inline-flex gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
+      <div className="mt-5 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
         {(
           [
             ["products", "Productos"],
+            ["clubs", "Equipos"],
             ["orders", "Pedidos"],
             ["stats", "Estadísticas"],
             ["reviews", "Reseñas"],
@@ -754,6 +757,13 @@ export function AdminDashboard() {
       {tab === "hero" && (
         <div className="mt-6">
           <AdminHeroImages />
+        </div>
+      )}
+
+      {/* Equipos: clasificación de productos para el menú/filtro de clubes y selecciones */}
+      {tab === "clubs" && (
+        <div className="mt-6">
+          <AdminClubs />
         </div>
       )}
 

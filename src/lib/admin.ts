@@ -339,6 +339,31 @@ export async function adminUpdateNewsletterPopup(
   return res.json();
 }
 
+// ---- Clasificación por equipo (filtro de clubes y selecciones del catálogo) ----
+export type ClubClassifySummary = {
+  dryRun: boolean;
+  total: number;
+  matched: number; // productos que tienen (o tendrían) un equipo
+  unmatched: number; // sin equipo destacado (otros equipos, NBA, rugby, etc.)
+  pendingChanges: number; // productos que cambiarían al aplicar
+  byClub: Record<string, number>; // slug del equipo → cantidad de productos
+  unmatchedSample: string[]; // muestra de nombres que quedaron sin equipo
+  updated?: number; // solo al aplicar
+};
+
+/** apply=false: simulacro, no toca nada. apply=true: aplica la clasificación. */
+export async function adminClassifyClubs(apply: boolean): Promise<ClubClassifySummary> {
+  const res = await fetch(`/api/admin/clubs/classify`, {
+    method: apply ? "POST" : "GET",
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(res.status === 401 ? "Sesión vencida: volvé a ingresar." : `Error ${res.status}`);
+  }
+  return res.json();
+}
+
 // ---- Posts de Instagram (prueba social en la home) ----
 export type AdminInstagramPost = { id: number; url: string; createdAt: string };
 
