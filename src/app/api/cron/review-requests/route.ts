@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendReviewRequest } from "@/lib/server/email";
 import { classifyClubs } from "@/lib/server/clubs";
+import { pruneSearchTerms } from "@/lib/server/searches";
 import { displayName } from "@/lib/displayName";
 
 /** Días de margen desde la entrega antes de pedir la reseña. */
@@ -50,6 +51,8 @@ export async function GET(req: Request) {
   // entrada en vercel.json: el plan gratuito de Vercel limita la cantidad de crons y un tercero
   // podría hacer fallar el deploy. Si falla, no afecta al resto de lo que hace este cron.
   const clubs = await classifyClubs(true).catch(() => null);
+  // Y limpiar las búsquedas viejas que se hicieron una sola vez, para que esa tabla no crezca sin fin.
+  await pruneSearchTerms().catch(() => 0);
 
   return NextResponse.json({ ok: true, checked: orders.length, sent, clubsUpdated: clubs?.updated ?? null });
 }

@@ -6,7 +6,7 @@ import { useFavorites } from "@/lib/favorites";
 import { useAuth } from "@/lib/auth";
 import { registerFavoritesWatch } from "@/lib/stockNotify";
 import { ProductCard } from "@/components/ProductCard";
-import type { Product } from "@/lib/api";
+import { toCardProduct, type Product } from "@/lib/api";
 
 const WATCH_EMAIL_KEY = "thor-favorite-watch-email";
 
@@ -152,7 +152,7 @@ export function FavoritosGrid() {
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {favorites.map((p) => (
-          <ProductCard key={p.id} product={p} />
+          <ProductCard key={p.id} product={toCardProduct(p)} />
         ))}
       </div>
     </div>

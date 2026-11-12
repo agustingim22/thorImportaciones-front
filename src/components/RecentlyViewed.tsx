@@ -3,22 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRecentlyViewed } from "@/lib/recentlyViewed";
 import { ProductCard } from "@/components/ProductCard";
-import type { Product } from "@/lib/api";
+import { toCardProduct, type Product } from "@/lib/api";
 
 export function RecentlyViewed({ excludeId }: { excludeId?: number }) {
   const { ids } = useRecentlyViewed();
   const [products, setProducts] = useState<Product[] | null>(null);
 
+  const idsKey = ids.join(",");
+
   useEffect(() => {
-    if (ids.length === 0) {
+    if (!idsKey) {
       setProducts([]);
       return;
     }
-    fetch("/api/products")
+    // Se piden solo los productos vistos (?ids=): sin eso la API devuelve apenas la primera página del catálogo,
+    // y lo que el cliente vio y no está entre esos 24 nunca aparecía.
+    fetch(`/api/products?ids=${idsKey}`)
       .then((res) => res.json())
-      .then((all: Product[]) => setProducts(all))
+      .then((found: Product[]) => setProducts(found))
       .catch(() => setProducts([]));
-  }, [ids.length]);
+  }, [idsKey]);
 
   if (!products) return null;
 
@@ -38,7 +42,7 @@ export function RecentlyViewed({ excludeId }: { excludeId?: number }) {
       <div className="mt-6 flex gap-4 overflow-x-auto pb-2">
         {visible.map((p) => (
           <div key={p.id} className="w-56 shrink-0">
-            <ProductCard product={p} />
+            <ProductCard product={toCardProduct(p)} />
           </div>
         ))}
       </div>

@@ -10,6 +10,22 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "ssl.images-ssl-mars.com" },
     ],
   },
+  async headers() {
+    return [
+      {
+        // Encabezados de seguridad básicos en todas las páginas. (HSTS ya lo manda Vercel.)
+        // No se agrega Content-Security-Policy a propósito: con Google Tag Manager, Meta Pixel, Instagram y
+        // Mercado Pago una política mal armada rompería el sitio; conviene sumarla aparte y probándola.
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" }, // el navegador no "adivina" el tipo de un archivo
+          { key: "X-Frame-Options", value: "SAMEORIGIN" }, // nadie puede mostrar el sitio dentro de otra página (clickjacking)
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }, // no filtra direcciones completas a otros sitios
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" }, // el sitio no usa estas funciones
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

@@ -1,4 +1,5 @@
 import "server-only";
+import { allocateDiscount } from "@/lib/discountAllocation";
 
 const API = "https://api.mercadopago.com";
 
@@ -8,6 +9,7 @@ type OrderForPreference = {
   customerEmail: string;
   items: { productName: string; unitPrice: number; quantity: number }[];
   shippingCost: number;
+  discountAmount?: number; // cupón o combo ya aplicado al pedido
 };
 
 export function isMpConfigured(): boolean {
@@ -23,12 +25,15 @@ export async function createPreference(order: OrderForPreference): Promise<strin
   const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
   const back = `${appBase()}/checkout/resultado?order=${order.publicId}`;
 
-  const items = order.items.map((i) => ({
-    title: i.productName,
-    quantity: i.quantity,
-    unit_price: i.unitPrice,
-    currency_id: "ARS",
-  }));
+  // Mercado Pago cobra la suma de los ítems y no admite precios negativos, así que el descuento (cupón o combo)
+  // se reparte entre las líneas. Si el total de una línea no se divide justo por su cantidad, va como un único
+  // ítem con el total de la línea: así el cobro coincide al peso con el total del pedido.
+  const lineTotals = allocateDiscount(order.items, order.discountAmount ?? 0);
+  const items = order.items.map((i, idx) =>
+    lineTotals[idx] % i.quantity === 0
+      ? { title: i.productName, quantity: i.quantity, unit_price: lineTotals[idx] / i.quantity, currency_id: "ARS" }
+      : { title: `${i.productName} (x${i.quantity})`, quantity: 1, unit_price: lineTotals[idx], currency_id: "ARS" },
+  );
   if (order.shippingCost > 0) {
     items.push({ title: "Envío", quantity: 1, unit_price: order.shippingCost, currency_id: "ARS" });
   }

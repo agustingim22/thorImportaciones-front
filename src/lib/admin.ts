@@ -2,6 +2,7 @@
 
 import type { Product, ProductType } from "./api";
 import type { ShippingSettings } from "./shippingCalc";
+import type { BundleSettings } from "./bundle";
 
 const TOKEN_KEY = "thor-admin-token";
 
@@ -351,6 +352,8 @@ export type ClubClassifySummary = {
   manual: number; // con equipo elegido a mano: la clasificación nunca los toca
   byClub: Record<string, number>; // slug del equipo → cantidad de productos
   unmatchedSample: string[]; // muestra de nombres que quedaron sin equipo
+  /** Los equipos que más se repiten entre los que quedaron sin equipo (los que conviene sumar primero). */
+  unmatchedTop: { name: string; count: number; example: string }[];
   updated?: number; // solo al aplicar
 };
 
@@ -485,6 +488,43 @@ export async function adminListSubscribers(): Promise<AdminSubscriber[]> {
   const res = await fetch(`/api/admin/subscribers`, { headers: authHeaders(), cache: "no-store" });
   if (!res.ok) throw new Error(`Error ${res.status}`);
   return res.json();
+}
+
+// ---- Combo (descuento por cantidad) ----
+export async function adminGetBundle(): Promise<BundleSettings> {
+  const res = await fetch(`/api/admin/bundle`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminSetBundle(settings: BundleSettings): Promise<BundleSettings> {
+  const res = await fetch(`/api/admin/bundle`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(settings),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+// ---- Búsquedas de los clientes ----
+export type AdminSearchTerm = { id: number; term: string; searches: number; results: number; lastAt: string };
+export type AdminSearches = {
+  zero: AdminSearchTerm[]; // lo que buscaron y no encontraron
+  top: AdminSearchTerm[]; // lo más buscado con resultados
+  totalSearches: number;
+  distinctTerms: number;
+};
+
+export async function adminGetSearches(): Promise<AdminSearches> {
+  const res = await fetch(`/api/admin/searches`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminDeleteSearch(id: number): Promise<void> {
+  const res = await fetch(`/api/admin/searches?id=${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) throw await toError(res);
 }
 
 // ---- Envío ----

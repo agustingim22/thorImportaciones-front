@@ -114,6 +114,30 @@ export function AdminClubs() {
             el nombre de los productos.
           </p>
 
+          {summary.unmatchedTop.length > 0 && (
+            <div className="mt-6">
+              <p className="mb-1 font-mono text-[11px] uppercase tracking-wide text-thor-muted">
+                Equipos sin clasificar que más se repiten
+              </p>
+              <p className="mb-2 text-xs text-thor-muted">
+                Son los próximos candidatos a sumar al menú: cuantas más camisetas tengan, más conviene.
+              </p>
+              <ol className="max-h-72 overflow-y-auto rounded-xl border border-thor-line bg-thor-cream text-sm">
+                {summary.unmatchedTop.map((t) => (
+                  <li
+                    key={t.name}
+                    className="flex items-baseline gap-3 border-b border-thor-line px-4 py-1.5 last:border-b-0"
+                  >
+                    <span className="flex-1 truncate text-thor-ink" title={t.example}>
+                      {t.name}
+                    </span>
+                    <span className="font-mono text-xs font-bold tabular-nums text-thor-ink">{t.count}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           {summary.unmatchedSample.length > 0 && (
             <details className="mt-5 text-sm text-thor-ink">
               <summary className="cursor-pointer font-mono text-xs font-bold uppercase tracking-wide">

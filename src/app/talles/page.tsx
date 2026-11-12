@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/talles" },
 };
 
-export default function TallesPage() {
-  return <TallesGuide />;
+// La categoría inicial viene de ?cat=… (la usan los links desde las fichas de producto). Se lee acá, en el
+// servidor, para que toda la guía llegue ya armada en el HTML.
+export default async function TallesPage(props: PageProps<"/talles">) {
+  const sp = await props.searchParams;
+  const cat = Array.isArray(sp.cat) ? sp.cat[0] : sp.cat;
+  return <TallesGuide initialCategory={cat ?? null} />;
 }

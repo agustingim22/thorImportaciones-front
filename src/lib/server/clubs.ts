@@ -1,7 +1,8 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { detectClubForProduct } from "@/lib/clubs";
+import { NO_CLUB_TYPES, detectClubForProduct } from "@/lib/clubs";
+import { displayName } from "@/lib/displayName";
 import { compareWithinTeam, composeRank, rankMeta, type RankMeta } from "@/lib/ranking";
 
 // Cantidad de filas por UPDATE, para no pasarse del límite de parámetros de Postgres.
@@ -16,6 +17,9 @@ export type ClassifySummary = {
   manual: number; // con equipo elegido a mano en el admin: nunca se tocan
   byClub: Record<string, number>; // slug del equipo → cantidad de productos
   unmatchedSample: string[]; // muestra de nombres que quedaron sin equipo
+  /** Los equipos que más se repiten entre los que quedaron sin equipo (sin contar NBA y rugby): son los que
+   *  conviene sumar primero. `example` es un título real para saber cómo aparece escrito. */
+  unmatchedTop: { name: string; count: number; example: string }[];
   updated?: number; // solo al aplicar
 };
 
@@ -55,6 +59,7 @@ export async function classifyClubs(apply: boolean): Promise<ClassifySummary> {
 
   const byClub: Record<string, number> = {};
   const unmatchedNames: string[] = [];
+  const unmatchedItems: { team: string; type: string }[] = [];
   const clubChanges = new Map<string | null, number[]>();
   const rankChanges: { id: number; rank: number }[] = [];
   const changed = new Set<number>();
@@ -68,7 +73,10 @@ export async function classifyClubs(apply: boolean): Promise<ClassifySummary> {
       byClub[club] = (byClub[club] ?? 0) + 1;
     } else {
       unmatched++;
-      if (!row.clubManual) unmatchedNames.push(row.team);
+      if (!row.clubManual) {
+        unmatchedNames.push(row.team);
+        unmatchedItems.push({ team: row.team, type: row.type });
+      }
     }
     if (club !== row.club) {
       const ids = clubChanges.get(club);
@@ -87,7 +95,20 @@ export async function classifyClubs(apply: boolean): Promise<ClassifySummary> {
   const step = Math.max(1, Math.floor(unmatchedNames.length / 40));
   const unmatchedSample = unmatchedNames.filter((_, i) => i % step === 0).slice(0, 40);
 
-  const base = { total: rows.length, matched: rows.length - unmatched, unmatched, manual, byClub, unmatchedSample };
+  // Ranking de equipos sin clasificar: se agrupa por el nombre del equipo tal como se muestra en la tienda
+  // ("Real Betis", "Fluminense"…), sin contar el NBA y el rugby, que no se clasifican por equipo a propósito.
+  const tally = new Map<string, { name: string; count: number; example: string }>();
+  for (const u of unmatchedItems) {
+    if (NO_CLUB_TYPES.includes(u.type)) continue;
+    const label = displayName(u.team, u.type).split(" · ")[0].trim();
+    const key = label.toLowerCase();
+    const entry = tally.get(key);
+    if (entry) entry.count++;
+    else tally.set(key, { name: label, count: 1, example: u.team });
+  }
+  const unmatchedTop = [...tally.values()].sort((a, b) => b.count - a.count).slice(0, 40);
+
+  const base = { total: rows.length, matched: rows.length - unmatched, unmatched, manual, byClub, unmatchedSample, unmatchedTop };
   if (!apply) return { dryRun: true, pendingChanges: changed.size, ...base };
 
   const ops: Prisma.PrismaPromise<unknown>[] = [];

@@ -6,6 +6,7 @@ export default function CatalogoLoading() {
   return (
     <>
       <PageHeader
+        decorative
         eyebrow="Camisetas, remeras y más"
         title="Catálogo"
         subtitle="Importado y disponible para envío. Filtrá por categoría o buscá lo que necesitás."

@@ -175,7 +175,8 @@ model Order {
   total               Int
   shippingCost        Int          @default(0) // snapshot de lo cobrado por envío en este pedido
   couponCode          String? // snapshot del código aplicado (si borran el cupón, el pedido conserva el dato)
-  discountAmount      Int          @default(0) // ARS descontados del subtotal por el cupón
+  discountAmount      Int          @default(0) // ARS descontados del subtotal (por el cupón o por el combo, el que más descuenta)
+  bundleApplied       Boolean      @default(false) // true = el descuento fue el del combo (no el de un cupón)
   paymentMethod       String? // "MercadoPago" | "Transfer" (solo pedidos de stock)
   paymentId           String?
   receiptUrl          String? // comprobante de transferencia
@@ -278,6 +279,27 @@ model Coupon {
   usedCount     Int       @default(0)
   minOrderValue Int? // null = sin mínimo de compra
   createdAt     DateTime  @default(now())
+}
+
+/// Qué buscan los clientes en el catálogo: una fila por texto (normalizado), con cuántas veces se buscó y
+/// cuántos resultados dio la última vez. `results = 0` son las cosas que se buscan y no se encuentran.
+model SearchTerm {
+  id       Int      @id @default(autoincrement())
+  term     String   @unique
+  searches Int      @default(1)
+  results  Int      @default(0)
+  firstAt  DateTime @default(now())
+  lastAt   DateTime @default(now())
+
+  @@index([results, searches(sort: Desc)])
+}
+
+/// Descuento por cantidad ("combo"), configurable desde el admin (fila única, id=1). Apagado por defecto.
+model BundleSettings {
+  id      Int     @id @default(1)
+  enabled Boolean @default(false)
+  minQty  Int     @default(2) // unidades desde las que aplica
+  percent Int     @default(10) // % de descuento sobre el subtotal de productos
 }
 
 model OrderItem {

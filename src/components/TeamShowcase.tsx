@@ -32,7 +32,7 @@ export function TeamShowcase({ items }: { items: TeamShowcaseItem[] }) {
               <span className="relative block aspect-square bg-thor-cream-2">
                 <Image
                   src={resizeSupplierImage(t.imageUrl, 300)}
-                  alt=""
+                  alt={`Camiseta de ${t.name}`}
                   fill
                   sizes="(max-width: 640px) 144px, (max-width: 1024px) 25vw, 16vw"
                   className="object-cover"

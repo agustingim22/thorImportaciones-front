@@ -33,6 +33,7 @@ export type CreateOrderResult = {
   total: number;
   shippingCost: number;
   discountAmount: number;
+  bundleApplied?: boolean;
   status: string;
   paymentMethod: "MercadoPago" | "Transfer";
   checkoutUrl: string | null;

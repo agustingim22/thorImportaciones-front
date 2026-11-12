@@ -1,4 +1,21 @@
 import { ALL_SIZES, PRODUCT_TYPE_LABELS, type Product } from "./api";
+import { SITE } from "./site";
+
+// El layout agrega este sufijo a todos los títulos ("%s — Thor Importaciones").
+const TITLE_SUFFIX = ` — ${SITE.name}`;
+// Google corta los títulos alrededor de los 60-70 caracteres; se apunta a no pasar de 66 con todo.
+const TITLE_MAX = 66;
+
+/** Título de una ficha de producto. Si con el sufijo de la marca se pasa de largo, se manda sin el sufijo, y si
+ *  el nombre solo ya es largo se corta en el último " · " que entre ("Real Madrid · Edición especial …"). */
+export function productTitle(name: string): string | { absolute: string } {
+  if (name.length + TITLE_SUFFIX.length <= TITLE_MAX) return name;
+  if (name.length <= TITLE_MAX) return { absolute: name };
+  const parts = name.split(" · ");
+  while (parts.length > 1 && parts.join(" · ").length > TITLE_MAX) parts.pop();
+  const cut = parts.join(" · ");
+  return { absolute: cut.length <= TITLE_MAX ? cut : `${cut.slice(0, TITLE_MAX - 1).trimEnd()}…` };
+}
 
 /** "S a XXL" a partir de los talles que tiene el producto (en el orden estándar). */
 export function sizeRange(sizes: string[]): string {

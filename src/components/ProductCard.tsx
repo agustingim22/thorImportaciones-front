@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { Product } from "@/lib/api";
+import dynamic from "next/dynamic";
+import type { CardProduct } from "@/lib/api";
 import {
   effectivePrice,
   isNewProduct,
@@ -13,15 +14,17 @@ import {
 } from "@/lib/api";
 import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 import { FavoriteButton } from "./FavoriteButton";
-import { QuickViewModal } from "./QuickViewModal";
 
-export function ProductCard({ product }: { product: Product }) {
+// La vista rápida solo se usa al tocar el ojito: su código se baja recién entonces, no con la página.
+const QuickViewModal = dynamic(() => import("./QuickViewModal").then((m) => m.QuickViewModal));
+
+export function ProductCard({ product }: { product: CardProduct }) {
   // Si el comprador tiene algo para elegir (nombre, número o parche), lo mandamos
   // al detalle a personalizar en vez de agregarlo directo desde la card.
   // Las prendas que no son camisetas (remeras, conjuntos, pantalones) nunca se personalizan.
   const canCustomize = typeAllowsCustomization(product.type);
   const isCustomizable =
-    canCustomize && (!product.presetName || !product.presetNumber || product.patches.length > 0);
+    canCustomize && (!product.presetName || !product.presetNumber || product.hasPatches);
   const lowStock = product.inStock && product.stock <= LOW_STOCK_THRESHOLD;
   const isNew = isNewProduct(product.createdAt);
   const onSale = product.salePrice != null && product.salePrice < product.price;

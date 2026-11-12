@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { createOrder, getShippingSettings, uploadReceipt, type CreateOrderResult } from "@/lib/orders";
 import { computeShippingCost, type ShippingSettings } from "@/lib/shippingCalc";
+import { BUNDLE_OFF, bestDiscount, bundleDiscount, fetchBundleSettings, unitsToUnlock, type BundleSettings } from "@/lib/bundle";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { MERCADOPAGO_ENABLED, SITE, whatsappUrl } from "@/lib/site";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
@@ -33,8 +34,11 @@ export default function CarritoPage() {
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
+  const [bundle, setBundle] = useState<BundleSettings>(BUNDLE_OFF);
+
   useEffect(() => {
     getShippingSettings().then(setShipping);
+    fetchBundleSettings().then(setBundle);
   }, []);
 
   // Si cambia el carrito después de aplicar un cupón, el descuento que teníamos
@@ -67,7 +71,13 @@ export default function CarritoPage() {
     }
   }
 
-  const discountAmount = appliedCoupon?.discountAmount ?? 0;
+  // El combo (descuento por cantidad) y el cupón no se acumulan: rige el que más descuenta. Es el mismo
+  // cálculo que hace el servidor al crear el pedido (que es el que manda).
+  const units = items.reduce((s, i) => s + i.qty, 0);
+  const bundleAmount = bundleDiscount(total, units, bundle);
+  const best = bestDiscount(appliedCoupon?.discountAmount ?? 0, bundleAmount);
+  const discountAmount = best.amount;
+  const missingForBundle = unitsToUnlock(units, bundle);
   const shippingCost = computeShippingCost(total, shipping);
   const grandTotal = Math.max(0, total - discountAmount) + shippingCost;
 
@@ -274,6 +284,15 @@ export default function CarritoPage() {
           onSubmit={handleCheckout}
           className="h-fit rounded-2xl border border-thor-line bg-thor-paper p-6"
         >
+          {missingForBundle > 0 && (
+            <p className="mb-4 rounded-lg bg-thor-gold/15 px-3 py-2 text-xs text-thor-ink-soft">
+              🔥 Sumá{" "}
+              <strong className="text-thor-ink">
+                {missingForBundle} camiseta{missingForBundle > 1 ? "s" : ""} más
+              </strong>{" "}
+              y te llevás <strong className="text-thor-ink">{bundle.percent}% de descuento</strong> en todo el pedido
+            </p>
+          )}
           {shipping.freeShippingThreshold != null &&
             (total < shipping.freeShippingThreshold ? (
               <div className="mb-4 rounded-lg bg-thor-cream-2 p-3">
@@ -304,7 +323,13 @@ export default function CarritoPage() {
               <span>Subtotal</span>
               <span className="tabular-nums">${total.toLocaleString("es-AR")}</span>
             </div>
-            {appliedCoupon && (
+            {best.source === "bundle" && (
+              <div className="flex items-center justify-between text-sm text-thor-land">
+                <span>Combo {bundle.percent}% off</span>
+                <span className="tabular-nums">-${discountAmount.toLocaleString("es-AR")}</span>
+              </div>
+            )}
+            {best.source === "coupon" && appliedCoupon && (
               <div className="flex items-center justify-between text-sm text-thor-land">
                 <span>Cupón {appliedCoupon.code}</span>
                 <span className="tabular-nums">-${discountAmount.toLocaleString("es-AR")}</span>
@@ -355,6 +380,13 @@ export default function CarritoPage() {
                   {couponLoading ? "..." : "Aplicar"}
                 </button>
               </div>
+            )}
+            {appliedCoupon && bundleAmount > 0 && (
+              <p className="mt-1.5 text-xs text-thor-muted">
+                {best.source === "bundle"
+                  ? "Se aplica el combo porque descuenta más. Los descuentos no se acumulan."
+                  : "Se aplica el cupón porque descuenta más que el combo. Los descuentos no se acumulan."}
+              </p>
             )}
             {couponError && <p className="mt-1.5 text-xs text-red-600">{couponError}</p>}
           </div>

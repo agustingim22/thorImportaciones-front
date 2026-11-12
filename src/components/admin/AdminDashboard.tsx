@@ -28,6 +28,8 @@ import { AdminNewsletter } from "./AdminNewsletter";
 import { AdminShipping } from "./AdminShipping";
 import { AdminQuestions } from "./AdminQuestions";
 import { AdminClubs } from "./AdminClubs";
+import { AdminBundle } from "./AdminBundle";
+import { AdminSearches } from "./AdminSearches";
 import { CLUB_GROUPS, FEATURED_CLUBS } from "@/lib/clubs";
 
 import { parseCsv } from "@/lib/csv";
@@ -119,6 +121,8 @@ export function AdminDashboard() {
     | "coupons"
     | "instagram"
     | "clubs"
+    | "searches"
+    | "bundle"
   >("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -488,6 +492,8 @@ export function AdminDashboard() {
             ["questions", "Preguntas"],
             ["testimonials", "Testimonios"],
             ["coupons", "Cupones"],
+            ["bundle", "Combos"],
+            ["searches", "Búsquedas"],
             ["instagram", "Instagram"],
             ["newsletter", "Newsletter"],
             ["shipping", "Envío"],
@@ -769,6 +775,20 @@ export function AdminDashboard() {
       {tab === "clubs" && (
         <div className="mt-6">
           <AdminClubs />
+        </div>
+      )}
+
+      {/* Combo: descuento por cantidad */}
+      {tab === "bundle" && (
+        <div className="mt-6">
+          <AdminBundle />
+        </div>
+      )}
+
+      {/* Búsquedas de los clientes */}
+      {tab === "searches" && (
+        <div className="mt-6">
+          <AdminSearches />
         </div>
       )}
 

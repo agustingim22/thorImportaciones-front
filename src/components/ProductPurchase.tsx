@@ -17,11 +17,12 @@ import { trackPixelEvent } from "@/lib/metaPixel";
 import { pushEcommerceEvent } from "@/lib/dataLayer";
 import { notifyStockAvailable } from "@/lib/stockNotify";
 import { SITE } from "@/lib/site";
+import { BUNDLE_OFF, type BundleSettings } from "@/lib/bundle";
 import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 import { FavoriteButton } from "./FavoriteButton";
 import { TallesGuideModal } from "./TallesGuideModal";
 
-export function ProductPurchase({ product }: { product: Product }) {
+export function ProductPurchase({ product, bundle = BUNDLE_OFF }: { product: Product; bundle?: BundleSettings }) {
   const { add } = useCart();
   const { addView } = useRecentlyViewed();
   const canCustomize = typeAllowsCustomization(product.type);
@@ -443,6 +444,13 @@ export function ProductPurchase({ product }: { product: Product }) {
             {shared ? "✓ Link copiado" : "Compartir ↗"}
           </button>
         </div>
+
+        {product.inStock && bundle.enabled && (
+          <p className="mt-3 rounded-lg bg-thor-gold/15 px-3 py-2 text-xs text-thor-ink-soft">
+            🔥 Llevando <strong className="text-thor-ink">{bundle.minQty} o más camisetas</strong> tenés{" "}
+            <strong className="text-thor-ink">{bundle.percent}% de descuento</strong> en todo el pedido
+          </p>
+        )}
 
         {product.inStock && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-thor-muted">

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { CLUB_GROUPS, FEATURED_CLUBS, clubPath } from "@/lib/clubs";
 import { getClubCounts } from "@/lib/products";
 import { PageHeader } from "@/components/PageHeader";
+import { SITE_URL } from "@/lib/site";
 
 // No lee cookies/headers/searchParams: se sirve cacheada y se regenera en segundo plano.
 export const revalidate = 60;
@@ -26,8 +27,49 @@ export default async function EquiposPage() {
     items: FEATURED_CLUBS.filter((c) => c.group === g.key && (counts[c.slug] ?? 0) > 0),
   })).filter((g) => g.items.length > 0);
 
+  // Datos estructurados para Google: migas de pan y la lista de equipos.
+  const teams = groups.flatMap((g) => g.items);
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
+        { "@type": "ListItem", position: 2, name: "Catálogo", item: `${SITE_URL}/catalogo` },
+        { "@type": "ListItem", position: 3, name: "Equipos", item: `${SITE_URL}/equipos` },
+      ],
+    },
+    ...(teams.length > 0
+      ? [
+          {
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: "Equipos",
+            url: `${SITE_URL}/equipos`,
+            mainEntity: {
+              "@type": "ItemList",
+              numberOfItems: teams.length,
+              itemListElement: teams.map((c, i) => ({
+                "@type": "ListItem",
+                position: i + 1,
+                name: `Camisetas de ${c.name}`,
+                url: `${SITE_URL}${clubPath(c.slug)}`,
+              })),
+            },
+          },
+        ]
+      : []),
+  ];
+
   return (
     <>
+      {jsonLd.map((d, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(d).replace(/</g, "\\u003c") }}
+        />
+      ))}
       <PageHeader
         eyebrow="Catálogo"
         title="Equipos"

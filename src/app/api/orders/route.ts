@@ -13,6 +13,8 @@ import { effectivePrice, typeAllowsCustomization, type ProductType } from "@/lib
 import { CouponError, computeDiscount, findValidCoupon } from "@/lib/coupons";
 import { checkFavoriteStockCrossing } from "@/lib/favoriteWatch";
 import { displayName } from "@/lib/displayName";
+import { bestDiscount, bundleDiscount } from "@/lib/bundle";
+import { getBundleSettings } from "@/lib/server/bundle";
 
 type Body = {
   customerName?: string;
@@ -150,15 +152,22 @@ export async function POST(req: Request) {
 
       const subtotal = itemsData.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
 
-      // El cupón se revalida acá adentro de la transacción (no se confía en lo que
-      // haya mostrado el carrito) y el usedCount se incrementa de forma atómica.
+      // El cupón y el combo (descuento por cantidad) se revalidan acá adentro de la transacción: no se confía en
+      // lo que haya mostrado el carrito. No se acumulan: se aplica el que más descuenta. Solo si gana el cupón se
+      // incrementa su usedCount (de forma atómica); si gana el combo, el cupón no se gasta.
       let couponCode: string | null = null;
-      let discountAmount = 0;
-      if (body.couponCode?.trim()) {
-        const coupon = await findValidCoupon(tx, body.couponCode, subtotal);
-        discountAmount = computeDiscount(coupon, subtotal);
+      let bundleApplied = false;
+      const units = itemsData.reduce((s, i) => s + i.quantity, 0);
+      const bundleAmount = bundleDiscount(subtotal, units, await getBundleSettings(tx));
+      const coupon = body.couponCode?.trim() ? await findValidCoupon(tx, body.couponCode, subtotal) : null;
+      const couponAmount = coupon ? computeDiscount(coupon, subtotal) : 0;
+      const best = bestDiscount(couponAmount, bundleAmount);
+      const discountAmount = best.amount;
+      if (best.source === "coupon" && coupon) {
         couponCode = coupon.code;
         await tx.coupon.update({ where: { id: coupon.id }, data: { usedCount: { increment: 1 } } });
+      } else if (best.source === "bundle") {
+        bundleApplied = true;
       }
 
       const shippingSettings = await tx.shippingSettings.findUnique({ where: { id: 1 } });
@@ -192,6 +201,7 @@ export async function POST(req: Request) {
           shippingCost,
           couponCode,
           discountAmount,
+          bundleApplied,
           items: { create: itemsData },
         },
         include: { items: true },
@@ -221,6 +231,7 @@ export async function POST(req: Request) {
     items: order.items,
     couponCode: order.couponCode,
     discountAmount: order.discountAmount,
+    bundleApplied: order.bundleApplied,
   }).catch(() => {}); // el pedido ya quedó registrado igual si el email falla
 
   await sendAdminOrderNotification({
@@ -263,6 +274,7 @@ export async function POST(req: Request) {
       customerEmail: order.customerEmail,
       items: order.items,
       shippingCost: order.shippingCost,
+      discountAmount: order.discountAmount, // Mercado Pago cobra lo que le mandamos: el descuento tiene que ir adentro
     });
   }
 
@@ -271,6 +283,7 @@ export async function POST(req: Request) {
     shippingCost: order.shippingCost,
     total: order.total,
     discountAmount: order.discountAmount,
+    bundleApplied: order.bundleApplied,
     status: order.status,
     paymentMethod: order.paymentMethod,
     checkoutUrl,

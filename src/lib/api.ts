@@ -81,6 +81,47 @@ export const PRODUCT_TYPE_TALLES_CATEGORY: Record<ProductType, string> = {
   pantalon: "pantalones",
 };
 
+/** Lo mínimo que necesita una tarjeta del listado. Es lo único que viaja al navegador por cada producto de la
+ *  grilla: lo demás (descripción, fotos, talles, stock por talle, parches) se pide recién al abrir la vista
+ *  rápida, así cada página de 24 productos pesa bastante menos. */
+export type CardProduct = Pick<
+  Product,
+  | "id"
+  | "slug"
+  | "name"
+  | "type"
+  | "price"
+  | "salePrice"
+  | "colorCss"
+  | "imageUrl"
+  | "stock"
+  | "inStock"
+  | "presetName"
+  | "presetNumber"
+  | "createdAt"
+  | "isBestSeller"
+> & { hasPatches: boolean };
+
+export function toCardProduct(p: Product): CardProduct {
+  return {
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    type: p.type,
+    price: p.price,
+    salePrice: p.salePrice,
+    colorCss: p.colorCss,
+    imageUrl: p.imageUrl,
+    stock: p.stock,
+    inStock: p.inStock,
+    presetName: p.presetName,
+    presetNumber: p.presetNumber,
+    createdAt: p.createdAt,
+    isBestSeller: p.isBestSeller,
+    hasPatches: p.patches.length > 0,
+  };
+}
+
 /** Todos los talles posibles del catálogo. S a XXL siempre están; XXXL/XXXXL son opcionales por producto. */
 export const ALL_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
 export const DEFAULT_SIZES = ["S", "M", "L", "XL", "XXL"];

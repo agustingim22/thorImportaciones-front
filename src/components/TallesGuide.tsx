@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { whatsappUrl } from "@/lib/site";
 
 type Chart = {
@@ -402,10 +401,10 @@ export function TallesGuideContent({ initialCategory }: { initialCategory?: stri
   );
 }
 
-function TallesGuideInner() {
-  const params = useSearchParams();
-  const requestedCat = params.get("cat");
-
+/** La categoría inicial (?cat=…) la lee la página en el servidor y llega por prop. Antes se leía acá con
+ *  useSearchParams dentro de un Suspense, y eso hacía que en el sitio publicado todo el contenido se
+ *  armara recién en el navegador: lo primero que veía Google era "Cargando…", sin título ni tablas. */
+export function TallesGuide({ initialCategory }: { initialCategory?: string | null }) {
   return (
     <>
       <div className="border-b border-thor-line bg-thor-cream-2">
@@ -425,16 +424,8 @@ function TallesGuideInner() {
       </div>
 
       <section className="mx-auto max-w-6xl px-5 py-14">
-        <TallesGuideContent initialCategory={requestedCat} />
+        <TallesGuideContent initialCategory={initialCategory} />
       </section>
     </>
-  );
-}
-
-export function TallesGuide() {
-  return (
-    <Suspense fallback={<p className="px-5 py-16 text-center text-thor-muted">Cargando…</p>}>
-      <TallesGuideInner />
-    </Suspense>
   );
 }

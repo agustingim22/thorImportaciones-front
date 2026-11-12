@@ -94,11 +94,13 @@ export async function sendOrderConfirmation(order: {
   items: OrderItemLine[];
   couponCode?: string | null;
   discountAmount?: number;
+  bundleApplied?: boolean;
 }): Promise<void> {
+  const discountLabel = order.bundleApplied ? "Descuento por combo" : `Cupón ${order.couponCode}`;
   const discountLine =
     order.discountAmount && order.discountAmount > 0
       ? `<p style="text-align:right;font-size:13px;color:#5F6E68;margin:0;">
-          Cupón ${order.couponCode}: -$${order.discountAmount.toLocaleString("es-AR")}
+          ${discountLabel}: -$${order.discountAmount.toLocaleString("es-AR")}
         </p>`
       : "";
   const body = `

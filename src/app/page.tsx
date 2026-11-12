@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getFeaturedProducts, getTeamShowcase, type TeamShowcaseItem } from "@/lib/products";
 import { TeamShowcase } from "@/components/TeamShowcase";
-import type { Product } from "@/lib/api";
+import { toCardProduct, type Product } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
 import { Testimonials } from "@/components/Testimonials";
 import { getPublishedTestimonials } from "@/lib/testimonials";
@@ -130,7 +130,7 @@ export default async function Home() {
         {featured.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {featured.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard key={p.id} product={toCardProduct(p)} />
             ))}
           </div>
         ) : (

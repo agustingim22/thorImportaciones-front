@@ -3,18 +3,33 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { Product } from "@/lib/api";
+import type { CardProduct, Product } from "@/lib/api";
 import { effectivePrice, typeAllowsCustomization } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { trackPixelEvent } from "@/lib/metaPixel";
 import { pushEcommerceEvent } from "@/lib/dataLayer";
 import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 
-export function QuickViewModal({ product, onClose }: { product: Product; onClose: () => void }) {
+export function QuickViewModal({ product, onClose }: { product: CardProduct; onClose: () => void }) {
   const { add } = useCart();
+  // La tarjeta trae solo lo básico: descripción, talles y stock por talle se piden al abrir.
+  const [full, setFull] = useState<Product | null>(null);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/products/${encodeURIComponent(product.slug)}`)
+      .then((res) => (res.ok ? (res.json() as Promise<Product>) : Promise.reject(new Error(String(res.status)))))
+      .then((p) => !cancelled && setFull(p))
+      .catch(() => !cancelled && setLoadError(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [product.slug]);
+
   const canCustomize = typeAllowsCustomization(product.type);
   const isCustomizable =
-    canCustomize && (!product.presetName || !product.presetNumber || product.patches.length > 0);
+    canCustomize && (!product.presetName || !product.presetNumber || product.hasPatches);
   const onSale = product.salePrice != null && product.salePrice < product.price;
   const [size, setSize] = useState("");
   const [added, setAdded] = useState(false);
@@ -116,7 +131,7 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
                 ${effectivePrice(product).toLocaleString("es-AR")}
               </span>
             </p>
-            <p className="mt-2 line-clamp-3 text-sm text-thor-ink-soft">{product.description}</p>
+            {full?.description && <p className="mt-2 line-clamp-3 text-sm text-thor-ink-soft">{full.description}</p>}
 
             {!product.inStock ? (
               <p className="mt-4 font-mono text-xs font-bold uppercase tracking-wider text-thor-muted">
@@ -134,11 +149,15 @@ export function QuickViewModal({ product, onClose }: { product: Product; onClose
                   Personalizar →
                 </Link>
               </>
+            ) : !full ? (
+              <p className="mt-4 text-xs text-thor-muted">
+                {loadError ? "No pudimos cargar los talles. Probá en el detalle completo." : "Cargando talles…"}
+              </p>
             ) : (
               <>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {product.sizes.map((s) => {
-                    const sizeOutOfStock = (product.sizeStock[s] ?? 0) <= 0;
+                  {full.sizes.map((s) => {
+                    const sizeOutOfStock = (full.sizeStock[s] ?? 0) <= 0;
                     return (
                       <button
                         key={s}

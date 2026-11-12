@@ -11,10 +11,12 @@ import { getProductQuestions } from "@/lib/questions";
 import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { Testimonials } from "@/components/Testimonials";
 import { getPublishedTestimonials } from "@/lib/testimonials";
-import { PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { PRODUCT_TYPE_LABELS, toCardProduct } from "@/lib/api";
 import { clubHeading, clubPath, getClubBySlug } from "@/lib/clubs";
 import { SITE_URL } from "@/lib/site";
-import { productDescription } from "@/lib/seo";
+import { productDescription, productTitle } from "@/lib/seo";
+import { BUNDLE_OFF } from "@/lib/bundle";
+import { getBundleSettings } from "@/lib/server/bundle";
 
 // No lee cookies/headers: se sirve cacheada y se regenera en segundo plano
 // (el stock/precio real siempre se valida de nuevo en el checkout).
@@ -41,7 +43,7 @@ export async function generateMetadata(props: {
   if (!p) return { title: "Producto no encontrado" };
   const description = productDescription(p);
   return {
-    title: p.name,
+    title: productTitle(p.name),
     description,
     keywords: [p.name, PRODUCT_TYPE_LABELS[p.type]].filter(Boolean),
     alternates: { canonical: `/producto/${p.slug}` },
@@ -61,13 +63,16 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
 
   // Las 4 consultas son independientes entre sí: se disparan en paralelo en vez
   // de una tras otra para no sumar 4 round-trips a la base de forma innecesaria.
-  const [relatedResult, testimonialsResult, reviewsResult, questionsResult] =
+  const [relatedResult, testimonialsResult, reviewsResult, questionsResult, bundleResult] =
     await Promise.allSettled([
       getRelatedProducts(product),
       getPublishedTestimonials(),
       getProductReviews(product.id),
       getProductQuestions(product.id),
+      getBundleSettings(),
     ]);
+  // Si falla la lectura del combo, la ficha se muestra igual, sin el cartel.
+  const bundle = bundleResult.status === "fulfilled" ? bundleResult.value : BUNDLE_OFF;
 
   const related = relatedResult.status === "fulfilled" ? relatedResult.value : [];
   // Si hay camisetas del mismo equipo entre las sugeridas, el título lo dice ("Más camisetas de River Plate").
@@ -152,7 +157,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
           / <span className="text-thor-ink">{product.name}</span>
         </nav>
 
-        <ProductPurchase product={{ ...product, description }} />
+        <ProductPurchase product={{ ...product, description }} bundle={bundle} />
 
         {related.length > 0 && (
           <section className="mt-16 border-t border-thor-line pt-10">
@@ -171,7 +176,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
             </div>
             <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {related.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard key={p.id} product={toCardProduct(p)} />
               ))}
             </div>
           </section>

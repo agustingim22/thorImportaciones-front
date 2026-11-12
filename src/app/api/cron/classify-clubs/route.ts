@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { classifyClubs } from "@/lib/server/clubs";
+import { pruneSearchTerms } from "@/lib/server/searches";
 
 /** Clasifica por equipo los productos nuevos (los que se importan con scripts, fuera del panel, entran
  *  sin equipo). Se puede llamar a mano con Authorization: Bearer $CRON_SECRET. Además corre todos los
@@ -10,5 +11,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
   const result = await classifyClubs(true);
-  return NextResponse.json({ ok: true, total: result.total, updated: result.updated ?? 0 });
+  const pruned = await pruneSearchTerms().catch(() => 0);
+  return NextResponse.json({ ok: true, total: result.total, updated: result.updated ?? 0, searchesPruned: pruned });
 }

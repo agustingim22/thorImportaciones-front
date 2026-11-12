@@ -1,11 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { after } from "next/server";
+import { headers } from "next/headers";
+import { isBotUserAgent, logSearch } from "@/lib/server/searches";
 import { DEFAULT_PAGE_SIZE, getClubCounts, getProducts, type ProductSort } from "@/lib/products";
 import type { Product, ProductType } from "@/lib/api";
-import { ALL_SIZES, PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/api";
+import { ALL_SIZES, PRODUCT_TYPES, PRODUCT_TYPE_LABELS, toCardProduct } from "@/lib/api";
 import { CLUB_GROUPS, FEATURED_CLUBS, clubHeading, clubPath, getClubBySlug } from "@/lib/clubs";
 import { ProductCard } from "@/components/ProductCard";
 import { PageHeader } from "@/components/PageHeader";
+import { SITE, SITE_URL } from "@/lib/site";
 
 const SORTS: [ProductSort, string][] = [
   ["featured", "Destacados"], // por defecto: camisetas de equipos destacados primero (ver lib/ranking.ts)
@@ -26,9 +30,13 @@ export async function generateMetadata(props: PageProps<"/catalogo">): Promise<M
   const club = getClubBySlug(Array.isArray(sp.club) ? sp.club[0] : sp.club);
   if (club) {
     const heading = clubHeading(club);
+    // Descripción de ~150 caracteres (antes eran 86): con la cantidad de modelos del equipo.
+    const n = (await getClubCounts().catch(() => ({}) as Record<string, number>))[club.slug];
+    const long = `Camisetas de ${heading} importadas: ${n ? `${n} modelos` : "todos los modelos"} con sus versiones y talles. Elegí la tuya y pedila con envío a todo el país en ${SITE.name}.`;
+    const short = `Camisetas de ${heading} importadas${n ? `: ${n} modelos` : ""} con sus versiones y talles. Envíos a todo el país.`;
     return {
       title: `Camisetas de ${heading}`,
-      description: `Camisetas de ${heading} importadas. Mirá los modelos, versiones y talles disponibles.`,
+      description: long.length <= 165 ? long : short,
       alternates: { canonical: clubPath(club.slug) },
     };
   }
@@ -70,6 +78,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   let products: Product[] = [];
   let total = 0;
   let clubCounts: Record<string, number> = {};
+  let loaded = false;
   try {
     const [result, counts] = await Promise.all([
       getProducts({ type, club, q, minPrice, maxPrice, size, sort, page }),
@@ -78,9 +87,16 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
     products = result.products;
     total = result.total;
     clubCounts = counts;
+    loaded = true;
   } catch {
     products = [];
     total = 0;
+  }
+  // Se anota lo que busca la gente y cuántos resultados encontró (panel "Búsquedas"): solo la primera página, sin
+  // contar buscadores ni monitores, y después de responder (`after`) para no demorar la página. Si la consulta
+  // falló no se anota, para no registrar un "0 resultados" que no es real.
+  if (q && page === 1 && loaded && !isBotUserAgent((await headers()).get("user-agent"))) {
+    after(() => logSearch(q, total));
   }
   const totalPages = Math.max(1, Math.ceil(total / DEFAULT_PAGE_SIZE));
 
@@ -126,11 +142,56 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
     ? `${clubCounts[clubInfo.slug] ? `${clubCounts[clubInfo.slug]} modelos de ${clubHeading(clubInfo)}` : `Modelos de ${clubHeading(clubInfo)}`}, importados. Elegí la versión y el talle, y pedila con envío a todo el país.`
     : null;
 
+  // Datos estructurados para Google: migas de pan y la lista de productos de esta página.
+  // No se mandan en las búsquedas: su canonical es el catálogo completo.
+  const listPath = club ? clubPath(club) : "/catalogo";
+  const listName = clubInfo ? `Camisetas de ${clubHeading(clubInfo)}` : "Catálogo";
+  const jsonLd: Record<string, unknown>[] = q
+    ? []
+    : [
+        {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
+            { "@type": "ListItem", position: 2, name: "Catálogo", item: `${SITE_URL}/catalogo` },
+            ...(clubInfo ? [{ "@type": "ListItem", position: 3, name: clubInfo.name, item: `${SITE_URL}${listPath}` }] : []),
+          ],
+        },
+        ...(products.length > 0
+          ? [
+              {
+                "@context": "https://schema.org",
+                "@type": "CollectionPage",
+                name: listName,
+                url: `${SITE_URL}${listPath}`,
+                mainEntity: {
+                  "@type": "ItemList",
+                  numberOfItems: total,
+                  itemListElement: products.map((p, i) => ({
+                    "@type": "ListItem",
+                    position: (page - 1) * DEFAULT_PAGE_SIZE + i + 1,
+                    url: `${SITE_URL}/producto/${p.slug}`,
+                    name: p.name,
+                  })),
+                },
+              },
+            ]
+          : []),
+      ];
+
   return (
     <>
+      {jsonLd.map((d, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(d).replace(/</g, "\\u003c") }}
+        />
+      ))}
       <PageHeader
         eyebrow={clubInfo ? "Catálogo" : "Camisetas, remeras y más"}
-        title={clubInfo ? `Camisetas de ${clubHeading(clubInfo)}` : "Catálogo"}
+        title={listName}
         subtitle={clubIntro ?? "Importado y disponible para envío. Filtrá por categoría o buscá lo que necesitás."}
       />
 
@@ -285,7 +346,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
           <>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {products.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard key={p.id} product={toCardProduct(p)} />
               ))}
             </div>
 
