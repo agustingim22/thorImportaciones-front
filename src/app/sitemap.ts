@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getClubCounts, getSitemapProducts } from "@/lib/products";
-import { FEATURED_CLUBS } from "@/lib/clubs";
+import { FEATURED_CLUBS, clubPath } from "@/lib/clubs";
 import { SITE_URL } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +30,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     products = [];
   }
 
-  // Una página por equipo con productos (/catalogo?club=…): son las búsquedas más valiosas para Google.
+  // Una página por equipo con productos (/equipo/real-madrid): son las búsquedas más valiosas para Google.
   let teams: MetadataRoute.Sitemap = [];
   try {
     const counts = await getClubCounts();
     teams = FEATURED_CLUBS.filter((c) => (counts[c.slug] ?? 0) > 0).map((c) => ({
-      url: `${SITE_URL}/catalogo?club=${c.slug}`,
+      url: `${SITE_URL}${clubPath(c.slug)}`,
       changeFrequency: "weekly",
       priority: 0.7,
     }));

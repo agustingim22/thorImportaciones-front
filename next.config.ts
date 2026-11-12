@@ -10,6 +10,17 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "ssl.images-ssl-mars.com" },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        // Direcciones lindas para las páginas de equipo: /equipo/real-madrid se sirve con /catalogo?club=real-madrid.
+        // Los demás filtros (?type=, ?page=, ?q=…) se mantienen. La dirección vieja (?club=) sigue
+        // funcionando y su canonical apunta a la nueva.
+        source: "/equipo/:slug",
+        destination: "/catalogo?club=:slug",
+      },
+    ];
+  },
   async redirects() {
     return [
       {

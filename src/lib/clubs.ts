@@ -226,6 +226,9 @@ export function detectClubForProduct(team: string | null | undefined, type: stri
   return detectClub(team);
 }
 
+/** Dirección de la página de un equipo: /equipo/real-madrid (next.config.ts la reescribe a /catalogo?club=…). */
+export const clubPath = (slug: string): string => `/equipo/${slug}`;
+
 export function getClubBySlug(slug: string | null | undefined): FeaturedClub | null {
   return FEATURED_CLUBS.find((c) => c.slug === slug) ?? null;
 }

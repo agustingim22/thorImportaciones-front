@@ -2,6 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { PRODUCT_TYPES, typeAllowsCustomization, type ProductType } from "@/lib/api";
 import { FEATURED_CLUBS, detectClubForProduct } from "@/lib/clubs";
+import { productRank } from "@/lib/ranking";
 
 const VALID_SIZES = ["S", "M", "L", "XL", "XXL", "XXXL", "XXXXL"] as const;
 
@@ -75,17 +76,19 @@ export function validateProduct(input: ProductInput): Record<string, string[]> |
 /** Datos escalares listos para Prisma (create/update). Parches y stock por talle se manejan aparte. */
 export function toProductData(input: ProductInput, slug: string): Prisma.ProductUncheckedCreateInput {
   const customizable = typeAllowsCustomization(input.type);
+  const club = input.club
+    ? input.club === "none"
+      ? null
+      : input.club
+    : (detectClubForProduct(input.team, input.type)?.slug ?? null);
   const totalStock = input.sizes.reduce((sum, s) => sum + (input.sizeStock?.[s] ?? 0), 0);
   return {
     slug,
     team: input.team.trim(),
     // Equipo: automático (se deduce del nombre cada vez que se crea o edita) o fijado a mano.
-    club: input.club
-      ? input.club === "none"
-        ? null
-        : input.club
-      : (detectClubForProduct(input.team, input.type)?.slug ?? null),
+    club,
     clubManual: !!input.club,
+    rank: productRank(input.type, club), // posición en el orden "Destacados" del catálogo
     type: input.type,
     price: input.price,
     salePrice: input.salePrice != null && input.salePrice < input.price ? input.salePrice : null,

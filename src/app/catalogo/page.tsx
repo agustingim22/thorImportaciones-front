@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { DEFAULT_PAGE_SIZE, getClubCounts, getProducts, type ProductSort } from "@/lib/products";
 import type { Product, ProductType } from "@/lib/api";
 import { ALL_SIZES, PRODUCT_TYPES, PRODUCT_TYPE_LABELS } from "@/lib/api";
-import { CLUB_GROUPS, FEATURED_CLUBS, clubHeading, getClubBySlug } from "@/lib/clubs";
+import { CLUB_GROUPS, FEATURED_CLUBS, clubHeading, clubPath, getClubBySlug } from "@/lib/clubs";
 import { ProductCard } from "@/components/ProductCard";
 import { PageHeader } from "@/components/PageHeader";
 
 const SORTS: [ProductSort, string][] = [
+  ["featured", "Destacados"], // por defecto: camisetas de equipos destacados primero (ver lib/ranking.ts)
   ["newest", "Más nuevo"],
   ["price-asc", "Precio: menor a mayor"],
   ["price-desc", "Precio: mayor a menor"],
@@ -18,7 +19,8 @@ const SORTS: [ProductSort, string][] = [
 // (ver getProducts en @/lib/products), que es lo que realmente pesa acá.
 export const dynamic = "force-dynamic";
 
-/** Cada club tiene su propio título y canonical, para que /catalogo?club=… se indexe como página propia. */
+/** Cada equipo tiene su propio título y canonical (/equipo/real-madrid), para que se indexe como página propia
+ *  y la dirección vieja /catalogo?club=… no cuente como contenido duplicado. */
 export async function generateMetadata(props: PageProps<"/catalogo">): Promise<Metadata> {
   const sp = await props.searchParams;
   const club = getClubBySlug(Array.isArray(sp.club) ? sp.club[0] : sp.club);
@@ -27,7 +29,7 @@ export async function generateMetadata(props: PageProps<"/catalogo">): Promise<M
     return {
       title: `Camisetas de ${heading}`,
       description: `Camisetas de ${heading} importadas. Mirá los modelos, versiones y talles disponibles.`,
-      alternates: { canonical: `/catalogo?club=${club.slug}` },
+      alternates: { canonical: clubPath(club.slug) },
     };
   }
   return {
@@ -57,7 +59,7 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
   const maxPrice = Number.isFinite(maxPriceRaw) && maxPriceRaw > 0 ? maxPriceRaw : undefined;
 
   const sortRaw = Array.isArray(sp.sort) ? sp.sort[0] : sp.sort;
-  const sort: ProductSort = SORTS.some(([key]) => key === sortRaw) ? (sortRaw as ProductSort) : "newest";
+  const sort: ProductSort = SORTS.some(([key]) => key === sortRaw) ? (sortRaw as ProductSort) : "featured";
 
   const sizeRaw = Array.isArray(sp.size) ? sp.size[0] : sp.size;
   const size = (ALL_SIZES as readonly string[]).includes(sizeRaw ?? "") ? sizeRaw : undefined;
@@ -98,38 +100,38 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
     const nextType = "type" in overrides ? overrides.type : type;
     if (nextType) params.set("type", nextType);
     const nextClub = "club" in overrides ? overrides.club : club;
-    if (nextClub) params.set("club", nextClub);
     if (q) params.set("q", q);
     if (minPrice !== undefined) params.set("minPrice", String(minPrice));
     if (maxPrice !== undefined) params.set("maxPrice", String(maxPrice));
     if (size) params.set("size", size);
-    if (sort !== "newest") params.set("sort", sort);
+    if (sort !== "featured") params.set("sort", sort);
     const nextPage = overrides.page ?? 1;
     if (nextPage > 1) params.set("page", String(nextPage));
     const qs = params.toString();
-    return qs ? `/catalogo?${qs}` : "/catalogo";
+    // Con equipo, la dirección linda (/equipo/real-madrid); sin equipo, /catalogo.
+    const base = nextClub ? clubPath(nextClub) : "/catalogo";
+    return qs ? `${base}?${qs}` : base;
   };
   const tabHref = (key?: string) => buildHref({ type: key, page: 1 });
   const clubHref = (slug?: string) => buildHref({ club: slug, page: 1 });
 
   const hasExtraFilters =
-    !!q || minPrice !== undefined || maxPrice !== undefined || !!size || sort !== "newest";
-  // "Limpiar filtros" quita búsqueda, precio, talle y orden, pero conserva tipo y club.
-  const clearParams = new URLSearchParams();
-  if (type) clearParams.set("type", type);
-  if (club) clearParams.set("club", club);
-  const clearHref = clearParams.size > 0 ? `/catalogo?${clearParams}` : "/catalogo";
+    !!q || minPrice !== undefined || maxPrice !== undefined || !!size || sort !== "featured";
+  // "Limpiar filtros" quita búsqueda, precio, talle y orden, pero conserva tipo y equipo.
+  const clearBase = club ? clubPath(club) : "/catalogo";
+  const clearHref = type ? `${clearBase}?type=${type}` : clearBase;
+
+  // Texto de presentación de la página de un equipo (suma contenido para Google y orienta al cliente).
+  const clubIntro = clubInfo
+    ? `${clubCounts[clubInfo.slug] ? `${clubCounts[clubInfo.slug]} modelos de ${clubHeading(clubInfo)}` : `Modelos de ${clubHeading(clubInfo)}`}, importados. Elegí la versión y el talle, y pedila con envío a todo el país.`
+    : null;
 
   return (
     <>
       <PageHeader
         eyebrow={clubInfo ? "Catálogo" : "Camisetas, remeras y más"}
         title={clubInfo ? `Camisetas de ${clubHeading(clubInfo)}` : "Catálogo"}
-        subtitle={
-          clubInfo
-            ? `Modelos de ${clubHeading(clubInfo)} disponibles. Filtrá por versión, talle o precio.`
-            : "Importado y disponible para envío. Filtrá por categoría o buscá lo que necesitás."
-        }
+        subtitle={clubIntro ?? "Importado y disponible para envío. Filtrá por categoría o buscá lo que necesitás."}
       />
 
       <section className="mx-auto max-w-6xl px-5 py-12">
@@ -205,11 +207,10 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
           {/* Buscador + filtros: grilla de 2 columnas en mobile, una sola fila desde sm */}
           <form
             method="get"
-            action="/catalogo"
+            action={club ? clubPath(club) : "/catalogo"}
             className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center"
           >
             {type && <input type="hidden" name="type" value={type} />}
-            {club && <input type="hidden" name="club" value={club} />}
             <input
               type="search"
               name="q"

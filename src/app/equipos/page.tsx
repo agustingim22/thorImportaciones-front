@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { CLUB_GROUPS, FEATURED_CLUBS } from "@/lib/clubs";
+import { CLUB_GROUPS, FEATURED_CLUBS, clubPath } from "@/lib/clubs";
 import { getClubCounts } from "@/lib/products";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -51,7 +51,7 @@ export default async function EquiposPage() {
                 {g.items.map((c) => (
                   <li key={c.slug}>
                     <Link
-                      href={`/catalogo?club=${c.slug}`}
+                      href={clubPath(c.slug)}
                       className="flex items-center justify-between gap-2 rounded-xl border border-thor-line bg-thor-paper px-4 py-3 text-sm text-thor-ink transition-colors hover:border-thor-gold hover:bg-thor-gold/5"
                     >
                       <span className="min-w-0 truncate font-semibold">{c.name}</span>

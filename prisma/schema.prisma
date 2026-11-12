@@ -25,6 +25,7 @@ model Product {
   sizes              String[]            @default(["S", "M", "L", "XL", "XXL"]) // talles disponibles para esta camiseta
   club               String? // slug del equipo destacado (ver src/lib/clubs.ts); se deduce de `team`
   clubManual         Boolean             @default(false) // true = el admin eligió el equipo a mano: la clasificación automática no lo toca
+  rank               Int                 @default(1) // orden "Destacados" del catálogo: 0 camisetas de equipos destacados … 3 NBA/rugby (ver src/lib/ranking.ts)
   createdAt          DateTime            @default(now())
   patches            Patch[]
   sizeStocks         ProductSize[]
@@ -34,6 +35,10 @@ model Product {
   favoriteWatches    FavoriteWatch[]
 
   @@index([club])
+  // Índices del orden "Destacados" (rank, luego lo más nuevo): todo el catálogo, por tipo y por equipo.
+  @@index([rank, createdAt(sort: Desc)])
+  @@index([type, rank, createdAt(sort: Desc)])
+  @@index([club, rank, createdAt(sort: Desc)])
 }
 
 /// Pregunta pública de un visitante sobre un producto puntual. Queda oculta hasta que

@@ -68,6 +68,8 @@ const VOCAB_SOURCE: [string, string, Kind][] = [
   ["sky blue", "Celeste", "color"],
   ["dark blue", "Azul oscuro", "color"],
   ["fluorescent green", "Verde flúor", "color"],
+  ["camouflage color", "Camuflaje", "color"],
+  ["camouflage", "Camuflaje", "color"],
   // ruido que no aporta (el tipo de producto ya se muestra aparte)
   ["fans", "", "drop"],
   ["fan", "", "drop"],
@@ -171,9 +173,44 @@ function formatSeason(a: string, b?: string): string {
 
 const cleanKey = (s: string) => norm(s).replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 
+/** Equipos del NBA: cómo vienen en el título → nombre completo con la ciudad. */
+const NBA_TEAMS: Record<string, string> = {
+  "sa spurs": "San Antonio Spurs", spurs: "San Antonio Spurs", jazz: "Utah Jazz", celtics: "Boston Celtics",
+  "76ers": "Philadelphia 76ers", sixers: "Philadelphia 76ers", heat: "Miami Heat", hornets: "Charlotte Hornets",
+  "trail blazers": "Portland Trail Blazers", blazers: "Portland Trail Blazers", clippers: "Los Angeles Clippers",
+  lakers: "Los Angeles Lakers", "los angeles lakers": "Los Angeles Lakers", "la lakers": "Los Angeles Lakers",
+  knicks: "New York Knicks", "new york knicks": "New York Knicks", nets: "Brooklyn Nets", rockets: "Houston Rockets",
+  warriors: "Golden State Warriors", "golden state warriors": "Golden State Warriors", bulls: "Chicago Bulls",
+  suns: "Phoenix Suns", mavericks: "Dallas Mavericks", mavs: "Dallas Mavericks", nuggets: "Denver Nuggets",
+  bucks: "Milwaukee Bucks", raptors: "Toronto Raptors", thunder: "Oklahoma City Thunder",
+  "oklahoma city thunder": "Oklahoma City Thunder", kings: "Sacramento Kings", magic: "Orlando Magic",
+  hawks: "Atlanta Hawks", pacers: "Indiana Pacers", pistons: "Detroit Pistons", cavaliers: "Cleveland Cavaliers",
+  cavs: "Cleveland Cavaliers", wizards: "Washington Wizards", grizzlies: "Memphis Grizzlies",
+  pelicans: "New Orleans Pelicans", timberwolves: "Minnesota Timberwolves",
+};
+
+/** "PARKER #9" → "Parker #9"; "Paul 3" → "Paul #3"; "ANTETOKOUNMPO.#7" → "Antetokounmpo #7". */
+function formatPlayer(tokens: string[]): string[] {
+  const joined = tokens.join(" ").replace(/\.(?=#)/g, " ").replace(/\s+/g, " ").trim();
+  if (!joined) return [];
+  const words = joined.split(" ").map((w) => {
+    if (w.startsWith("#")) return w;
+    if (/^\d+$/.test(w)) return "#" + w;
+    return /^[A-Z.'-]{2,}$/.test(w) ? w.split("-").map(cap).join("-") : w;
+  });
+  return [words.join(" ")];
+}
+
 /** Nombre en español del equipo, y las palabras que sobran detrás (ej. "Starry Sky" en
  *  "Club America Starry Sky"), que pasan a ser detalle de la camiseta. */
 function resolveTeam(tokens: string[], type?: string): { name: string; rest: string[] } {
+  // 0) NBA: el equipo con su ciudad y, detrás, el jugador con su número.
+  if (type === "nba") {
+    for (let k = Math.min(tokens.length, 3); k >= 1; k--) {
+      const team = NBA_TEAMS[cleanKey(tokens.slice(0, k).join(" "))];
+      if (team) return { name: team, rest: formatPlayer(tokens.slice(k)) };
+    }
+  }
   // 1) País o selección: la frase más larga que coincida desde el principio.
   for (let k = tokens.length; k >= 1; k--) {
     const country = COUNTRIES[cleanKey(tokens.slice(0, k).join(" "))];
@@ -215,16 +252,20 @@ export function displayName(raw: string, type?: string): string {
     .replace(/\s+/g, " ")
     .trim();
 
+  const sports = type === "nba" || type === "rugby";
   const m = cleaned.match(/^(\d{4}|\d{2})(?:-(\d{4}|\d{2}))?(?=\s)/);
-  if (!m) return original; // no es un nombre del proveedor: se deja como está
-  const season = formatSeason(m[1], m[2]);
-  const tokens = cleaned.slice(m[0].length).trim().split(" ").filter(Boolean);
+  // Los nombres del proveedor empiezan con la temporada; los del NBA y el rugby a veces vienen sin ella.
+  if (!m && !sports) return original; // no es un nombre del proveedor: se deja como está
+  const season = m ? formatSeason(m[1], m[2]) : "";
+  const tokens = (m ? cleaned.slice(m[0].length) : cleaned).trim().split(" ").filter(Boolean);
   if (tokens.length === 0) return original;
 
   // El equipo son las palabras hasta la primera palabra conocida (la primera siempre cuenta).
   const teamTokens = [tokens[0]];
   let i = 1;
-  while (i < tokens.length && !matchVocab(tokens, i) && !isOneToOne(tokens, i)) teamTokens.push(tokens[i++]);
+  // En el NBA, una palabra seguida de un número es el apellido del jugador ("BROWN #7"), aunque sea un color.
+  const isPlayer = (k: number) => type === "nba" && /^#?\d+$/.test(tokens[k + 1] ?? "");
+  while (i < tokens.length && (isPlayer(i) || (!matchVocab(tokens, i) && !isOneToOne(tokens, i)))) teamTokens.push(tokens[i++]);
 
   const core: string[] = [];
   const colors: string[] = [];
@@ -258,7 +299,8 @@ export function displayName(raw: string, type?: string): string {
 
   const { name: team, rest } = resolveTeam(teamTokens, type);
   const head = [shorts ? "Short" : null, ...rest, ...core].filter(Boolean).join(" ");
-  const parts = [`${team} · ${head ? `${head} ${season}` : season}`];
+  const main = [head, season].filter(Boolean).join(" ");
+  const parts = [main ? `${team} · ${main}` : team];
   for (const v of versions) parts.push(v);
   if (colors.length > 0) {
     const list = colors.map((c) => (shorts ? (MASCULINE[c] ?? c) : c));

@@ -44,8 +44,8 @@ export function serializeProduct(p: ProductRow, bestSellerIds: Set<number> = new
   };
 }
 
-/** IDs de los productos más pedidos históricamente (pedidos no cancelados), para el badge "Más vendido". */
-export async function getBestSellerIds(limit = 6): Promise<Set<number>> {
+/** IDs de los productos más pedidos históricamente (pedidos no cancelados), en orden. */
+async function fetchBestSellerIds(limit: number): Promise<number[]> {
   const rows = await prisma.orderItem.groupBy({
     by: ["productId"],
     where: { order: { status: { not: "Cancelled" } } },
@@ -53,10 +53,18 @@ export async function getBestSellerIds(limit = 6): Promise<Set<number>> {
     orderBy: { _sum: { quantity: "desc" } },
     take: limit,
   });
-  return new Set(rows.map((r) => r.productId));
+  return rows.map((r) => r.productId);
+}
+// Cacheado 5 min: es una agregación sobre todos los pedidos y se hacía en CADA consulta del catálogo.
+const cachedBestSellerIds = unstable_cache(fetchBestSellerIds, ["best-seller-ids"], { revalidate: 300 });
+
+/** Para el badge "Más vendido". */
+export async function getBestSellerIds(limit = 6): Promise<Set<number>> {
+  return new Set(await cachedBestSellerIds(limit));
 }
 
-export type ProductSort = "newest" | "price-asc" | "price-desc";
+/** "featured" es el orden por defecto (ver lib/ranking.ts): camisetas de equipos destacados primero. */
+export type ProductSort = "featured" | "newest" | "price-asc" | "price-desc";
 
 export const DEFAULT_PAGE_SIZE = 24;
 
@@ -102,12 +110,14 @@ async function fetchProducts(params: GetProductsParams = {}): Promise<ProductsPa
   if (params.size) {
     where.sizeStocks = { some: { size: params.size, stock: { gt: 0 } } };
   }
-  const orderBy: Prisma.ProductOrderByWithRelationInput =
+  const orderBy: Prisma.ProductOrderByWithRelationInput | Prisma.ProductOrderByWithRelationInput[] =
     params.sort === "price-asc"
       ? { price: "asc" }
       : params.sort === "price-desc"
         ? { price: "desc" }
-        : { createdAt: "desc" };
+        : params.sort === "newest"
+          ? { createdAt: "desc" }
+          : [{ rank: "asc" }, { createdAt: "desc" }]; // "featured" (por defecto)
   const pageSize = params.pageSize ?? (params.ids ? Math.max(params.ids.length, 1) : DEFAULT_PAGE_SIZE);
   const page = Math.max(1, params.page ?? 1);
   const [rows, total, bestSellerIds] = await Promise.all([
@@ -189,7 +199,7 @@ export async function getRelatedProducts(
     if (need <= 0) return;
     const rows = await prisma.product.findMany({
       where: { AND: [where, { id: { notIn: [product.id, ...picked.map((r) => r.id)] } }] },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ rank: "asc" }, { createdAt: "desc" }],
       take: need,
       ...withPatches,
     });
@@ -200,6 +210,50 @@ export async function getRelatedProducts(
   await pull({});
   return picked.map((r) => serializeProduct(r, bestSellerIds));
 }
+
+export type FeaturedProducts = { products: Product[]; fromOrders: number };
+
+async function fetchFeaturedProducts(limit: number): Promise<FeaturedProducts> {
+  const bestIds = await fetchBestSellerIds(12);
+  const bestRows =
+    bestIds.length > 0
+      ? await prisma.product.findMany({ where: { id: { in: bestIds }, stock: { gt: 0 } }, ...withPatches })
+      : [];
+  const picked: ProductRow[] = bestIds
+    .map((id) => bestRows.find((r) => r.id === id))
+    .filter((r): r is ProductRow => !!r)
+    .slice(0, limit);
+  const fromOrders = picked.length;
+
+  // Si no alcanzan los realmente más pedidos, se completa con la camiseta más nueva de cada uno de
+  // los equipos principales (Boca, River, Argentina…), en vez de mostrar lo último que se importó.
+  for (const slug of HOME_TEAM_SLUGS) {
+    if (picked.length >= limit) break;
+    const row = await prisma.product.findFirst({
+      where: { club: slug, rank: 0, stock: { gt: 0 }, images: { isEmpty: false }, id: { notIn: picked.map((r) => r.id) } },
+      orderBy: { createdAt: "desc" },
+      ...withPatches,
+    });
+    if (row) picked.push(row);
+  }
+  // Catálogo todavía sin clasificar: las primeras del orden "Destacados".
+  if (picked.length < limit) {
+    const rest = await prisma.product.findMany({
+      where: { stock: { gt: 0 }, id: { notIn: picked.map((r) => r.id) } },
+      orderBy: [{ rank: "asc" }, { createdAt: "desc" }],
+      take: limit - picked.length,
+      ...withPatches,
+    });
+    picked.push(...rest);
+  }
+  const badge = new Set(bestIds.slice(0, 6));
+  return { products: picked.map((r) => serializeProduct(r, badge)), fromOrders };
+}
+
+/** Para "Lo más pedido" / "Destacados" de la portada. `fromOrders` = cuántos salen de pedidos reales. */
+export const getFeaturedProducts = unstable_cache(fetchFeaturedProducts, ["featured-products"], {
+  revalidate: 300,
+});
 
 /** Slugs de los productos más recientes, para prerenderizar /producto/[slug] en el
  *  build (ISR). Con miles de productos no tiene sentido (ni conviene) prerenderizar
@@ -216,9 +270,15 @@ export async function getAllProductSlugs(limit = 50): Promise<string[]> {
 /** Slug + fecha de TODOS los productos, para el sitemap. A diferencia de
  *  getProducts(), no trae parches/talles/más-vendidos: el sitemap solo necesita
  *  la URL y la fecha de cada uno, así que evita esa consulta pesada por completo. */
-export async function getSitemapProducts(): Promise<{ slug: string; createdAt: Date }[]> {
-  return prisma.product.findMany({ select: { slug: true, createdAt: true } });
-}
+export const getSitemapProducts = unstable_cache(
+  async (): Promise<{ slug: string; createdAt: string }[]> => {
+    const rows = await prisma.product.findMany({ select: { slug: true, createdAt: true } });
+    return rows.map((r) => ({ slug: r.slug, createdAt: r.createdAt.toISOString() }));
+  },
+  ["sitemap-products"],
+  // Cacheado 1 h: con 5.000 productos la consulta tardaba ~3,5 s en cada visita de un buscador.
+  { revalidate: 3600 },
+);
 
 export async function getProductByIdOrSlug(idOrSlug: string): Promise<Product | null> {
   const asId = Number(idOrSlug);

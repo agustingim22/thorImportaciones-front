@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getProducts, getTeamShowcase, type TeamShowcaseItem } from "@/lib/products";
+import { getFeaturedProducts, getTeamShowcase, type TeamShowcaseItem } from "@/lib/products";
 import { TeamShowcase } from "@/components/TeamShowcase";
 import type { Product } from "@/lib/api";
 import { ProductCard } from "@/components/ProductCard";
@@ -22,7 +22,7 @@ export default async function Home() {
   // Las 4 consultas son independientes entre sí: se disparan en paralelo en vez
   // de una tras otra para no sumar round-trips a la base de forma innecesaria.
   const [featuredResult, testimonialsResult, heroImagesResult, instagramResult, teamsResult] = await Promise.allSettled([
-    getProducts({ pageSize: 3 }),
+    getFeaturedProducts(3),
     getPublishedTestimonials(),
     getHeroImages(),
     getInstagramPosts(),
@@ -32,6 +32,11 @@ export default async function Home() {
 
   const featured: Product[] =
     featuredResult.status === "fulfilled" ? featuredResult.value.products : [];
+  // "Lo más pedido" solo si de verdad salen de pedidos; si no, "Destacados" (camisetas de los equipos principales).
+  const featuredTitle =
+    featuredResult.status === "fulfilled" && featured.length > 0 && featuredResult.value.fromOrders >= featured.length
+      ? "Lo más pedido"
+      : "Destacados";
   const testimonials: Testimonial[] =
     testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [];
   const heroImages: HeroImage[] =
@@ -108,7 +113,7 @@ export default async function Home() {
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-display text-3xl tracking-wide text-thor-ink sm:text-4xl">
-              Lo más pedido
+              {featuredTitle}
             </h2>
             <p className="mt-1 text-sm text-thor-muted">
               Una muestra de lo que tenemos importado y listo para enviar.

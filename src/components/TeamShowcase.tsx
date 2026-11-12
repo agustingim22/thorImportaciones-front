@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { TeamShowcaseItem } from "@/lib/products";
 import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
+import { clubPath } from "@/lib/clubs";
 
 /** Bloque "Comprá por equipo" de la portada: una tarjeta por equipo con la foto de una camiseta suya.
  *  Es navegación: cada tarjeta lleva a la página del equipo. Con scroll horizontal en mobile. */
@@ -25,7 +26,7 @@ export function TeamShowcase({ items }: { items: TeamShowcaseItem[] }) {
         {items.map((t) => (
           <li key={t.slug} className="w-36 shrink-0 sm:w-auto">
             <Link
-              href={`/catalogo?club=${t.slug}`}
+              href={clubPath(t.slug)}
               className="group block overflow-hidden rounded-2xl border border-thor-line bg-thor-paper transition-transform duration-200 hover:-translate-y-1"
             >
               <span className="relative block aspect-square bg-thor-cream-2">

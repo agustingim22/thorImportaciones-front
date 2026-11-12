@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Logo } from "./Logo";
 import { ClubsMenu } from "./ClubsMenu";
-import { CLUB_GROUPS, MENU_CLUBS, matchClubsForSearch } from "@/lib/clubs";
+import { CLUB_GROUPS, MENU_CLUBS, clubPath, matchClubsForSearch } from "@/lib/clubs";
 import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { useFavorites } from "@/lib/favorites";
@@ -34,8 +34,11 @@ export function Nav() {
   const { user } = useAuth();
   const { ids: favoriteIds } = useFavorites();
 
+  // Las páginas de equipo (/equipo/…, /equipos) son parte del catálogo.
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/"
+      ? pathname === "/"
+      : pathname.startsWith(href) || (href === "/catalogo" && pathname.startsWith("/equipo"));
 
   useEffect(() => {
     const query = q.trim();
@@ -177,7 +180,7 @@ export function Nav() {
                 {teamSuggestions.map((c) => (
                   <Link
                     key={c.slug}
-                    href={`/catalogo?club=${c.slug}`}
+                    href={clubPath(c.slug)}
                     onClick={closeSearch}
                     className="flex items-center gap-3 border-b border-thor-line bg-thor-gold/5 px-3 py-2.5 text-sm text-thor-ink transition-colors hover:bg-thor-gold/10"
                   >
@@ -258,7 +261,7 @@ export function Nav() {
                       {MENU_CLUBS.filter((c) => c.group === g.key).map((c) => (
                         <li key={c.slug}>
                           <Link
-                            href={`/catalogo?club=${c.slug}`}
+                            href={clubPath(c.slug)}
                             onClick={() => setOpen(false)}
                             className="block rounded-lg px-3 py-2 text-sm text-thor-ink hover:bg-thor-cream-2"
                           >

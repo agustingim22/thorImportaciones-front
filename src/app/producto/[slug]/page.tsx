@@ -12,8 +12,9 @@ import { RecentlyViewed } from "@/components/RecentlyViewed";
 import { Testimonials } from "@/components/Testimonials";
 import { getPublishedTestimonials } from "@/lib/testimonials";
 import { PRODUCT_TYPE_LABELS } from "@/lib/api";
-import { clubHeading, getClubBySlug } from "@/lib/clubs";
+import { clubHeading, clubPath, getClubBySlug } from "@/lib/clubs";
 import { SITE_URL } from "@/lib/site";
+import { productDescription } from "@/lib/seo";
 
 // No lee cookies/headers: se sirve cacheada y se regenera en segundo plano
 // (el stock/precio real siempre se valida de nuevo en el checkout).
@@ -38,14 +39,15 @@ export async function generateMetadata(props: {
   const { slug } = await props.params;
   const p = await getProductByIdOrSlug(slug);
   if (!p) return { title: "Producto no encontrado" };
+  const description = productDescription(p);
   return {
     title: p.name,
-    description: p.description,
+    description,
     keywords: [p.name, PRODUCT_TYPE_LABELS[p.type]].filter(Boolean),
     alternates: { canonical: `/producto/${p.slug}` },
     openGraph: {
       title: p.name,
-      description: p.description,
+      description,
       url: `/producto/${p.slug}`,
       images: p.images.length > 0 ? p.images : undefined,
     },
@@ -78,11 +80,14 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
   const averageRating =
     reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
 
+  // Los productos importados vienen sin descripción: se muestra (y se manda a Google) una generada.
+  const description = productDescription(product);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description,
+    description,
     image: product.images,
     url: `${SITE_URL}/producto/${product.slug}`,
     ...(reviews.length > 0 && {
@@ -109,7 +114,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
       { "@type": "ListItem", position: 1, name: "Inicio", item: SITE_URL },
       { "@type": "ListItem", position: 2, name: "Catálogo", item: `${SITE_URL}/catalogo` },
       ...(clubInfo
-        ? [{ "@type": "ListItem", position: 3, name: clubInfo.name, item: `${SITE_URL}/catalogo?club=${clubInfo.slug}` }]
+        ? [{ "@type": "ListItem", position: 3, name: clubInfo.name, item: `${SITE_URL}${clubPath(clubInfo.slug)}` }]
         : []),
       {
         "@type": "ListItem",
@@ -139,7 +144,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
           {clubInfo && (
             <>
               /{" "}
-              <Link href={`/catalogo?club=${clubInfo.slug}`} className="hover:text-thor-gold">
+              <Link href={clubPath(clubInfo.slug)} className="hover:text-thor-gold">
                 {clubInfo.name}
               </Link>{" "}
             </>
@@ -147,7 +152,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
           / <span className="text-thor-ink">{product.name}</span>
         </nav>
 
-        <ProductPurchase product={product} />
+        <ProductPurchase product={{ ...product, description }} />
 
         {related.length > 0 && (
           <section className="mt-16 border-t border-thor-line pt-10">
@@ -157,7 +162,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
               </h2>
               {relatedClub && (
                 <Link
-                  href={`/catalogo?club=${relatedClub.slug}`}
+                  href={clubPath(relatedClub.slug)}
                   className="font-mono text-xs font-bold uppercase tracking-wider text-thor-gold hover:underline"
                 >
                   Ver todo →
