@@ -17,7 +17,7 @@ import { trackPixelEvent } from "@/lib/metaPixel";
 import { pushEcommerceEvent } from "@/lib/dataLayer";
 import { notifyStockAvailable } from "@/lib/stockNotify";
 import { SITE } from "@/lib/site";
-import { BUNDLE_OFF, type BundleSettings } from "@/lib/bundle";
+import { BUNDLE_OFF, bundleTiers, type BundleSettings } from "@/lib/bundle";
 import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 import { FavoriteButton } from "./FavoriteButton";
 import { TallesGuideModal } from "./TallesGuideModal";
@@ -258,6 +258,14 @@ export function ProductPurchase({ product, bundle = BUNDLE_OFF }: { product: Pro
           <span className="w-fit rounded-md border border-thor-line bg-thor-paper px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-thor-ink-soft">
             {PRODUCT_TYPE_LABELS[product.type]}
           </span>
+          {["fan", "player", "retro"].includes(product.type) && (
+            <Link
+              href="/guia-de-versiones"
+              className="ml-auto font-mono text-[11px] text-thor-muted underline decoration-thor-line underline-offset-4 hover:text-thor-gold"
+            >
+              ¿Fan, jugador o retro?
+            </Link>
+          )}
           <FavoriteButton productId={product.id} className="h-9 w-9" />
         </div>
 
@@ -447,8 +455,15 @@ export function ProductPurchase({ product, bundle = BUNDLE_OFF }: { product: Pro
 
         {product.inStock && bundle.enabled && (
           <p className="mt-3 rounded-lg bg-thor-gold/15 px-3 py-2 text-xs text-thor-ink-soft">
-            🔥 Llevando <strong className="text-thor-ink">{bundle.minQty} o más camisetas</strong> tenés{" "}
-            <strong className="text-thor-ink">{bundle.percent}% de descuento</strong> en todo el pedido
+            🔥{" "}
+            {bundleTiers(bundle).map((t, i) => (
+              <span key={t.minQty}>
+                {i === 0 ? "Llevando " : " · "}
+                <strong className="text-thor-ink">{t.minQty} o más camisetas</strong> tenés{" "}
+                <strong className="text-thor-ink">{t.percent}% de descuento</strong>
+              </span>
+            ))}{" "}
+            en todo el pedido
           </p>
         )}
 

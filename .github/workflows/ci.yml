@@ -1,0 +1,69 @@
+name: CI
+
+# Corre en cada push a main y en cada pull request. Ojo: Vercel despliega igual aunque esto falle (no lo frena):
+# sirve para enterarse enseguida de si algo se rompió. Para que bloquee, hay que activar "branch protection" en GitHub.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Una base Postgres vacía y descartable para las migraciones y las pruebas de pedidos.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: thor_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/thor_test?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/thor_test?schema=public
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/thor_test?schema=public
+      NEXT_PUBLIC_APP_URL: https://ci.example.test
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Aplicar las migraciones desde cero
+        run: npx prisma migrate deploy
+
+      - name: Compilar (genera además los tipos de las rutas de Next)
+        run: npm run build
+
+      - name: Tipos (TypeScript)
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Pruebas
+        run: npm test

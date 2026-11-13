@@ -296,10 +296,12 @@ model SearchTerm {
 
 /// Descuento por cantidad ("combo"), configurable desde el admin (fila única, id=1). Apagado por defecto.
 model BundleSettings {
-  id      Int     @id @default(1)
-  enabled Boolean @default(false)
-  minQty  Int     @default(2) // unidades desde las que aplica
-  percent Int     @default(10) // % de descuento sobre el subtotal de productos
+  id       Int     @id @default(1)
+  enabled  Boolean @default(false)
+  minQty   Int     @default(2) // unidades desde las que aplica
+  percent  Int     @default(10) // % de descuento sobre el subtotal de productos
+  minQty2  Int? // segundo escalón (opcional): unidades desde las que aplica…
+  percent2 Int? // …y su % de descuento (mayor que el del primero). Van los dos o ninguno.
 }
 
 model OrderItem {

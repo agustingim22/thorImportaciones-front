@@ -32,19 +32,37 @@ npm run dev        # http://localhost:3000
 ```
 
 - **Tienda**: http://localhost:3000
-- **Panel admin**: http://localhost:3000/admin (token = `ADMIN_TOKEN` del `.env.local`)
+- **Panel admin**: http://localhost:3000/admin (se entra con el `ADMIN_TOKEN` del `.env.local`; el servidor responde con una cookie de sesión y el token no queda guardado en el navegador)
 
 ## Variables de entorno (ver `.env.example`)
 
 | Variable | Para qué | Dónde |
 |---|---|---|
 | `DATABASE_URL` | Conexión a PostgreSQL | `.env` |
-| `ADMIN_TOKEN` | Acceso al panel admin | `.env.local` |
+| `ADMIN_TOKEN` | Acceso al panel admin (usar una clave larga y al azar, de 32 caracteres o más; el panel avisa si es corta) | `.env.local` |
 | `CLOUDINARY_URL` | Subida de fotos | `.env.local` |
 | `MERCADOPAGO_ACCESS_TOKEN` | Cobros (TEST-… o APP_USR-…) | `.env.local` |
 | `NEXT_PUBLIC_APP_URL` | URL pública (back_urls de MP) | `.env.local` |
 
 Ningún secreto se commitea (`.env` y `.env.local` están en `.gitignore`).
+
+## Pruebas y CI
+
+```bash
+npm test            # pruebas unitarias (combos, cupones, clasificación por equipo, sesión del admin…)
+npm run typecheck   # TypeScript
+npm run lint
+```
+
+Las pruebas de **pedidos** usan una base de datos real y escriben/borran datos, así que solo corren si se les pasa
+una base en `localhost` (nunca la de producción):
+
+```bash
+TEST_DATABASE_URL=postgresql://usuario:clave@localhost:5432/thor npm test
+```
+
+En GitHub, `.github/workflows/ci.yml` corre migraciones desde cero, build, tipos, lint y todas las pruebas en cada push
+y pull request. No frena el deploy de Vercel: avisa si algo se rompió.
 
 ## Estructura
 
@@ -67,6 +85,7 @@ prisma/
 ## Seguridad
 
 - Los **precios se recalculan siempre en el servidor** (el cliente solo manda producto + cantidad).
-- El panel admin va detrás de token; endpoints de admin protegidos.
+- El panel admin va detrás de una **sesión por cookie** (httpOnly, SameSite=Strict, limitada a `/api/admin`), con límite de intentos de login. Los scripts siguen pudiendo usar `Authorization: Bearer <ADMIN_TOKEN>`. Cambiar `ADMIN_TOKEN` cierra todas las sesiones.
+- Cabeceras de seguridad en todo el sitio y una política CSP: `object-src` y `base-uri` aplicadas, el resto en modo "solo reportar" (los avisos llegan a `/api/csp-report`).
 - Secretos en variables de entorno; nunca en el código.
 - Prisma evita inyección SQL (consultas parametrizadas).

@@ -8,12 +8,13 @@ import {
   adminDeleteProduct,
   adminListProducts,
   adminListStockNotifications,
-  adminPing,
   adminUpdateProduct,
   adminUploadImage,
-  clearToken,
-  getToken,
-  setToken,
+  adminLogin,
+  adminLogout,
+  adminSession,
+  clearLegacyToken,
+  getLegacyToken,
   type PatchInput,
   type ProductInput,
 } from "@/lib/admin";
@@ -126,6 +127,7 @@ export function AdminDashboard() {
   >("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [weakToken, setWeakToken] = useState(false);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
@@ -157,32 +159,40 @@ export function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    const t = getToken();
-    if (!t) {
-      setAuthed(false);
-      return;
-    }
-    adminPing(t).then((ok) => {
-      if (ok) {
-        setAuthed(true);
-        load();
-      } else {
-        clearToken();
-        setAuthed(false);
+    let cancelled = false;
+    (async () => {
+      let session = await adminSession();
+      // Quien ya tenía el token guardado en el navegador (versión anterior del panel) entra sin tipearlo de nuevo:
+      // se lo cambia por la cookie de sesión y se borra de localStorage.
+      const legacy = getLegacyToken();
+      if (legacy) {
+        if (!session.ok) {
+          const login = await adminLogin(legacy);
+          if (login.ok) session = { ok: true, weakToken: login.weakToken };
+        }
+        clearLegacyToken();
       }
-    });
+      if (cancelled) return;
+      setWeakToken(session.weakToken);
+      setAuthed(session.ok);
+      if (session.ok) load();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [load]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginError("");
-    const ok = await adminPing(tokenInput.trim());
-    if (ok) {
-      setToken(tokenInput.trim());
+    const res = await adminLogin(tokenInput.trim());
+    if (res.ok) {
+      setTokenInput("");
+      setWeakToken(res.weakToken);
       setAuthed(true);
       load();
     } else {
-      setLoginError("Token incorrecto.");
+      setLoginError(res.error ?? "Token incorrecto.");
     }
   }
 
@@ -469,8 +479,8 @@ export function AdminDashboard() {
             </>
           )}
           <button
-            onClick={() => {
-              clearToken();
+            onClick={async () => {
+              await adminLogout();
               setAuthed(false);
             }}
             className="rounded-lg border border-thor-line px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-muted hover:text-thor-ink"
@@ -479,6 +489,14 @@ export function AdminDashboard() {
           </button>
         </div>
       </div>
+
+      {weakToken && (
+        <p className="mt-4 rounded-lg border border-red-600/30 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <strong>Tu clave de administrador es corta.</strong> Es la única llave de todo el panel: conviene cambiarla en
+          Vercel (variable <code className="font-mono">ADMIN_TOKEN</code>) por una de 32 caracteres o más, al azar. Al
+          cambiarla se cierran las sesiones abiertas y hay que volver a entrar.
+        </p>
+      )}
 
       {/* Pestañas */}
       <div className="mt-5 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">

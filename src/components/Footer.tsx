@@ -6,6 +6,7 @@ import { NewsletterForm } from "./NewsletterForm";
 const LINKS = [
   { href: "/catalogo", label: "Catálogo" },
   { href: "/talles", label: "Guía de talles" },
+  { href: "/guia-de-versiones", label: "Fan, jugador o retro" },
   { href: "/preguntas-frecuentes", label: "Preguntas frecuentes" },
   { href: "/pedido", label: "Seguir mi pedido" },
   { href: "/sobre-nosotros", label: "Sobre nosotros" },

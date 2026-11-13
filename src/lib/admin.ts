@@ -4,7 +4,9 @@ import type { Product, ProductType } from "./api";
 import type { ShippingSettings } from "./shippingCalc";
 import type { BundleSettings } from "./bundle";
 
-const TOKEN_KEY = "thor-admin-token";
+// Antes el token de admin se guardaba acá, en localStorage (cualquier script de la página podía leerlo). Ahora
+// el servidor da una cookie de sesión httpOnly; esta clave solo se usa para migrar a quien lo tenía guardado.
+const LEGACY_TOKEN_KEY = "thor-admin-token";
 
 export type PatchInput = {
   label: string;
@@ -30,30 +32,57 @@ export type ProductInput = {
   club?: string | null;
 };
 
-export function getToken(): string | null {
+/** El token que tenía guardado el navegador de versiones anteriores del panel, si lo hay. */
+export function getLegacyToken(): string | null {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  try {
+    return window.localStorage.getItem(LEGACY_TOKEN_KEY);
+  } catch {
+    return null;
+  }
 }
-export function setToken(token: string) {
-  window.localStorage.setItem(TOKEN_KEY, token);
-}
-export function clearToken() {
-  window.localStorage.removeItem(TOKEN_KEY);
+export function clearLegacyToken() {
+  try {
+    window.localStorage.removeItem(LEGACY_TOKEN_KEY);
+  } catch {
+    /* sin acceso al almacenamiento: nada que borrar */
+  }
 }
 
+// La sesión viaja en una cookie httpOnly que el navegador manda solo a /api/admin: acá no hay nada que armar.
 function authHeaders(): HeadersInit {
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${getToken() ?? ""}`,
-  };
+  return { "Content-Type": "application/json" };
 }
 
-/** Valida el token contra la API. */
-export async function adminPing(token: string): Promise<boolean> {
-  const res = await fetch(`/api/admin/ping`, {
-    headers: { Authorization: `Bearer ${token}` },
+/** Ingresa con el token de administrador; si es correcto el servidor deja la cookie de sesión. */
+export async function adminLogin(token: string): Promise<{ ok: boolean; weakToken: boolean; error?: string }> {
+  const res = await fetch(`/api/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
   });
-  return res.ok;
+  if (res.ok) {
+    const data = (await res.json()) as { weakToken?: boolean };
+    return { ok: true, weakToken: !!data.weakToken };
+  }
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  return { ok: false, weakToken: false, error: data.error };
+}
+
+/** ¿Hay una sesión de administrador vigente? `weakToken`: el ADMIN_TOKEN configurado es corto. */
+export async function adminSession(): Promise<{ ok: boolean; weakToken: boolean }> {
+  try {
+    const res = await fetch(`/api/admin/ping`, { cache: "no-store" });
+    if (!res.ok) return { ok: false, weakToken: false };
+    const data = (await res.json()) as { weakToken?: boolean };
+    return { ok: true, weakToken: !!data.weakToken };
+  } catch {
+    return { ok: false, weakToken: false };
+  }
+}
+
+export async function adminLogout(): Promise<void> {
+  await fetch(`/api/admin/logout`, { method: "POST" }).catch(() => {});
 }
 
 export async function adminListProducts(): Promise<Product[]> {
@@ -93,7 +122,6 @@ export async function adminUploadImage(file: File): Promise<string> {
   const res = await fetch(`/api/admin/upload`, {
     method: "POST",
     // Sin Content-Type: el navegador pone el boundary de multipart automáticamente.
-    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
     body: fd,
   });
   if (!res.ok) throw await toError(res);
@@ -441,7 +469,6 @@ export async function adminUploadHeroImage(file: File): Promise<string> {
   fd.append("file", file);
   const res = await fetch(`/api/admin/hero-images/upload`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
     body: fd,
   });
   if (!res.ok) throw await toError(res);

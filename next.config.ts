@@ -1,6 +1,29 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+/**
+ * Política de seguridad de contenido (CSP). Qué se aplica y qué solo se mide:
+ *  - OBLIGATORIA: object-src y base-uri. El sitio no usa <object>, <embed> ni <base>, así que no puede romperse nada.
+ *  - SOLO REPORTE: el resto (de dónde puede bajar scripts, imágenes, etc.). El navegador avisa a /api/csp-report qué
+ *    habría bloqueado pero no bloquea nada; con esos avisos se ajusta la lista y, si algún día se quiere, se pasa a
+ *    obligatoria. Lleva 'unsafe-inline' en scripts porque Next inserta scripts en línea y un "nonce" obligaría a
+ *    renderizar todas las páginas en cada visita (se perdería el caché): protege menos contra XSS que una política estricta.
+ *  Solo en producción: en desarrollo Next usa eval y llenaría los avisos de ruido.
+ */
+const CSP_ENFORCED = "object-src 'none'; base-uri 'self'";
+const CSP_REPORT_ONLY = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://www.instagram.com https://www.google-analytics.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://ssl.images-ssl-mars.com https://www.facebook.com https://www.google-analytics.com https://www.googletagmanager.com https://*.cdninstagram.com https://*.fbcdn.net https://www.google.com https://googleads.g.doubleclick.net",
+  "font-src 'self' data:",
+  "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net https://*.ingest.sentry.io https://*.ingest.us.sentry.io",
+  "frame-src https://www.googletagmanager.com https://www.instagram.com",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  "report-uri /api/csp-report",
+].join("; ");
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -22,6 +45,12 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "SAMEORIGIN" }, // nadie puede mostrar el sitio dentro de otra página (clickjacking)
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" }, // no filtra direcciones completas a otros sitios
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" }, // el sitio no usa estas funciones
+          ...(process.env.NODE_ENV === "production"
+            ? [
+                { key: "Content-Security-Policy", value: CSP_ENFORCED },
+                { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
+              ]
+            : []),
         ],
       },
     ];

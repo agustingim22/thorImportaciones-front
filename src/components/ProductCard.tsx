@@ -18,7 +18,14 @@ import { FavoriteButton } from "./FavoriteButton";
 // La vista rápida solo se usa al tocar el ojito: su código se baja recién entonces, no con la página.
 const QuickViewModal = dynamic(() => import("./QuickViewModal").then((m) => m.QuickViewModal));
 
-export function ProductCard({ product }: { product: CardProduct }) {
+/** Cuántas tarjetas del principio de la grilla cargan su foto de inmediato (el resto, al acercarse al scroll). */
+export const EAGER_CARDS = 4;
+
+/** `position`: lugar de la tarjeta en la grilla (0 = la primera). Las de arriba están a la vista apenas carga la
+ *  página y una de ellas es la imagen principal (LCP): con carga diferida el navegador las pedía tarde. La primera
+ *  además pide prioridad alta. Next 16 recomienda `loading`/`fetchPriority` (y no `preload`) cuando hay varias
+ *  candidatas según el tamaño de pantalla. */
+export function ProductCard({ product, position }: { product: CardProduct; position?: number }) {
   // Si el comprador tiene algo para elegir (nombre, número o parche), lo mandamos
   // al detalle a personalizar en vez de agregarlo directo desde la card.
   // Las prendas que no son camisetas (remeras, conjuntos, pantalones) nunca se personalizan.
@@ -65,6 +72,8 @@ export function ProductCard({ product }: { product: CardProduct }) {
               alt={product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              loading={position !== undefined && position < EAGER_CARDS ? "eager" : undefined}
+              fetchPriority={position === 0 ? "high" : undefined}
               className="object-cover"
               unoptimized={isUnoptimizedImage(product.imageUrl)}
             />

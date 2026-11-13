@@ -6,7 +6,7 @@ import { useCart } from "@/lib/cart";
 import { useAuth } from "@/lib/auth";
 import { createOrder, getShippingSettings, uploadReceipt, type CreateOrderResult } from "@/lib/orders";
 import { computeShippingCost, type ShippingSettings } from "@/lib/shippingCalc";
-import { BUNDLE_OFF, bestDiscount, bundleDiscount, fetchBundleSettings, unitsToUnlock, type BundleSettings } from "@/lib/bundle";
+import { BUNDLE_OFF, activeTier, bestDiscount, bundleDiscount, fetchBundleSettings, nextTier, type BundleSettings } from "@/lib/bundle";
 import { isValidPhone, PHONE_HINT } from "@/lib/validation";
 import { MERCADOPAGO_ENABLED, SITE, whatsappUrl } from "@/lib/site";
 import { AddressFields, Field, emptyAddress, inputCls } from "@/components/AddressFields";
@@ -77,7 +77,9 @@ export default function CarritoPage() {
   const bundleAmount = bundleDiscount(total, units, bundle);
   const best = bestDiscount(appliedCoupon?.discountAmount ?? 0, bundleAmount);
   const discountAmount = best.amount;
-  const missingForBundle = unitsToUnlock(units, bundle);
+  const tier = activeTier(units, bundle); // el escalón del combo que alcanza hoy el carrito
+  const next = nextTier(units, bundle); // el próximo, para decirle cuánto le falta
+  const missingForBundle = next ? next.minQty - units : 0;
   const shippingCost = computeShippingCost(total, shipping);
   const grandTotal = Math.max(0, total - discountAmount) + shippingCost;
 
@@ -284,13 +286,14 @@ export default function CarritoPage() {
           onSubmit={handleCheckout}
           className="h-fit rounded-2xl border border-thor-line bg-thor-paper p-6"
         >
-          {missingForBundle > 0 && (
+          {next && missingForBundle > 0 && (
             <p className="mb-4 rounded-lg bg-thor-gold/15 px-3 py-2 text-xs text-thor-ink-soft">
               🔥 Sumá{" "}
               <strong className="text-thor-ink">
                 {missingForBundle} camiseta{missingForBundle > 1 ? "s" : ""} más
               </strong>{" "}
-              y te llevás <strong className="text-thor-ink">{bundle.percent}% de descuento</strong> en todo el pedido
+              {tier ? "y subí tu descuento al " : "y te llevás "}
+              <strong className="text-thor-ink">{next.percent}% de descuento</strong> en todo el pedido
             </p>
           )}
           {shipping.freeShippingThreshold != null &&
@@ -325,7 +328,7 @@ export default function CarritoPage() {
             </div>
             {best.source === "bundle" && (
               <div className="flex items-center justify-between text-sm text-thor-land">
-                <span>Combo {bundle.percent}% off</span>
+                <span>Combo {tier?.percent ?? bundle.percent}% off</span>
                 <span className="tabular-nums">-${discountAmount.toLocaleString("es-AR")}</span>
               </div>
             )}

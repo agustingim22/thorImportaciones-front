@@ -345,8 +345,8 @@ export default async function CatalogoPage(props: PageProps<"/catalogo">) {
         {products.length > 0 ? (
           <>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {products.map((p) => (
-                <ProductCard key={p.id} product={toCardProduct(p)} />
+              {products.map((p, i) => (
+                <ProductCard key={p.id} product={toCardProduct(p)} position={i} />
               ))}
             </div>
 

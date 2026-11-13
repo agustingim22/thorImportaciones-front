@@ -16,7 +16,13 @@ export async function PUT(req: Request) {
   const error = validateBundle(input);
   if (error) return NextResponse.json({ error }, { status: 400 });
 
-  const data = { enabled: input.enabled!, minQty: input.minQty!, percent: input.percent! };
+  const data = {
+    enabled: input.enabled!,
+    minQty: input.minQty!,
+    percent: input.percent!,
+    minQty2: input.minQty2 ?? null,
+    percent2: input.percent2 ?? null,
+  };
   await prisma.bundleSettings.upsert({ where: { id: 1 }, create: { id: 1, ...data }, update: data });
   // Las fichas de producto muestran el cartel del combo y se sirven cacheadas: que se actualicen ya.
   revalidatePath("/producto/[slug]", "page");
