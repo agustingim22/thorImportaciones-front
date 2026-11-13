@@ -145,6 +145,7 @@ async function fetchProducts(params: GetProductsParams = {}): Promise<ProductsPa
  *  igual que ya pasa con la ficha de producto. */
 export const getProducts = unstable_cache(fetchProducts, ["products-list"], {
   revalidate: 60,
+  tags: ["products"], // para renovarlo al instante cuando cambian muchos precios de golpe (admin > Precios)
 });
 
 /** Cuántos productos tiene cada equipo destacado (slug → cantidad), para mostrar solo los
@@ -260,6 +261,7 @@ async function fetchFeaturedProducts(limit: number): Promise<FeaturedProducts> {
 /** Para "Lo más pedido" / "Destacados" de la portada. `fromOrders` = cuántos salen de pedidos reales. */
 export const getFeaturedProducts = unstable_cache(fetchFeaturedProducts, ["featured-products"], {
   revalidate: 300,
+  tags: ["products"],
 });
 
 /** Slugs de los productos más recientes, para prerenderizar /producto/[slug] en el

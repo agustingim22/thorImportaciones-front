@@ -3,6 +3,7 @@
 import type { Product, ProductType } from "./api";
 import type { ShippingSettings } from "./shippingCalc";
 import type { BundleSettings } from "./bundle";
+import type { PriceChangeSummary, PriceExpectation, PricePreview, PriceUpdateParams } from "./priceUpdate";
 
 // Antes el token de admin se guardaba acá, en localStorage (cualquier script de la página podía leerlo). Ahora
 // el servidor da una cookie de sesión httpOnly; esta clave solo se usa para migrar a quien lo tenía guardado.
@@ -85,12 +86,39 @@ export async function adminLogout(): Promise<void> {
   await fetch(`/api/admin/logout`, { method: "POST" }).catch(() => {});
 }
 
-export async function adminListProducts(): Promise<Product[]> {
-  const res = await fetch(`/api/admin/products`, {
+export type AdminProductsFilters = { q?: string; type?: string };
+
+function productsQuery(f: AdminProductsFilters, extra: Record<string, string | number> = {}): string {
+  const p = new URLSearchParams();
+  if (f.q) p.set("q", f.q);
+  if (f.type) p.set("type", f.type);
+  for (const [k, v] of Object.entries(extra)) p.set(k, String(v));
+  const s = p.toString();
+  return s ? `?${s}` : "";
+}
+
+/** TODOS los productos que coinciden con el filtro (pesa varios MB con el catálogo entero: se usa para exportar). */
+export async function adminListProducts(filters: AdminProductsFilters = {}): Promise<Product[]> {
+  const res = await fetch(`/api/admin/products${productsQuery(filters)}`, {
     headers: authHeaders(),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+export type AdminProductsPage = { items: Product[]; total: number; page: number; pageSize: number; pages: number };
+
+/** Una página del listado, con búsqueda y filtro de tipo resueltos en el servidor. */
+export async function adminProductsPage(
+  params: AdminProductsFilters & { page: number; pageSize?: number },
+): Promise<AdminProductsPage> {
+  const { page, pageSize = 50, ...filters } = params;
+  const res = await fetch(`/api/admin/products${productsQuery(filters, { page, pageSize })}`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  if (!res.ok) throw await toError(res);
   return res.json();
 }
 
@@ -514,6 +542,46 @@ export type AdminSubscriber = { id: number; email: string; createdAt: string };
 export async function adminListSubscribers(): Promise<AdminSubscriber[]> {
   const res = await fetch(`/api/admin/subscribers`, { headers: authHeaders(), cache: "no-store" });
   if (!res.ok) throw new Error(`Error ${res.status}`);
+  return res.json();
+}
+
+// ---- Actualización de precios por porcentaje ----
+export type AdminPriceHistory = { history: PriceChangeSummary[]; undoableId: number | null };
+
+export async function adminPriceHistory(): Promise<AdminPriceHistory> {
+  const res = await fetch(`/api/admin/prices`, { headers: authHeaders(), cache: "no-store" });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+/** Calcula qué cambiaría con estos datos, sin tocar ningún precio. */
+export async function adminPricePreview(params: PriceUpdateParams): Promise<PricePreview> {
+  const res = await fetch(`/api/admin/prices`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ ...params, mode: "preview" }),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+/** Aplica el cambio que se vio en la vista previa (`expect`); el servidor verifica que nada haya cambiado. */
+export async function adminPriceApply(
+  params: PriceUpdateParams,
+  expect: PriceExpectation,
+): Promise<{ count: number; id: number } & AdminPriceHistory> {
+  const res = await fetch(`/api/admin/prices`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ ...params, mode: "apply", expect }),
+  });
+  if (!res.ok) throw await toError(res);
+  return res.json();
+}
+
+export async function adminPriceUndo(): Promise<{ reverted: number; skipped: number } & AdminPriceHistory> {
+  const res = await fetch(`/api/admin/prices/undo`, { method: "POST", headers: authHeaders() });
+  if (!res.ok) throw await toError(res);
   return res.json();
 }
 

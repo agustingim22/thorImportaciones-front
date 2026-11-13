@@ -14,9 +14,9 @@ import {
 import { useCart } from "@/lib/cart";
 import { useRecentlyViewed } from "@/lib/recentlyViewed";
 import { trackPixelEvent } from "@/lib/metaPixel";
-import { pushEcommerceEvent } from "@/lib/dataLayer";
+import { pushEcommerceEvent, pushEvent } from "@/lib/dataLayer";
 import { notifyStockAvailable } from "@/lib/stockNotify";
-import { SITE } from "@/lib/site";
+import { SITE, SITE_URL, whatsappUrl } from "@/lib/site";
 import { BUNDLE_OFF, bundleTiers, type BundleSettings } from "@/lib/bundle";
 import { isUnoptimizedImage, resizeSupplierImage } from "@/lib/image";
 import { FavoriteButton } from "./FavoriteButton";
@@ -84,6 +84,15 @@ export function ProductPurchase({ product, bundle = BUNDLE_OFF }: { product: Pro
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
+
+  // Consulta por WhatsApp con la camiseta (y el talle, si ya lo eligió) en el mensaje, para no tener que explicarla.
+  const whatsappHref = whatsappUrl(
+    `¡Hola Thor! Quiero consultar por esta camiseta: ${product.name}${size ? ` (talle ${size})` : ""}. ${SITE_URL}/producto/${product.slug}`,
+  );
+  function handleWhatsappClick() {
+    trackPixelEvent("Contact", { content_name: product.name, content_ids: [String(product.id)], content_type: "product" });
+    pushEvent("whatsapp_click", { item_id: String(product.id), item_name: product.name });
+  }
 
   async function handleShare() {
     const url = window.location.href;
@@ -444,6 +453,15 @@ export function ProductPurchase({ product, bundle = BUNDLE_OFF }: { product: Pro
               Sin stock
             </span>
           )}
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleWhatsappClick}
+            className="rounded-lg border border-thor-line px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink transition-colors hover:border-thor-gold"
+          >
+            <span aria-hidden>💬</span> Consultar por WhatsApp
+          </a>
           <button
             type="button"
             onClick={handleShare}

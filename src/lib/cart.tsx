@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "./auth";
+import { effectivePrice, type Product } from "./api";
 
 export type CartItem = {
   lineId: string; // identifica esta línea (producto + personalización elegida)
@@ -88,6 +89,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const { user } = useAuth();
   const mergedForUserId = useRef<number | null>(null);
+  const pricesRefreshed = useRef(false);
 
   // Cargar desde localStorage al montar
   useEffect(() => {
@@ -99,6 +101,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
     setLoaded(true);
   }, []);
+
+  // Los precios pueden haber cambiado mientras el carrito estaba guardado (por ejemplo, una actualización de precios
+  // desde el admin): una sola vez al abrir el sitio se actualizan los precios del carrito a los vigentes. Así lo que se
+  // ve coincide con lo que se cobra (el pedido siempre se calcula en el servidor con el precio de la base).
+  useEffect(() => {
+    if (!loaded || items.length === 0 || pricesRefreshed.current) return;
+    pricesRefreshed.current = true;
+    const ids = [...new Set(items.map((i) => i.productId))];
+    fetch(`/api/products?ids=${ids.join(",")}`)
+      .then((res) => (res.ok ? (res.json() as Promise<Product[]>) : []))
+      .then((found) => {
+        const current = new Map(found.map((p) => [p.id, effectivePrice(p)]));
+        setItems((prev) =>
+          prev.map((i) => {
+            const price = current.get(i.productId);
+            return price === undefined || price === i.price ? i : { ...i, price };
+          }),
+        );
+      })
+      .catch(() => {
+        /* sin conexión: se queda con los precios guardados */
+      });
+  }, [loaded, items]);
 
   // Guardar en localStorage cuando cambia (siempre, esté logueado o no).
   useEffect(() => {

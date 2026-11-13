@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Product } from "@/lib/api";
 import { ALL_SIZES, DEFAULT_SIZES, PRODUCT_TYPE_LABELS, typeAllowsCustomization } from "@/lib/api";
 import {
   adminCreateProduct,
   adminDeleteProduct,
   adminListProducts,
+  adminProductsPage,
   adminListStockNotifications,
   adminUpdateProduct,
   adminUploadImage,
@@ -30,6 +31,7 @@ import { AdminShipping } from "./AdminShipping";
 import { AdminQuestions } from "./AdminQuestions";
 import { AdminClubs } from "./AdminClubs";
 import { AdminBundle } from "./AdminBundle";
+import { AdminPrices } from "./AdminPrices";
 import { AdminSearches } from "./AdminSearches";
 import { CLUB_GROUPS, FEATURED_CLUBS } from "@/lib/clubs";
 
@@ -90,6 +92,8 @@ function exportProductsCsv(products: Product[]) {
   URL.revokeObjectURL(url);
 }
 
+const PAGE_SIZE = 50;
+
 const EMPTY: ProductInput = {
   team: "",
   type: "retro",
@@ -124,15 +128,25 @@ export function AdminDashboard() {
     | "clubs"
     | "searches"
     | "bundle"
+    | "prices"
   >("products");
   const [tokenInput, setTokenInput] = useState("");
   const [loginError, setLoginError] = useState("");
   const [weakToken, setWeakToken] = useState(false);
 
-  const [products, setProducts] = useState<Product[]>([]);
+  // El listado se pide por páginas (con la búsqueda y el filtro resueltos en el servidor): con ~5.000 productos,
+  // bajarlos todos en cada apertura del panel eran varios MB.
+  const [products, setProducts] = useState<Product[]>([]); // solo la página que se está viendo
+  const [total, setTotal] = useState(0); // cuántos productos coinciden con la búsqueda y el filtro
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [search, setSearch] = useState(""); // lo que se está tipeando
+  const [query, setQuery] = useState(""); // la búsqueda que se aplica (con un breve retraso mientras se tipea)
   const [typeFilter, setTypeFilter] = useState<ProductInput["type"] | "">("");
+  const [exporting, setExporting] = useState(false);
+  const requestId = useRef(0);
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -145,18 +159,53 @@ export function AdminDashboard() {
   const [waitingStock, setWaitingStock] = useState<Record<number, number>>({});
 
   const load = useCallback(async () => {
+    const id = ++requestId.current;
     setLoading(true);
+    setLoadError("");
     try {
-      const [productsList, notifications] = await Promise.all([
-        adminListProducts(),
+      const [res, notifications] = await Promise.all([
+        adminProductsPage({ page, pageSize: PAGE_SIZE, q: query, type: typeFilter }),
         adminListStockNotifications().catch(() => []),
       ]);
-      setProducts(productsList);
+      if (id !== requestId.current) return; // mientras tanto se pidió otra cosa: esta respuesta ya no sirve
+      if (res.page > res.pages) {
+        setPage(res.pages); // por ejemplo, se borró el último producto de la última página
+        return;
+      }
+      setProducts(res.items);
+      setTotal(res.total);
+      setPages(res.pages);
       setWaitingStock(Object.fromEntries(notifications.map((n) => [n.productId, n.count])));
+    } catch (err) {
+      if (id === requestId.current) setLoadError(err instanceof Error ? err.message : "No se pudo cargar el listado.");
     } finally {
-      setLoading(false);
+      if (id === requestId.current) setLoading(false);
     }
-  }, []);
+  }, [page, query, typeFilter]);
+
+  // Carga (y recarga) el listado cuando hay sesión y cambia la página, la búsqueda o el filtro.
+  useEffect(() => {
+    if (authed) load();
+  }, [authed, load]);
+
+  // La búsqueda se aplica 300 ms después de dejar de tipear, y vuelve a la primera página.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setQuery(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      // Acá sí se bajan todos los que coinciden con la búsqueda y el filtro (el Excel lleva todo el listado).
+      exportProductsCsv(await adminListProducts({ q: query, type: typeFilter }));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -175,12 +224,11 @@ export function AdminDashboard() {
       if (cancelled) return;
       setWeakToken(session.weakToken);
       setAuthed(session.ok);
-      if (session.ok) load();
     })();
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -190,7 +238,6 @@ export function AdminDashboard() {
       setTokenInput("");
       setWeakToken(res.weakToken);
       setAuthed(true);
-      load();
     } else {
       setLoginError(res.error ?? "Token incorrecto.");
     }
@@ -445,12 +492,9 @@ export function AdminDashboard() {
     );
   }
 
-  const q = search.trim().toLowerCase();
-  const filteredProducts = products.filter((p) => {
-    if (typeFilter && p.type !== typeFilter) return false;
-    if (!q) return true;
-    return p.team.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q);
-  });
+  const filtering = query !== "" || typeFilter !== "";
+  const from = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(total, page * PAGE_SIZE);
 
   // ---- Panel ----
   return (
@@ -511,6 +555,7 @@ export function AdminDashboard() {
             ["testimonials", "Testimonios"],
             ["coupons", "Cupones"],
             ["bundle", "Combos"],
+            ["prices", "Precios"],
             ["searches", "Búsquedas"],
             ["instagram", "Instagram"],
             ["newsletter", "Newsletter"],
@@ -566,25 +611,31 @@ export function AdminDashboard() {
       <>
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <p className="text-sm text-thor-muted">
-          {filteredProducts.length} de {products.length} productos
+          {total === 0
+            ? "0 productos"
+            : `${from.toLocaleString("es-AR")}–${to.toLocaleString("es-AR")} de ${total.toLocaleString("es-AR")} productos`}
+          {filtering ? " (filtrados)" : ""}
         </p>
         <button
-          onClick={() => exportProductsCsv(filteredProducts)}
-          disabled={filteredProducts.length === 0}
+          onClick={handleExport}
+          disabled={total === 0 || exporting}
           className="rounded-lg bg-thor-land px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-white disabled:opacity-50"
         >
-          ↓ Exportar a Excel
+          {exporting ? "Preparando…" : "↓ Exportar a Excel"}
         </button>
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por equipo…"
+          placeholder="Buscar por equipo o nombre…"
           className="min-w-[220px] flex-1 rounded-lg border border-thor-line bg-thor-paper px-3 py-2 text-sm text-thor-ink"
         />
         <div className="inline-flex flex-wrap gap-1 rounded-xl border border-thor-line bg-thor-paper p-1">
           <button
-            onClick={() => setTypeFilter("")}
+            onClick={() => {
+              setTypeFilter("");
+              setPage(1);
+            }}
             className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors ${
               typeFilter === "" ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
             }`}
@@ -594,7 +645,10 @@ export function AdminDashboard() {
           {TYPES.map(([value, label]) => (
             <button
               key={value}
-              onClick={() => setTypeFilter(value)}
+              onClick={() => {
+                setTypeFilter(value);
+                setPage(1);
+              }}
               className={`rounded-lg px-3 py-1.5 font-mono text-[11px] font-bold uppercase tracking-wider transition-colors ${
                 typeFilter === value ? "bg-thor-gold text-thor-ink" : "text-thor-muted hover:text-thor-ink"
               }`}
@@ -625,15 +679,25 @@ export function AdminDashboard() {
                 </td>
               </tr>
             )}
-            {!loading && products.length > 0 && filteredProducts.length === 0 && (
+            {!loading && loadError && (
+              <tr>
+                <td colSpan={7} className="px-4 py-8 text-center text-red-600">
+                  {loadError}{" "}
+                  <button onClick={() => load()} className="underline">
+                    Reintentar
+                  </button>
+                </td>
+              </tr>
+            )}
+            {!loading && !loadError && products.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-thor-muted">
-                  Ningún producto coincide con la búsqueda o el filtro.
+                  {filtering ? "Ningún producto coincide con la búsqueda o el filtro." : "Todavía no hay productos."}
                 </td>
               </tr>
             )}
             {!loading &&
-              filteredProducts.map((p) => (
+              products.map((p) => (
                 <tr key={p.id} className="border-b border-thor-line last:border-0">
                   <td className="px-4 py-3 font-semibold text-thor-ink">{p.team}</td>
                   <td className="px-4 py-3 text-thor-muted">{PRODUCT_TYPE_LABELS[p.type]}</td>
@@ -720,6 +784,27 @@ export function AdminDashboard() {
           </tbody>
         </table>
       </div>
+      {pages > 1 && (
+        <div className="mt-4 flex items-center justify-center gap-3">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1 || loading}
+            className="rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold disabled:opacity-40"
+          >
+            ← Anterior
+          </button>
+          <span className="font-mono text-xs tabular-nums text-thor-muted">
+            Página {page.toLocaleString("es-AR")} de {pages.toLocaleString("es-AR")}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(pages, p + 1))}
+            disabled={page >= pages || loading}
+            className="rounded-lg border border-thor-line px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-thor-ink hover:border-thor-gold disabled:opacity-40"
+          >
+            Siguiente →
+          </button>
+        </div>
+      )}
       </>
       )}
 
@@ -800,6 +885,13 @@ export function AdminDashboard() {
       {tab === "bundle" && (
         <div className="mt-6">
           <AdminBundle />
+        </div>
+      )}
+
+      {/* Actualizar precios por porcentaje */}
+      {tab === "prices" && (
+        <div className="mt-6">
+          <AdminPrices />
         </div>
       )}
 

@@ -18,6 +18,12 @@ type EcommercePayload = {
   items: EcommerceItem[];
 };
 
+/** Dispara un evento simple al dataLayer de GTM (por ejemplo un clic en WhatsApp). No hace nada si GTM no está activo. */
+export function pushEvent(event: string, params: Record<string, unknown> = {}): void {
+  if (typeof window === "undefined" || !window.dataLayer) return;
+  window.dataLayer.push({ event, ...params });
+}
+
 /**
  * Dispara un evento de ecommerce (esquema GA4) al dataLayer de GTM, para que
  * Analytics/Ads puedan medir conversiones. No hace nada si GTM no está activo.

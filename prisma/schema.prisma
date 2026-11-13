@@ -318,3 +318,16 @@ model OrderItem {
   patchLabel      String? // snapshot del parche elegido, si eligió alguno
   patchExtraPrice Int? // snapshot del precio extra del parche elegido
 }
+
+/// Historial de las actualizaciones de precios por porcentaje (admin > Precios), con los precios de antes y de
+/// después de cada producto para poder deshacer la última.
+model PriceChange {
+  id         Int       @id @default(autoincrement())
+  createdAt  DateTime  @default(now())
+  percent    Float // ej. 8 = subió 8%, -10 = bajó 10%
+  rounding   Int // se redondeó al múltiplo más cercano de este monto (1 = sin redondeo)
+  scope      Json // qué productos: { types, club, includeSale }
+  count      Int // cuántos productos cambiaron
+  items      Json // [{ id, price, salePrice, newPrice, newSalePrice }]
+  revertedAt DateTime? // si se deshizo, cuándo
+}
